@@ -67,7 +67,7 @@ class NasabahController extends Controller
                 'no_hp' => $item->no_hp ?? '-',
                 'saldo' => $item->saldo ?? 0,
                 'status_akun' => $item->status_akun ?? 'verifikasi',
-                'tanggal_daftar' => $item->tanggal_daftar?->format('Y-m-d') ?? '-',
+                'tanggal_daftar' => $item->tanggal_daftar instanceof \DateTime ? $item->tanggal_daftar->format('Y-m-d') : (is_string($item->tanggal_daftar) ? $item->tanggal_daftar : '-'),
             ];
         })
         ->toArray();

@@ -359,39 +359,47 @@
         }
 
         .member-img {
-            position: relative;
-            margin-bottom: 1.5rem;
             width: 230px;
-            height: 230px;
+            height: 320px;
             margin: 0 auto 20px;
-            border-radius: 50%;
             overflow: hidden;
-            border: 5px solid #52b788;
+
+            border-radius: 20px;
+
+            border: 4px solid #38b26d;
             box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+
+            background: #111;
         }
 
         .member-img img {
             width: 100%;
-            height: 280px;
+            height: 100%;
+
             object-fit: cover;
-            border-radius: 20px;
-            transition: 0.4s ease;
+
+            object-position: center top;
+
+            transition: 0.3s ease;
         }
 
         .team-member:hover .member-img img {
-            transform: scale(1.22) translateY(10px);
+            transform: scale(1.03);
         }
 
         .member-info h4 {
             color: var(--primary-green);
+            margin-top: 12px;
+            font-size: 22px;
             font-weight: 700;
-            font-size: 1.2rem;
             margin-bottom: 0.5rem;
         }
 
         .member-info span {
             color: var(--light-green);
             font-weight: 600;
+            color: #38b26d;
+            font-size: 15px;
         }
 
         /* Contact Section */
@@ -751,11 +759,11 @@
             <div class="col-lg-3 col-md-6 col-sm-6">
                 <div class="team-member">
                     <div class="member-img">
-                        <img src="{{ asset('assets/img/team/aditya.jpg') }}" alt="Aditya Fadni">
+                        <img src="{{ asset('images/aditya.jpeg') }}" alt="Aditya Fadni">
                     </div>
                     <div class="member-info">
                         <h4>Aditya Fadni</h4>
-                        <span>Master & Backend</span>
+                        <span>Master</span>
                     </div>
                 </div>
             </div>
@@ -763,11 +771,11 @@
             <div class="col-lg-3 col-md-6 col-sm-6">
                 <div class="team-member">
                     <div class="member-img">
-                        <img src="{{ asset('assets/img/team/riky.jpg') }}" alt="Riky Rio">
+                        <img src="{{ asset('images/riky.jpeg') }}" alt="Riky Rio">
                     </div>
                     <div class="member-info">
                         <h4>Riky Rio</h4>
-                        <span>Frontend & Database</span>
+                        <span>Frontend & Backend</span>
                     </div>
                 </div>
             </div>
@@ -788,10 +796,10 @@
             <div class="col-lg-3 col-md-6 col-sm-6">
                 <div class="team-member">
                     <div class="member-img">
-                        <img src="{{ asset('assets/img/team/dhimas.jpg') }}" alt="Dhimas">
+                        <img src="{{ asset('images/dhimas.jpeg') }}" alt="Dhimas">
                     </div>
                     <div class="member-info">
-                        <h4>Dhimas</h4>
+                        <h4>Dhimas Ananta</h4>
                         <span>UI/UX</span>
                     </div>
                 </div>
