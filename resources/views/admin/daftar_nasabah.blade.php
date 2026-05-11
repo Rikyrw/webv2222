@@ -84,7 +84,8 @@
                                         <a href="#" class="btn btn-secondary" style="padding: 8px 12px;">Edit</a>
                                         <form method="POST" class="action-form" data-message="Hapus nasabah ini? Tindakan tidak dapat dibatalkan.">
                                             @csrf
-                                            <input type="hidden" name="id" value="{{ $n['id_nasabah'] }}">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id_nasabah" value="{{ $n['id_nasabah'] }}">
                                             <button type="submit" class="btn btn-danger" style="padding: 8px 12px;">Hapus</button>
                                         </form>
                                         <a href="#" class="btn btn-info" style="padding: 8px 12px;">Riwayat</a>

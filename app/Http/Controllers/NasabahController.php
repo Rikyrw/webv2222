@@ -19,22 +19,23 @@ class NasabahController extends Controller
             $id = (int) $request->input('id_nasabah');
             $action = $request->input('action'); // expected: aktifkan | tolak
 
-            // Validate CSRF token
-            if (!hash_equals(session('csrf_token', ''), $request->input('csrf_token', ''))) {
+            // Validate CSRF token (use Laravel's default `_token` name)
+            if (!hash_equals(session('_token', ''), $request->input('_token', ''))) {
                 $flash = 'Token keamanan tidak valid.';
             } else {
                 if ($action === 'aktifkan') {
                     $newStatus = 'aktif';
-                } elseif ($action === 'tolak') {
-                    $newStatus = 'nonaktif';
-                } else {
-                    $newStatus = null;
-                }
-
-                if ($newStatus) {
                     // Update nasabah status in database
                     Nasabah::where('id_nasabah', $id)->update(['status' => $newStatus]);
                     $flash = 'Status nasabah berhasil diperbarui.';
+                } elseif ($action === 'tolak') {
+                    $newStatus = 'nonaktif';
+                    Nasabah::where('id_nasabah', $id)->update(['status' => $newStatus]);
+                    $flash = 'Status nasabah berhasil diperbarui.';
+                } elseif ($action === 'delete') {
+                    // Permanently delete nasabah record
+                    Nasabah::where('id_nasabah', $id)->delete();
+                    $flash = 'Nasabah berhasil dihapus.';
                 } else {
                     $flash = 'Aksi tidak dikenali.';
                 }
