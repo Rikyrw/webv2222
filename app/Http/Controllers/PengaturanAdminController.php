@@ -10,11 +10,6 @@ class PengaturanAdminController extends Controller
 {
     public function index()
     {
-        // Check if user is superadmin
-        if (!auth()->check() || auth()->user()->role !== 'superadmin') {
-            abort(403, 'Unauthorized access');
-        }
-
         $activePage = 'pengaturan';
         $pageTitle = 'Pengaturan Admin';
         
@@ -41,11 +36,6 @@ class PengaturanAdminController extends Controller
 
     public function store(Request $request)
     {
-        // Check if superadmin
-        if (!auth()->check() || auth()->user()->role !== 'superadmin') {
-            return response()->json(['status' => 'error', 'message' => 'Unauthorized'], 403);
-        }
-
         $action = $request->input('action');
         
         if ($action === 'add') {

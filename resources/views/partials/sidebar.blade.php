@@ -201,7 +201,7 @@
       <i class="i lucide-file-chart-column"></i><span>Laporan</span>
     </a>
     
-    @if (auth()->check() && auth()->user()->role === 'superadmin')
+    @if (session('admin_logged_in') && session('admin_role') === 'superadmin')
     <a href="{{ url('/admin/pengaturan') }}" class="{{ ($activePage == 'pengaturan') ? 'active' : '' }}">
       <i class="i lucide-settings"></i><span>Pengaturan Admin</span>
     </a>
@@ -211,10 +211,10 @@
   <!-- User Footer -->
   <div class="user" role="contentinfo">
     <div class="avatar-dropdown">
-      <div class="avatar">{{ auth()->check() ? strtoupper(substr(auth()->user()->role ?? 'AD', 0, 2)) : 'AD' }}</div>
+      <div class="avatar">{{ session('admin_logged_in') ? strtoupper(substr(session('admin_role') ?? 'AD', 0, 2)) : 'AD' }}</div>
       <div class="user-info">
-        <span class="role">{{ auth()->check() ? ucfirst(auth()->user()->role) : 'Admin' }}</span>
-        <span class="name">{{ auth()->check() ? auth()->user()->name : 'Admin' }}</span>
+        <span class="role">{{ session('admin_logged_in') ? ucfirst(session('admin_role')) : 'Admin' }}</span>
+        <span class="name">{{ session('admin_logged_in') ? session('admin_email') : 'Admin' }}</span>
       </div>
       <button class="logout-btn" onclick="logout()" title="Logout">
         <i class="lucide-log-out"></i>
@@ -225,11 +225,11 @@
     <div class="user-dropdown" id="userDropdown">
       <div class="dropdown-item">
         <i class="lucide-user"></i>
-        <span>{{ auth()->check() ? auth()->user()->email : 'admin@greenpoint.com' }}</span>
+        <span>{{ session('admin_logged_in') ? session('admin_email') : 'admin@greenpoint.com' }}</span>
       </div>
       <div class="dropdown-item">
         <i class="lucide-shield"></i>
-        <span>Role: {{ auth()->check() ? ucfirst(auth()->user()->role) : 'Admin' }}</span>
+        <span>Role: {{ session('admin_logged_in') ? ucfirst(session('admin_role')) : 'Admin' }}</span>
       </div>
       <div class="dropdown-divider"></div>
       <a href="{{ url('/admin/logout') }}" class="dropdown-item logout-item" onclick="return confirm('Apakah Anda yakin ingin keluar?')">

@@ -35,6 +35,7 @@ Route::post('/contact', [ContactController::class, 'store'])->name('contact.stor
 // Admin auth routes
 Route::get('/admin/login', [AdminAuthController::class, 'showLogin'])->name('admin.login.form');
 Route::post('/admin/login', [AdminAuthController::class, 'login'])->name('admin.login');
+Route::get('/admin/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
 
 // Admin dashboard
 Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
