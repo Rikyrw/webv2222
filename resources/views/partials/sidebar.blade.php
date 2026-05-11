@@ -1,5 +1,45 @@
 <aside class="sidebar" role="complementary" aria-label="Sidebar navigation">
 <style>
+.sidebar {
+  background: linear-gradient(135deg, #000000, #059669);
+  color: white;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+}
+
+.nav a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  transition: all 0.2s;
+  font-size: 14px;
+  border-left: 3px solid transparent;
+}
+
+.nav a:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+.nav a.active {
+  background: rgba(16, 185, 129, 0.1);
+  border-left-color: #10b981;
+  color: #ffffff;
+}
+
+.nav a .i {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
 .user {
   position: relative;
   margin-top: auto;
@@ -134,9 +174,38 @@
   background: #fee2e2;
 }
 
+.nav-submenu {
+  background: rgba(255,255,255,0.05);
+  border-radius: 6px;
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.nav-submenu a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  margin-left: 16px;
+  color: rgba(255,255,255,0.7);
+  text-decoration: none;
+  font-size: 13px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  border-left: none;
+}
+
 .nav-submenu a:hover {
   background: rgba(255, 255, 255, 0.1);
   color: white;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
 }
 
 /* Responsive */
