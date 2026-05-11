@@ -13,70 +13,78 @@ class NasabahController extends Controller
         $pageTitle = 'Daftar Nasabah';
         $flash = '';
         $nasabahs = [];
+        $databaseError = null;
 
-        // Handle POST action: approve or reject nasabah
-        if ($request->isMethod('post') && $request->filled('action') && $request->filled('id_nasabah')) {
-            $id = (int) $request->input('id_nasabah');
-            $action = $request->input('action'); // expected: aktifkan | tolak
+        try {
+            // Handle POST action: approve or reject nasabah
+            if ($request->isMethod('post') && $request->filled('action') && $request->filled('id_nasabah')) {
+                $id = (int) $request->input('id_nasabah');
+                $action = $request->input('action'); // expected: aktifkan | tolak
 
-            // Validate CSRF token
-            if (!hash_equals(session('csrf_token', ''), $request->input('csrf_token', ''))) {
-                $flash = 'Token keamanan tidak valid.';
-            } else {
-                if ($action === 'aktifkan') {
-                    $newStatus = 'aktif';
-                } elseif ($action === 'tolak') {
-                    $newStatus = 'nonaktif';
+                // Validate CSRF token
+                if (!hash_equals(session('csrf_token', ''), $request->input('csrf_token', ''))) {
+                    $flash = 'Token keamanan tidak valid.';
                 } else {
-                    $newStatus = null;
-                }
+                    if ($action === 'aktifkan') {
+                        $newStatus = 'aktif';
+                    } elseif ($action === 'tolak') {
+                        $newStatus = 'nonaktif';
+                    } else {
+                        $newStatus = null;
+                    }
 
-                if ($newStatus) {
-                    // Update nasabah status in database
-                    Nasabah::where('id_nasabah', $id)->update(['status' => $newStatus]);
-                    $flash = 'Status nasabah berhasil diperbarui.';
-                } else {
-                    $flash = 'Aksi tidak dikenali.';
+                    if ($newStatus) {
+                        // Update nasabah status in database
+                        Nasabah::where('id_nasabah', $id)->update(['status' => $newStatus]);
+                        $flash = 'Status nasabah berhasil diperbarui.';
+                    } else {
+                        $flash = 'Aksi tidak dikenali.';
+                    }
                 }
             }
-        }
 
-        // Check session flash
-        if (session()->has('flash_nasabah')) {
-            $flash = session('flash_nasabah');
-            session()->forget('flash_nasabah');
-        }
+            // Check session flash
+            if (session()->has('flash_nasabah')) {
+                $flash = session('flash_nasabah');
+                session()->forget('flash_nasabah');
+            }
 
-        // Get nasabah data from database
-        $nasabahs = Nasabah::select(
-            'id_nasabah',
-            'nama_lengkap as nama_nasabah',
-            'alamat',
-            'no_hp',
-            'saldo',
-            'status as status_akun',
-            'created_at as tanggal_daftar'
-        )
-        ->orderBy('created_at', 'desc')
-        ->get()
-        ->map(function ($item) {
-            return [
-                'id_nasabah' => $item->id_nasabah,
-                'nama_nasabah' => $item->nama_nasabah,
-                'alamat' => $item->alamat ?? '-',
-                'no_hp' => $item->no_hp ?? '-',
-                'saldo' => $item->saldo ?? 0,
-                'status_akun' => $item->status_akun ?? 'verifikasi',
-                'tanggal_daftar' => $item->tanggal_daftar instanceof \DateTime ? $item->tanggal_daftar->format('Y-m-d') : (is_string($item->tanggal_daftar) ? $item->tanggal_daftar : '-'),
-            ];
-        })
-        ->toArray();
+            // Get nasabah data from database
+            $nasabahs = Nasabah::select(
+                'id_nasabah',
+                'nama_lengkap as nama_nasabah',
+                'alamat',
+                'no_hp',
+                'saldo',
+                'status as status_akun',
+                'created_at as tanggal_daftar'
+            )
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id_nasabah' => $item->id_nasabah,
+                    'nama_nasabah' => $item->nama_nasabah,
+                    'alamat' => $item->alamat ?? '-',
+                    'no_hp' => $item->no_hp ?? '-',
+                    'saldo' => $item->saldo ?? 0,
+                    'status_akun' => $item->status_akun ?? 'verifikasi',
+                    'tanggal_daftar' => $item->tanggal_daftar instanceof \DateTime ? $item->tanggal_daftar->format('Y-m-d') : (is_string($item->tanggal_daftar) ? $item->tanggal_daftar : '-'),
+                ];
+            })
+            ->toArray();
+        } catch (\Exception $e) {
+            \Log::error('NasabahController Database Error: ' . $e->getMessage());
+            $databaseError = 'Tidak dapat terhubung ke database. Periksa koneksi internet Anda.';
+            $nasabahs = [];
+        }
 
         return view('admin.daftar_nasabah', compact(
             'activePage',
             'pageTitle',
             'flash',
-            'nasabahs'
+            'nasabahs',
+            'databaseError'
         ));
     }
 }

@@ -2,7 +2,7 @@
 
 @section('content')
 <div style="display: flex; flex-direction: column; gap: 24px;">
-
+    
     <style>
         .tab-links { display: flex; gap: 0; padding: 0; }
         .tab-link { flex: 1; padding: 16px 20px; text-align: center; text-decoration: none; color: #6b7280; font-weight: 500; border-bottom: 3px solid transparent; transition: all 0.2s; display: inline-block; }
