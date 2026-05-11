@@ -62,4 +62,68 @@ class SampahController extends Controller
             'databaseError'
         ));
     }
+
+    public function create()
+    {
+        $activePage = 'sampah';
+        $pageTitle = 'Tambah Jenis Sampah';
+        return view('admin.tambah_sampah', compact('activePage', 'pageTitle'));
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'nama_jenis' => 'required|string|max:100',
+            'harga_per_kg' => 'required|numeric|min:0',
+            'stok' => 'required|integer|min:0',
+        ]);
+
+        try {
+            Sampah::create([
+                'nama_jenis' => $request->nama_jenis,
+                'harga_per_kg' => $request->harga_per_kg,
+                'stok' => $request->stok,
+                'status' => 'aktif',
+                'id_admin' => session('admin_id'), // Assuming admin_id is stored in session
+            ]);
+
+            return redirect()->route('admin.sampah.daftar')->with('flash_message', 'Jenis sampah berhasil ditambahkan')->with('flash_type', 'success');
+        } catch (\Exception $e) {
+            \Log::error('SampahController Store Error: ' . $e->getMessage());
+            return redirect()->back()->with('flash_message', 'Gagal menambahkan jenis sampah')->with('flash_type', 'error');
+        }
+    }
+
+    public function edit($id)
+    {
+        $sampah = Sampah::findOrFail($id);
+        $activePage = 'sampah';
+        $pageTitle = 'Edit Jenis Sampah';
+        return view('admin.edit_sampah', compact('activePage', 'pageTitle', 'sampah'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'nama_jenis' => 'required|string|max:100',
+            'harga_per_kg' => 'required|numeric|min:0',
+            'stok' => 'required|integer|min:0',
+            'status' => 'required|in:aktif,nonaktif',
+        ]);
+
+        try {
+            $sampah = Sampah::findOrFail($id);
+            $sampah->update([
+                'nama_jenis' => $request->nama_jenis,
+                'harga_per_kg' => $request->harga_per_kg,
+                'stok' => $request->stok,
+                'status' => $request->status,
+            ]);
+
+            return redirect()->route('admin.sampah.daftar')->with('flash_message', 'Jenis sampah berhasil diperbarui')->with('flash_type', 'success');
+        } catch (\Exception $e) {
+            \Log::error('SampahController Update Error: ' . $e->getMessage());
+            return redirect()->back()->with('flash_message', 'Gagal memperbarui jenis sampah')->with('flash_type', 'error');
+        }
+    }
 }

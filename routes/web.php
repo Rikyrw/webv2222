@@ -38,31 +38,37 @@ Route::post('/admin/login', [AdminAuthController::class, 'login'])->name('admin.
 Route::get('/admin/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
 
 // Admin dashboard
-Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
+Route::middleware(['auth:admin'])->group(function () {
+    Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
 
-// Admin nasabah routes
-Route::get('/admin/nasabah', [NasabahController::class, 'daftar'])->name('admin.nasabah.daftar');
-Route::post('/admin/nasabah', [NasabahController::class, 'daftar'])->name('admin.nasabah.post');
+    // Admin nasabah routes
+    Route::get('/admin/nasabah', [NasabahController::class, 'daftar'])->name('admin.nasabah.daftar');
+    Route::post('/admin/nasabah', [NasabahController::class, 'daftar'])->name('admin.nasabah.post');
 
-// Admin transaksi routes
-Route::get('/admin/transaksi', [TransaksiController::class, 'index'])->name('admin.transaksi');
+    // Admin transaksi routes
+    Route::get('/admin/transaksi', [TransaksiController::class, 'index'])->name('admin.transaksi');
 
-// Admin sampah routes
-Route::get('/admin/sampah', [SampahController::class, 'daftar'])->name('admin.sampah.daftar');
-Route::post('/admin/sampah', [SampahController::class, 'daftar'])->name('admin.sampah.post');
+    // Admin sampah routes
+    Route::get('/admin/sampah', [SampahController::class, 'daftar'])->name('admin.sampah.daftar');
+    Route::post('/admin/sampah', [SampahController::class, 'daftar'])->name('admin.sampah.post');
+    Route::get('/admin/sampah/create', [SampahController::class, 'create'])->name('admin.sampah.create');
+    Route::post('/admin/sampah/store', [SampahController::class, 'store'])->name('admin.sampah.store');
+    Route::get('/admin/sampah/{id}/edit', [SampahController::class, 'edit'])->name('admin.sampah.edit');
+    Route::put('/admin/sampah/{id}', [SampahController::class, 'update'])->name('admin.sampah.update');
 
-// Admin laporan routes
-Route::get('/admin/laporan', [LaporanController::class, 'index'])->name('admin.laporan');
-Route::get('/admin/laporan/excel/keuangan', [LaporanController::class, 'excelKeuangan'])->name('admin.laporan.excel.keuangan');
-Route::get('/admin/laporan/pdf/keuangan', [LaporanController::class, 'pdfKeuangan'])->name('admin.laporan.pdf.keuangan');
-Route::get('/admin/laporan/excel/sampah', [LaporanController::class, 'excelSampah'])->name('admin.laporan.excel.sampah');
-Route::get('/admin/laporan/pdf/sampah', [LaporanController::class, 'pdfSampah'])->name('admin.laporan.pdf.sampah');
-Route::get('/admin/laporan/excel/nasabah', [LaporanController::class, 'excelNasabah'])->name('admin.laporan.excel.nasabah');
-Route::get('/admin/laporan/pdf/nasabah', [LaporanController::class, 'pdfNasabah'])->name('admin.laporan.pdf.nasabah');
+    // Admin laporan routes
+    Route::get('/admin/laporan', [LaporanController::class, 'index'])->name('admin.laporan');
+    Route::get('/admin/laporan/excel/keuangan', [LaporanController::class, 'excelKeuangan'])->name('admin.laporan.excel.keuangan');
+    Route::get('/admin/laporan/pdf/keuangan', [LaporanController::class, 'pdfKeuangan'])->name('admin.laporan.pdf.keuangan');
+    Route::get('/admin/laporan/excel/sampah', [LaporanController::class, 'excelSampah'])->name('admin.laporan.excel.sampah');
+    Route::get('/admin/laporan/pdf/sampah', [LaporanController::class, 'pdfSampah'])->name('admin.laporan.pdf.sampah');
+    Route::get('/admin/laporan/excel/nasabah', [LaporanController::class, 'excelNasabah'])->name('admin.laporan.excel.nasabah');
+    Route::get('/admin/laporan/pdf/nasabah', [LaporanController::class, 'pdfNasabah'])->name('admin.laporan.pdf.nasabah');
 
-// Admin pengaturan routes
-Route::get('/admin/pengaturan', [PengaturanAdminController::class, 'index'])->name('admin.pengaturan');
-Route::post('/admin/pengaturan/action', [PengaturanAdminController::class, 'store'])->name('admin.pengaturan.action');
+    // Admin pengaturan routes
+    Route::get('/admin/pengaturan', [PengaturanAdminController::class, 'index'])->name('admin.pengaturan');
+    Route::post('/admin/pengaturan/action', [PengaturanAdminController::class, 'store'])->name('admin.pengaturan.action');
+});
 
 // Nasabah login routes
 Route::get('/nasabah/login', [NasabahLoginController::class, 'showLogin'])->name('nasabah.login');

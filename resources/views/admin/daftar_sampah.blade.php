@@ -9,7 +9,7 @@
             <p class="text-muted">Kelola jenis sampah, harga, dan stok yang tersedia.</p>
         </div>
         <div class="col-auto">
-            <a href="#" class="btn btn-primary">
+            <a href="{{ route('admin.sampah.create') }}" class="btn btn-primary">
                 <i class="lucide-plus"></i> Tambah Sampah
             </a>
         </div>
@@ -79,7 +79,7 @@
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2 justify-content-center flex-wrap">
-                                        <a href="#" class="btn btn-sm btn-info text-white">Edit</a>
+                                        <a href="{{ route('admin.sampah.edit', $item['id_jenis']) }}" class="btn btn-sm btn-info text-white">Edit</a>
                                         <form method="POST" class="delete-form d-inline" data-confirm="Hapus sampah {{ $item['nama_jenis'] }}?">
                                             @csrf
                                             <input type="hidden" name="action" value="delete">

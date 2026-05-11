@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\AdminUser;
 
 class Sampah extends Model
 {
@@ -19,7 +20,8 @@ class Sampah extends Model
         'nama_jenis',
         'harga_per_kg',
         'stok',
-        'status'
+        'status',
+        'id_admin'
     ];
 
     protected $casts = [
@@ -30,5 +32,10 @@ class Sampah extends Model
     public function detailSetor(): HasMany
     {
         return $this->hasMany(DetailSetor::class, 'id_jenis', 'id_jenis_sampah');
+    }
+
+    public function admin()
+    {
+        return $this->belongsTo(AdminUser::class, 'id_admin', 'id_admin');
     }
 }
