@@ -82,12 +82,6 @@
             overflow: hidden;
         }
 
-        .hero-content,
-        .hero-image {
-            position: relative;
-            z-index: 2;
-        }
-
         .hero-section::before {
             content: '';
             position: absolute;
@@ -112,14 +106,47 @@
             animation: float 8s ease-in-out infinite reverse;
         }
 
+        .hero-image-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            overflow: visible;
+        }
+
         .hero-image {
             display: flex;
-            justify-content: center;
+            justify-content: flex-end;
             align-items: center;
+            width: 100%;
+            position: relative;
+            z-index: 2;
+            animation: none !important; /* Matikan animasi float */
         }
 
         .hero-image img {
-            transform: translateX(245px);
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            display: block;
+            transform: translateZ(0);
+            backface-visibility: hidden;
+            position: relative;
+            
+            /* KUNCI: Paksa gambar ke kanan */
+            margin-left: auto;
+            margin-right: -40px;
+        }
+
+        .hero-section .col-lg-6:last-child {
+            padding-right: 0 !important;
+        }
+
+        .col-lg-6 {
+            position: relative;
+            overflow: visible;
         }
 
         @keyframes float {
@@ -579,11 +606,12 @@
                     @endif
                 </div>
                 <div class="col-lg-6" data-aos="fade-left" data-aos-duration="1000">
-                    <div class="hero-image">
-                        <img src="{{ asset('images/tangan1.png') }}"
-                            alt="Hero Image"
-                            class="img-fluid"
-                            style="max-width: 110%; height: auto;">
+                    <div class="hero-image-container">
+                        <div class="hero-image">
+                            <img src="{{ asset('images/tangan1.png') }}" 
+                                alt="Hero Image Tangan"
+                                class="img-fluid">
+                        </div>
                     </div>
                 </div>
             </div>
