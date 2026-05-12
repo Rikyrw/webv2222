@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 class TransaksiController extends Controller
@@ -240,6 +239,111 @@ class TransaksiController extends Controller
         } catch (\Exception $e) {
             \Log::error('Update setor detail error: ' . $e->getMessage());
             return redirect()->back()->with('flash_setor_detail', 'Terjadi kesalahan saat memproses transaksi.');
+        }
+    }
+
+    public function handlePenarikanAction(Request $request, int $id)
+    {
+        $action = strtolower(trim((string) $request->input('action', '')));
+        $note = trim((string) $request->input('note', ''));
+
+        if (!in_array($action, ['approve', 'reject'], true)) {
+            return response()->json(['message' => 'Aksi tidak valid.'], 422);
+        }
+
+        try {
+            $response = $this->supabaseRequest(
+                'get',
+                '/rest/v1/penarikan_saldo?select=id_penarikan,id_nasabah,nominal,status,deskripsi,nasabah(saldo)&id_penarikan=eq.' . $id . '&limit=1',
+                null,
+                false
+            );
+
+            if (!$response->successful()) {
+                return response()->json(['message' => 'Gagal mengambil data penarikan.'], 500);
+            }
+
+            $items = $response->json();
+            if (!is_array($items) || count($items) === 0) {
+                return response()->json(['message' => 'Data penarikan tidak ditemukan.'], 404);
+            }
+
+            $row = $items[0];
+            $status = strtolower(trim((string) ($row['status'] ?? '')));
+            if (!in_array($status, ['pending', 'menunggu', ''], true)) {
+                return response()->json(['message' => 'Penarikan sudah diproses.'], 409);
+            }
+
+            $nominal = isset($row['nominal']) ? (float) $row['nominal'] : 0;
+            $nasabahId = $row['id_nasabah'] ?? null;
+            $saldo = isset($row['nasabah']['saldo']) ? (float) $row['nasabah']['saldo'] : 0;
+
+            if ($action === 'approve') {
+                if ($saldo < $nominal) {
+                    return response()->json(['message' => 'Saldo nasabah tidak mencukupi.'], 422);
+                }
+
+                $updatePayload = [
+                    'status' => 'approved',
+                    'tanggal_proses' => date('Y-m-d'),
+                ];
+
+                $updateResponse = $this->supabaseRequest(
+                    'patch',
+                    '/rest/v1/penarikan_saldo?id_penarikan=eq.' . $id,
+                    $updatePayload,
+                    true
+                );
+
+                if (!$updateResponse->successful()) {
+                    return response()->json(['message' => 'Gagal memperbarui status penarikan.'], 500);
+                }
+
+                if ($nasabahId !== null) {
+                    $newSaldo = $saldo - $nominal;
+                    $saldoResponse = $this->supabaseRequest(
+                        'patch',
+                        '/rest/v1/nasabah?id_nasabah=eq.' . intval($nasabahId),
+                        ['saldo' => $newSaldo],
+                        true
+                    );
+
+                    if (!$saldoResponse->successful()) {
+                        return response()->json(['message' => 'Gagal mengurangi saldo nasabah.'], 500);
+                    }
+                }
+            } else {
+                $deskripsi = $row['deskripsi'] ?? '';
+                if ($note !== '') {
+                    $notePrefix = 'Catatan admin: ';
+                    $deskripsi = trim((string) $deskripsi);
+                    $deskripsi = $deskripsi !== '' ? $deskripsi . ' | ' . $notePrefix . $note : $notePrefix . $note;
+                }
+
+                $updatePayload = [
+                    'status' => 'rejected',
+                    'tanggal_proses' => date('Y-m-d'),
+                    'deskripsi' => $deskripsi,
+                ];
+
+                $updateResponse = $this->supabaseRequest(
+                    'patch',
+                    '/rest/v1/penarikan_saldo?id_penarikan=eq.' . $id,
+                    $updatePayload,
+                    true
+                );
+
+                if (!$updateResponse->successful()) {
+                    return response()->json(['message' => 'Gagal memperbarui status penarikan.'], 500);
+                }
+            }
+
+            return response()->json([
+                'message' => 'Permintaan penarikan berhasil diproses.'
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Handle penarikan action error: ' . $e->getMessage());
+            return response()->json(['message' => 'Terjadi kesalahan saat memproses penarikan.'], 500);
         }
     }
 
@@ -523,41 +627,68 @@ class TransaksiController extends Controller
         $offset = ($page - 1) * $perPage;
         $limit = $perPage + 1;
 
-        $items = DB::table('penarikan_saldo')
-            ->join('nasabah', 'penarikan_saldo.id_nasabah', '=', 'nasabah.id_nasabah')
-            ->where('penarikan_saldo.status', 'pending')
-            ->select(
-                'penarikan_saldo.id_penarikan',
-                'penarikan_saldo.id_nasabah',
-                'nasabah.nama_lengkap as nama_nasabah',
-                'penarikan_saldo.jenis_penukaran',
-                'penarikan_saldo.nominal',
-                'penarikan_saldo.deskripsi',
-                'penarikan_saldo.tanggal_pengajuan',
-                'penarikan_saldo.status'
-            )
-            ->orderBy('penarikan_saldo.tanggal_pengajuan', 'desc')
-            ->offset($offset)
-            ->limit($limit)
-            ->get();
+        $response = $this->supabaseRequest(
+            'get',
+            '/rest/v1/penarikan_saldo?select=id_penarikan,id_nasabah,jenis_penukaran,nominal,deskripsi,tanggal_pengajuan,status,nasabah(nama_lengkap)&status=in.(pending,menunggu)&order=tanggal_pengajuan.desc&limit=' . $limit . '&offset=' . $offset,
+            null,
+            false
+        );
 
-        $hasNext = $items->count() > $perPage;
-        if ($hasNext) {
-            $items = $items->slice(0, $perPage);
+        if (!$response->successful()) {
+            return [
+                'items' => [],
+                'meta' => [
+                    'page' => $page,
+                    'has_next' => false,
+                    'has_prev' => $page > 1,
+                ],
+            ];
         }
 
-        $mapped = $items->map(function ($item) {
+        $items = $response->json();
+        if (!is_array($items)) {
             return [
-                'id_penukaran' => $item->id_penarikan,
-                'id_nasabah' => $item->id_nasabah,
-                'nama_nasabah' => $item->nama_nasabah,
-                'jenis_penukaran' => $item->jenis_penukaran ?? 'Transfer Bank',
-                'nominal' => $item->nominal,
-                'deskripsi' => $item->deskripsi ?? 'Permintaan penarikan saldo',
-                'tanggal_pengajuan' => $item->tanggal_pengajuan,
-                'status' => $item->status,
+                'items' => [],
+                'meta' => [
+                    'page' => $page,
+                    'has_next' => false,
+                    'has_prev' => $page > 1,
+                ],
             ];
-        })->values()->toArray();
+        }
+
+        $hasNext = count($items) > $perPage;
+        if ($hasNext) {
+            $items = array_slice($items, 0, $perPage);
+        }
+
+        $nasabahIds = [];
+        foreach ($items as $item) {
+            if (isset($item['id_nasabah'])) {
+                $nasabahIds[] = (int) $item['id_nasabah'];
+            }
+        }
+        $nasabahMap = $this->fetchNasabahMap($nasabahIds);
+
+        $mapped = [];
+        foreach ($items as $item) {
+            $nasabahId = $item['id_nasabah'] ?? null;
+            $nasabahName = isset($item['nasabah']['nama_lengkap']) ? $item['nasabah']['nama_lengkap'] : null;
+            if (!$nasabahName && $nasabahId !== null && isset($nasabahMap[$nasabahId])) {
+                $nasabahName = $nasabahMap[$nasabahId];
+            }
+
+            $mapped[] = [
+                'id_penukaran' => $item['id_penarikan'] ?? null,
+                'id_nasabah' => $nasabahId,
+                'nama_nasabah' => $nasabahName ?: '-',
+                'jenis_penukaran' => $item['jenis_penukaran'] ?? 'Transfer Bank',
+                'nominal' => $item['nominal'] ?? 0,
+                'deskripsi' => $item['deskripsi'] ?? 'Permintaan penarikan saldo',
+                'tanggal_pengajuan' => $item['tanggal_pengajuan'] ?? null,
+                'status' => $this->normalizePenarikanStatus($item['status'] ?? 'menunggu'),
+            ];
+        }
 
         return [
             'items' => $mapped,
@@ -575,47 +706,72 @@ class TransaksiController extends Controller
         $offset = ($page - 1) * $perPage;
         $limit = $perPage + 1;
 
-        $query = DB::table('penarikan_saldo')
-            ->join('nasabah', 'penarikan_saldo.id_nasabah', '=', 'nasabah.id_nasabah')
-            ->whereNotIn('penarikan_saldo.status', ['pending', 'menunggu'])
-            ->whereDate('penarikan_saldo.tanggal_proses', $today)
-            ->select(
-                'penarikan_saldo.id_penarikan',
-                'nasabah.nama_lengkap as nama_nasabah',
-                'penarikan_saldo.jenis_penukaran',
-                'penarikan_saldo.nominal',
-                'penarikan_saldo.deskripsi',
-                'penarikan_saldo.tanggal_pengajuan',
-                'penarikan_saldo.tanggal_proses',
-                'penarikan_saldo.status'
-            );
+        $statusClause = $statusFilter !== 'all'
+            ? '&status=eq.' . urlencode($statusFilter)
+            : '&status=not.in.(pending,menunggu)';
 
-        if ($statusFilter !== 'all') {
-            $query->where('penarikan_saldo.status', $statusFilter);
-        }
+        $response = $this->supabaseRequest(
+            'get',
+            '/rest/v1/penarikan_saldo?select=id_penarikan,id_nasabah,jenis_penukaran,nominal,deskripsi,tanggal_pengajuan,tanggal_proses,status,nasabah(nama_lengkap)' . $statusClause . '&tanggal_proses=eq.' . $today . '&order=tanggal_proses.desc&limit=' . $limit . '&offset=' . $offset,
+            null,
+            false
+        );
 
-        $items = $query->orderBy('penarikan_saldo.tanggal_proses', 'desc')
-            ->offset($offset)
-            ->limit($limit)
-            ->get();
-
-        $hasNext = $items->count() > $perPage;
-        if ($hasNext) {
-            $items = $items->slice(0, $perPage);
-        }
-
-        $mapped = $items->map(function ($item) {
+        if (!$response->successful()) {
             return [
-                'id_penarikan' => $item->id_penarikan,
-                'nama_nasabah' => $item->nama_nasabah,
-                'jenis_penukaran' => $item->jenis_penukaran ?? 'Transfer Bank',
-                'nominal' => $item->nominal,
-                'deskripsi' => $item->deskripsi ?? 'Permintaan penarikan saldo',
-                'tanggal_pengajuan' => $item->tanggal_pengajuan,
-                'tanggal_proses' => $item->tanggal_proses,
-                'status' => $item->status,
+                'items' => [],
+                'meta' => [
+                    'page' => $page,
+                    'has_next' => false,
+                    'has_prev' => $page > 1,
+                ],
             ];
-        })->values()->toArray();
+        }
+
+        $items = $response->json();
+        if (!is_array($items)) {
+            return [
+                'items' => [],
+                'meta' => [
+                    'page' => $page,
+                    'has_next' => false,
+                    'has_prev' => $page > 1,
+                ],
+            ];
+        }
+
+        $hasNext = count($items) > $perPage;
+        if ($hasNext) {
+            $items = array_slice($items, 0, $perPage);
+        }
+
+        $nasabahIds = [];
+        foreach ($items as $item) {
+            if (isset($item['id_nasabah'])) {
+                $nasabahIds[] = (int) $item['id_nasabah'];
+            }
+        }
+        $nasabahMap = $this->fetchNasabahMap($nasabahIds);
+
+        $mapped = [];
+        foreach ($items as $item) {
+            $nasabahId = $item['id_nasabah'] ?? null;
+            $nasabahName = isset($item['nasabah']['nama_lengkap']) ? $item['nasabah']['nama_lengkap'] : null;
+            if (!$nasabahName && $nasabahId !== null && isset($nasabahMap[$nasabahId])) {
+                $nasabahName = $nasabahMap[$nasabahId];
+            }
+
+            $mapped[] = [
+                'id_penarikan' => $item['id_penarikan'] ?? null,
+                'nama_nasabah' => $nasabahName ?: '-',
+                'jenis_penukaran' => $item['jenis_penukaran'] ?? 'Transfer Bank',
+                'nominal' => $item['nominal'] ?? 0,
+                'deskripsi' => $item['deskripsi'] ?? 'Permintaan penarikan saldo',
+                'tanggal_pengajuan' => $item['tanggal_pengajuan'] ?? null,
+                'tanggal_proses' => $item['tanggal_proses'] ?? null,
+                'status' => $this->normalizePenarikanStatus($item['status'] ?? 'menunggu'),
+            ];
+        }
 
         return [
             'items' => $mapped,
@@ -625,6 +781,24 @@ class TransaksiController extends Controller
                 'has_prev' => $page > 1,
             ],
         ];
+    }
+
+    private function normalizePenarikanStatus(?string $status): string
+    {
+        $value = strtolower(trim((string) $status));
+        if ($value === '' || $value === 'pending') {
+            return 'menunggu';
+        }
+
+        if ($value === 'approved') {
+            return 'selesai';
+        }
+
+        if ($value === 'rejected') {
+            return 'ditolak';
+        }
+
+        return $value;
     }
 
     private function fetchDetailSetorSummary(array $transaksiIds): array

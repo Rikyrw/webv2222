@@ -141,8 +141,8 @@
                             </td>
                             <td style="padding: 12px 16px; text-align: center;">
                                 @if ($p['status'] === 'menunggu')
-                                    <button type="button" class="btn-action-penarikan" data-id="{{ $p['id_penukaran'] }}" data-action="approve" style="padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; margin-right: 6px;">Setujui</button>
-                                    <button type="button" class="btn-action-penarikan" data-id="{{ $p['id_penukaran'] }}" data-action="reject" style="padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">Tolak</button>
+                                    <button type="button" class="btn-action-penarikan" data-id="{{ $p['id_penukaran'] }}" data-action="approve" data-url="{{ route('admin.transaksi.penarikan.action', ['id' => $p['id_penukaran']]) }}" style="padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; margin-right: 6px;">Setujui</button>
+                                    <button type="button" class="btn-action-penarikan" data-id="{{ $p['id_penukaran'] }}" data-action="reject" data-url="{{ route('admin.transaksi.penarikan.action', ['id' => $p['id_penukaran']]) }}" style="padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">Tolak</button>
                                 @else
                                     <span style="color: #6b7280; font-size: 12px;">Proses Selesai</span>
                                 @endif
@@ -361,6 +361,7 @@
 <script>
 let pendingSetorId = null;
 let pendingPenarikanId = null;
+let pendingPenarikanUrl = null;
 
 // Setor actions
 document.querySelectorAll('.btn-action-setor').forEach(btn => {
@@ -386,15 +387,15 @@ document.querySelectorAll('.btn-action-penarikan').forEach(btn => {
     btn.addEventListener('click', function() {
         const id = this.dataset.id;
         const action = this.dataset.action;
+        const url = this.dataset.url;
 
         if (action === 'reject') {
             pendingPenarikanId = id;
+            pendingPenarikanUrl = url;
             document.getElementById('rejectModalPenarikan').style.display = 'flex';
         } else if (action === 'approve') {
             if (confirm('Setujui permintaan penarikan ini?')) {
-                console.log('Approve penarikan:', id);
-                alert('Permintaan penarikan berhasil disetujui');
-                location.reload();
+                submitPenarikanAction(url, 'approve', '');
             }
         }
     });
@@ -422,11 +423,40 @@ document.getElementById('rejectFormPenarikan').addEventListener('submit', functi
         alert('Alasan penolakan harus diisi');
         return;
     }
-    console.log('Reject penarikan:', pendingPenarikanId, 'Reason:', note);
-    alert('Permintaan penarikan berhasil ditolak');
-    document.getElementById('rejectModalPenarikan').style.display = 'none';
-    location.reload();
+    submitPenarikanAction(pendingPenarikanUrl, 'reject', note);
 });
+
+function submitPenarikanAction(url, action, note) {
+    if (!url) {
+        alert('URL aksi penarikan tidak ditemukan.');
+        return;
+    }
+
+    const token = document.querySelector('meta[name="csrf-token"]');
+    const csrf = token ? token.getAttribute('content') : '';
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrf,
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify({ action, note })
+    })
+        .then(response => response.json().then(data => ({ ok: response.ok, data })))
+        .then(({ ok, data }) => {
+            if (!ok) {
+                throw new Error(data && data.message ? data.message : 'Gagal memproses penarikan.');
+            }
+            alert(data.message || 'Permintaan penarikan berhasil diproses.');
+            document.getElementById('rejectModalPenarikan').style.display = 'none';
+            location.reload();
+        })
+        .catch(error => {
+            alert(error.message || 'Terjadi kesalahan saat memproses penarikan.');
+        });
+}
 
 // Close modal on outside click
 window.addEventListener('click', function(e) {
