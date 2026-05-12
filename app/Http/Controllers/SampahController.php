@@ -104,6 +104,7 @@ class SampahController extends Controller
         if (!$sampah) {
             abort(404);
         }
+        $sampah = (object) $sampah;
         $activePage = 'sampah';
         $pageTitle = 'Edit Jenis Sampah';
         return view('admin.edit_sampah', compact('activePage', 'pageTitle', 'sampah'));

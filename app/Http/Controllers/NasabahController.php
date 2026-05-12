@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Nasabah;
+use Illuminate\Support\Facades\Http;
 
 class NasabahController extends Controller
 {
@@ -34,9 +34,18 @@ class NasabahController extends Controller
                     }
 
                     if ($newStatus) {
-                        // Update nasabah status in database
-                        Nasabah::where('id_nasabah', $id)->update(['status' => $newStatus]);
-                        $flash = 'Status nasabah berhasil diperbarui.';
+                        $response = $this->supabaseRequest(
+                            'patch',
+                            '/rest/v1/nasabah?id_nasabah=eq.' . $id,
+                            ['status' => $newStatus],
+                            true
+                        );
+
+                        if ($response->successful()) {
+                            $flash = 'Status nasabah berhasil diperbarui.';
+                        } else {
+                            $flash = 'Gagal memperbarui status nasabah.';
+                        }
                     } else {
                         $flash = 'Aksi tidak dikenali.';
                     }
@@ -49,30 +58,7 @@ class NasabahController extends Controller
                 session()->forget('flash_nasabah');
             }
 
-            // Get nasabah data from database
-            $nasabahs = Nasabah::select(
-                'id_nasabah',
-                'nama_lengkap as nama_nasabah',
-                'alamat',
-                'no_hp',
-                'saldo',
-                'status as status_akun',
-                'created_at as tanggal_daftar'
-            )
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'id_nasabah' => $item->id_nasabah,
-                    'nama_nasabah' => $item->nama_nasabah,
-                    'alamat' => $item->alamat ?? '-',
-                    'no_hp' => $item->no_hp ?? '-',
-                    'saldo' => $item->saldo ?? 0,
-                    'status_akun' => $item->status_akun ?? 'verifikasi',
-                    'tanggal_daftar' => $item->tanggal_daftar instanceof \DateTime ? $item->tanggal_daftar->format('Y-m-d') : (is_string($item->tanggal_daftar) ? $item->tanggal_daftar : '-'),
-                ];
-            })
-            ->toArray();
+            $nasabahs = $this->fetchNasabahList();
         } catch (\Exception $e) {
             \Log::error('NasabahController Database Error: ' . $e->getMessage());
             $databaseError = 'Tidak dapat terhubung ke database. Periksa koneksi internet Anda.';
@@ -86,5 +72,77 @@ class NasabahController extends Controller
             'nasabahs',
             'databaseError'
         ));
+    }
+
+    private function fetchNasabahList(): array
+    {
+        $response = $this->supabaseRequest(
+            'get',
+            '/rest/v1/nasabah?select=id_nasabah,nama_lengkap,alamat,no_hp,saldo,status,created_at&order=created_at.desc',
+            null,
+            false
+        );
+
+        if (!$response->successful()) {
+            return [];
+        }
+
+        $items = $response->json();
+        if (!is_array($items)) {
+            return [];
+        }
+
+        $mapped = [];
+        foreach ($items as $item) {
+            $tanggal = $item['created_at'] ?? null;
+            $mapped[] = [
+                'id_nasabah' => $item['id_nasabah'] ?? null,
+                'nama_nasabah' => $item['nama_lengkap'] ?? null,
+                'alamat' => $item['alamat'] ?? '-',
+                'no_hp' => $item['no_hp'] ?? '-',
+                'saldo' => $item['saldo'] ?? 0,
+                'status_akun' => $item['status'] ?? 'verifikasi',
+                'tanggal_daftar' => is_string($tanggal) ? $tanggal : '-',
+            ];
+        }
+
+        return $mapped;
+    }
+
+    private function supabaseRequest(string $method, string $path, ?array $payload, bool $returnRepresentation)
+    {
+        $supabaseUrl = env('SUPABASE_URL');
+        $supabaseKey = env('SUPABASE_KEY');
+
+        $request = Http::withHeaders([
+            'apikey' => $supabaseKey,
+            'Authorization' => 'Bearer ' . $supabaseKey,
+        ]);
+
+        if ($returnRepresentation) {
+            $request = $request->withHeaders([
+                'Prefer' => 'return=representation',
+            ]);
+        }
+
+        $url = $supabaseUrl . $path;
+
+        if ($method === 'get') {
+            return $request->get($url);
+        }
+
+        if ($method === 'post') {
+            return $request->post($url, $payload ?? []);
+        }
+
+        if ($method === 'patch') {
+            return $request->patch($url, $payload ?? []);
+        }
+
+        if ($method === 'delete') {
+            return $request->delete($url);
+        }
+
+        return $request->get($url);
     }
 }
