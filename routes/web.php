@@ -37,8 +37,11 @@ Route::get('/admin/login', [AdminAuthController::class, 'showLogin'])->name('adm
 Route::post('/admin/login', [AdminAuthController::class, 'login'])->name('admin.login');
 Route::get('/admin/logout', [AdminAuthController::class, 'logout'])->name('admin.logout');
 
+// Default login route required by auth middleware
+Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');
+
 // Admin dashboard
-Route::middleware(['auth:admin'])->group(function () {
+Route::middleware(['admin.session'])->group(function () {
     Route::get('/admin/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
 
     // Admin nasabah routes

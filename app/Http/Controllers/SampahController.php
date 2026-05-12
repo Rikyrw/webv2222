@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Sampah;
+use Illuminate\Support\Facades\Http;
 
 class SampahController extends Controller
 {
@@ -43,10 +44,7 @@ class SampahController extends Controller
                 session()->forget('flash_type');
             }
 
-            // Get waste types from database
-            $sampahList = Sampah::where('status', 'aktif')
-                ->get(['id_jenis_sampah as id_jenis', 'nama_jenis', 'harga_per_kg', 'stok as stok_kg', 'status'])
-                ->toArray();
+            $sampahList = $this->fetchSampahList();
         } catch (\Exception $e) {
             \Log::error('SampahController Database Error: ' . $e->getMessage());
             $databaseError = 'Tidak dapat terhubung ke database. Periksa koneksi internet Anda.';
@@ -79,13 +77,19 @@ class SampahController extends Controller
         ]);
 
         try {
-            Sampah::create([
+            $payload = [
                 'nama_jenis' => $request->nama_jenis,
                 'harga_per_kg' => $request->harga_per_kg,
                 'stok' => $request->stok,
                 'status' => 'aktif',
-                'id_admin' => session('admin_id'), // Assuming admin_id is stored in session
-            ]);
+                'id_admin' => session('admin_id'),
+            ];
+
+            $response = $this->supabaseRequest('post', '/rest/v1/jenis_sampah', $payload, true);
+
+            if (!$response->successful()) {
+                throw new \RuntimeException('Supabase insert gagal');
+            }
 
             return redirect()->route('admin.sampah.daftar')->with('flash_message', 'Jenis sampah berhasil ditambahkan')->with('flash_type', 'success');
         } catch (\Exception $e) {
@@ -96,7 +100,10 @@ class SampahController extends Controller
 
     public function edit($id)
     {
-        $sampah = Sampah::findOrFail($id);
+        $sampah = $this->fetchSampahById($id);
+        if (!$sampah) {
+            abort(404);
+        }
         $activePage = 'sampah';
         $pageTitle = 'Edit Jenis Sampah';
         return view('admin.edit_sampah', compact('activePage', 'pageTitle', 'sampah'));
@@ -112,18 +119,118 @@ class SampahController extends Controller
         ]);
 
         try {
-            $sampah = Sampah::findOrFail($id);
-            $sampah->update([
+            $payload = [
                 'nama_jenis' => $request->nama_jenis,
                 'harga_per_kg' => $request->harga_per_kg,
                 'stok' => $request->stok,
                 'status' => $request->status,
-            ]);
+            ];
+
+            $response = $this->supabaseRequest(
+                'patch',
+                '/rest/v1/jenis_sampah?id_jenis_sampah=eq.' . $id,
+                $payload,
+                true
+            );
+
+            if (!$response->successful()) {
+                throw new \RuntimeException('Supabase update gagal');
+            }
 
             return redirect()->route('admin.sampah.daftar')->with('flash_message', 'Jenis sampah berhasil diperbarui')->with('flash_type', 'success');
         } catch (\Exception $e) {
             \Log::error('SampahController Update Error: ' . $e->getMessage());
             return redirect()->back()->with('flash_message', 'Gagal memperbarui jenis sampah')->with('flash_type', 'error');
         }
+    }
+
+    private function fetchSampahList(): array
+    {
+        $response = $this->supabaseRequest(
+            'get',
+            '/rest/v1/jenis_sampah?select=id_jenis_sampah,nama_jenis,harga_per_kg,stok,status&status=eq.aktif',
+            null,
+            false
+        );
+
+        if (!$response->successful()) {
+            return [];
+        }
+
+        $items = $response->json();
+        if (!is_array($items)) {
+            return [];
+        }
+
+        $mapped = [];
+        foreach ($items as $item) {
+            $mapped[] = [
+                'id_jenis' => $item['id_jenis_sampah'] ?? null,
+                'nama_jenis' => $item['nama_jenis'] ?? null,
+                'harga_per_kg' => $item['harga_per_kg'] ?? null,
+                'stok_kg' => $item['stok'] ?? null,
+                'status' => $item['status'] ?? null,
+            ];
+        }
+
+        return $mapped;
+    }
+
+    private function fetchSampahById($id): ?array
+    {
+        $response = $this->supabaseRequest(
+            'get',
+            '/rest/v1/jenis_sampah?select=*&id_jenis_sampah=eq.' . $id . '&limit=1',
+            null,
+            false
+        );
+
+        if (!$response->successful()) {
+            return null;
+        }
+
+        $items = $response->json();
+        if (!is_array($items) || count($items) === 0) {
+            return null;
+        }
+
+        return $items[0];
+    }
+
+    private function supabaseRequest(string $method, string $path, ?array $payload, bool $returnRepresentation)
+    {
+        $supabaseUrl = env('SUPABASE_URL');
+        $supabaseKey = env('SUPABASE_KEY');
+
+        $request = Http::withHeaders([
+            'apikey' => $supabaseKey,
+            'Authorization' => 'Bearer ' . $supabaseKey,
+        ]);
+
+        if ($returnRepresentation) {
+            $request = $request->withHeaders([
+                'Prefer' => 'return=representation',
+            ]);
+        }
+
+        $url = $supabaseUrl . $path;
+
+        if ($method === 'get') {
+            return $request->get($url);
+        }
+
+        if ($method === 'post') {
+            return $request->post($url, $payload ?? []);
+        }
+
+        if ($method === 'patch') {
+            return $request->patch($url, $payload ?? []);
+        }
+
+        if ($method === 'delete') {
+            return $request->delete($url);
+        }
+
+        return $request->get($url);
     }
 }
