@@ -19,11 +19,11 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #000000, #002d6d);
-            justify-content: center;
-            align-items: center;
+            background: radial-gradient(circle at top, rgba(16, 185, 129, 0.16), transparent 28%),
+                        linear-gradient(180deg, #f8fdf9 0%, #eef7f1 100%);
             min-height: 100vh;
             padding: 24px;
+            color: #0f172a;
         }
 
         .app {
@@ -56,10 +56,13 @@
         }
 
         .card {
-            background: white;
-            padding: 24px;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(229, 231, 235, 0.9);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+            background-image: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(255,255,255,0) 100%);
         }
 
         .card h3 {
@@ -91,18 +94,19 @@
 
         .input-with-value input {
             flex: 1;
-            padding: 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
+            padding: 12px 14px;
+            border: 1px solid #dbe3ea;
+            border-radius: 14px;
             font-size: 14px;
             font-family: inherit;
-            background-color: #f9fafb;
+            background-color: white;
+            outline: none;
+            transition: all 0.2s ease;
         }
 
         .input-with-value input:focus {
-            outline: none;
             border-color: #10b981;
-            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
         }
 
         .edit-btn {
@@ -141,20 +145,21 @@
 
         .select-wrapper select {
             width: 100%;
-            padding: 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
+            padding: 12px 14px;
+            border: 1px solid #dbe3ea;
+            border-radius: 14px;
             font-size: 14px;
             font-family: inherit;
             background-color: white;
             appearance: none;
             cursor: pointer;
+            outline: none;
+            transition: all 0.2s ease;
         }
 
         .select-wrapper select:focus {
-            outline: none;
             border-color: #10b981;
-            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
         }
 
         .select-wrapper i {
@@ -176,33 +181,31 @@
         .btn-primary {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            transform: translate(0, -50%);
-            background: transparent;
-            color: #059669;
-            border: 1px solid #059669;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            width: 100%;
             justify-content: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            gap: 8px;
+            width: 100%;
+            min-height: 48px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            font-size: 14px;
+            font-weight: 800;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 18px 40px rgba(16, 185, 129, 0.24);
         }
 
         .btn-primary:hover {
-            background: linear-gradient(135deg, #059669, #10b981);
-            color: white;
-            border-color: #059669;
-            /* transform: translate(0, -50%) scale(1.05); */
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+            filter: brightness(0.98);
+            transform: translateY(-1px);
+            box-shadow: 0 20px 40px rgba(16, 185, 129, 0.3);
         }
         
         .btn-primary:active {
-            transform: translate(0, -50%) scale(0.98);
-            transition: all 0.1s ease;
+            transform: translateY(0);
         }
 
         .btn-primary i {
@@ -364,7 +367,6 @@
 
                     <div class="form-actions">
                         <button type="submit" class="btn-primary">
-                            <i data-lucide="zap"></i>
                             Proses Pembayaran
                         </button>
                     </div>
