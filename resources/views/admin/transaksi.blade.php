@@ -73,17 +73,23 @@
                                 @endif
                             </td>
                             <td style="padding: 12px 16px; text-align: center;">
-                                @if ($tx['status'] === 'menunggu')
-                                    <button type="button" class="btn-action-setor" data-id="{{ $tx['id_transaksi'] }}" data-action="approve" style="padding: 6px 12px; background: #10b981; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; margin-right: 6px;">Setujui</button>
-                                    <button type="button" class="btn-action-setor" data-id="{{ $tx['id_transaksi'] }}" data-action="reject" style="padding: 6px 12px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600;">Tolak</button>
-                                @else
-                                    <span style="color: #6b7280; font-size: 12px;">Proses Selesai</span>
-                                @endif
+                                <a href="{{ route('admin.transaksi.setor.detail', ['id' => $tx['id_transaksi']]) }}" style="padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; text-decoration: none; display: inline-block;">
+                                    {{ $tx['status'] === 'menunggu' ? 'Proses' : 'Detail' }}
+                                </a>
                             </td>
                         </tr>
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
+                <span style="align-self: center; font-size: 12px; color: #6b7280;">Halaman {{ $setorRequestsMeta['page'] ?? 1 }}</span>
+                @if (!empty($setorRequestsMeta['has_prev']))
+                    <a href="{{ route('admin.transaksi', ['tab' => 'setor', 'page_setor_req' => $setorRequestsMeta['page'] - 1]) }}" style="padding: 6px 12px; background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Sebelumnya</a>
+                @endif
+                @if (!empty($setorRequestsMeta['has_next']))
+                    <a href="{{ route('admin.transaksi', ['tab' => 'setor', 'page_setor_req' => $setorRequestsMeta['page'] + 1]) }}" style="padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Berikutnya</a>
+                @endif
             </div>
         @endif
     </div>
@@ -146,6 +152,15 @@
                     </tbody>
                 </table>
             </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
+                <span style="align-self: center; font-size: 12px; color: #6b7280;">Halaman {{ $penarikanRequestsMeta['page'] ?? 1 }}</span>
+                @if (!empty($penarikanRequestsMeta['has_prev']))
+                    <a href="{{ route('admin.transaksi', ['tab' => 'penarikan', 'page_penarikan_req' => $penarikanRequestsMeta['page'] - 1]) }}" style="padding: 6px 12px; background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Sebelumnya</a>
+                @endif
+                @if (!empty($penarikanRequestsMeta['has_next']))
+                    <a href="{{ route('admin.transaksi', ['tab' => 'penarikan', 'page_penarikan_req' => $penarikanRequestsMeta['page'] + 1]) }}" style="padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Berikutnya</a>
+                @endif
+            </div>
         @endif
     </div>
 
@@ -155,32 +170,159 @@
         <h3 style="margin: 0 0 20px; font-size: 18px; font-weight: 600;">Riwayat Penarikan & Setor</h3>
         <p style="margin: 0 0 20px; color: #6b7280; font-size: 14px;">Riwayat terakhir nasabah menarik atau setor sampah</p>
 
-        @if (count($history) == 0)
-            <div style="text-align: center; padding: 40px 20px; color: #6b7280;">
-                <p>Belum ada riwayat penarikan atau setor.</p>
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px;">
+            <h4 style="margin: 0; font-size: 16px; font-weight: 600;">Riwayat Setor Sampah</h4>
+            <form method="GET" action="{{ route('admin.transaksi') }}" style="display: flex; align-items: center; gap: 8px;">
+                <input type="hidden" name="tab" value="history">
+                <label style="font-size: 12px; color: #6b7280;">Filter status</label>
+                <select name="history_status" onchange="this.form.submit()" style="padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 12px;">
+                    <option value="all" {{ ($historyStatus ?? 'all') === 'all' ? 'selected' : '' }}>Semua</option>
+                    <option value="selesai" {{ ($historyStatus ?? 'all') === 'selesai' ? 'selected' : '' }}>Selesai</option>
+                    <option value="sebagian" {{ ($historyStatus ?? 'all') === 'sebagian' ? 'selected' : '' }}>Sebagian</option>
+                    <option value="ditolak" {{ ($historyStatus ?? 'all') === 'ditolak' ? 'selected' : '' }}>Ditolak</option>
+                </select>
+            </form>
+        </div>
+        @if (count($historySetor) == 0)
+            <div style="text-align: center; padding: 32px 16px; color: #6b7280;">
+                <p>Belum ada riwayat setor.</p>
             </div>
         @else
             <div style="overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
                     <thead>
                         <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Waktu</th>
-                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Nama Nasabah</th>
-                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Jumlah (Rp)</th>
-                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Sumber / Keterangan</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">ID</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Nasabah</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Jenis</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Total Berat</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Total Nilai</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Disetujui</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Ditolak</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Catatan Admin</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Tanggal Proses</th>
+                            <th style="text-align: center; padding: 12px 16px; font-weight: 600; color: #374151;">Status</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($history as $h)
+                        @foreach ($historySetor as $h)
                         <tr style="border-bottom: 1px solid #e5e7eb;">
-                            <td style="padding: 12px 16px;">{{ date('d M Y H:i', strtotime($h['waktu'])) }}</td>
-                            <td style="padding: 12px 16px;">{{ $h['nama'] }}</td>
-                            <td style="padding: 12px 16px;">Rp {{ number_format($h['jumlah'], 0, ',', '.') }}</td>
-                            <td style="padding: 12px 16px;">{{ $h['keterangan'] }}</td>
+                            <td style="padding: 12px 16px;"><strong>#{{ $h['id_transaksi'] }}</strong></td>
+                            <td style="padding: 12px 16px;">{{ $h['nama_nasabah'] }}</td>
+                            <td style="padding: 12px 16px;">{{ $h['jenis'] }}</td>
+                            <td style="padding: 12px 16px;">{{ number_format($h['total_berat'], 2, ',', '.') }} kg</td>
+                            <td style="padding: 12px 16px;">Rp {{ number_format($h['total_nilai'], 0, ',', '.') }}</td>
+                            <td style="padding: 12px 16px;">
+                                @if (count($h['approved_items'] ?? []) > 0)
+                                    @foreach ($h['approved_items'] as $item)
+                                        <div style="font-size: 12px;">{{ $item }}</div>
+                                    @endforeach
+                                @else
+                                    <span style="color: #6b7280; font-size: 12px;">-</span>
+                                @endif
+                            </td>
+                            <td style="padding: 12px 16px;">
+                                @if (count($h['rejected_items'] ?? []) > 0)
+                                    @foreach ($h['rejected_items'] as $item)
+                                        <div style="font-size: 12px;">{{ $item }}</div>
+                                    @endforeach
+                                @else
+                                    <span style="color: #6b7280; font-size: 12px;">-</span>
+                                @endif
+                            </td>
+                            <td style="padding: 12px 16px;">
+                                @if (count($h['catatan_admin'] ?? []) > 0)
+                                    @foreach ($h['catatan_admin'] as $note)
+                                        <div style="font-size: 12px; color: #6b7280;">{{ $note }}</div>
+                                    @endforeach
+                                @else
+                                    <span style="color: #6b7280; font-size: 12px;">-</span>
+                                @endif
+                            </td>
+                            <td style="padding: 12px 16px;">
+                                {{ $h['tanggal_proses'] ? date('d M Y', strtotime($h['tanggal_proses'])) : '-' }}
+                            </td>
+                            <td style="padding: 12px 16px; text-align: center;">
+                                @if ($h['status'] === 'menunggu')
+                                    <span style="display: inline-block; padding: 4px 12px; background: #fef3c7; color: #92400e; border-radius: 20px; font-size: 12px; font-weight: 600;">Menunggu</span>
+                                @elseif (in_array($h['status'], ['approved', 'selesai', 'success']))
+                                    <span style="display: inline-block; padding: 4px 12px; background: #d1fae5; color: #065f46; border-radius: 20px; font-size: 12px; font-weight: 600;">Disetujui</span>
+                                @elseif (in_array($h['status'], ['ditolak', 'rejected']))
+                                    <span style="display: inline-block; padding: 4px 12px; background: #fee2e2; color: #991b1b; border-radius: 20px; font-size: 12px; font-weight: 600;">Ditolak</span>
+                                @else
+                                    <span style="display: inline-block; padding: 4px 12px; background: #e6f0ff; color: #1e3a8a; border-radius: 20px; font-size: 12px; font-weight: 600;">{{ ucfirst($h['status']) }}</span>
+                                @endif
+                            </td>
                         </tr>
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
+                <span style="align-self: center; font-size: 12px; color: #6b7280;">Halaman {{ $historySetorMeta['page'] ?? 1 }}</span>
+                @if (!empty($historySetorMeta['has_prev']))
+                    <a href="{{ route('admin.transaksi', ['tab' => 'history', 'page_setor' => $historySetorMeta['page'] - 1, 'history_status' => $historyStatus ?? 'all']) }}" style="padding: 6px 12px; background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Sebelumnya</a>
+                @endif
+                @if (!empty($historySetorMeta['has_next']))
+                    <a href="{{ route('admin.transaksi', ['tab' => 'history', 'page_setor' => $historySetorMeta['page'] + 1, 'history_status' => $historyStatus ?? 'all']) }}" style="padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Berikutnya</a>
+                @endif
+            </div>
+        @endif
+
+        <h4 style="margin: 24px 0 12px; font-size: 16px; font-weight: 600;">Riwayat Penarikan</h4>
+        @if (count($historyPenarikan) == 0)
+            <div style="text-align: center; padding: 32px 16px; color: #6b7280;">
+                <p>Belum ada riwayat penarikan.</p>
+            </div>
+        @else
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+                    <thead>
+                        <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">ID</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Nasabah</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Jenis</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Nominal (Rp)</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Deskripsi</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Tanggal Proses</th>
+                            <th style="text-align: center; padding: 12px 16px; font-weight: 600; color: #374151;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($historyPenarikan as $p)
+                        <tr style="border-bottom: 1px solid #e5e7eb;">
+                            <td style="padding: 12px 16px;"><strong>#{{ $p['id_penarikan'] }}</strong></td>
+                            <td style="padding: 12px 16px;">{{ $p['nama_nasabah'] }}</td>
+                            <td style="padding: 12px 16px;">{{ $p['jenis_penukaran'] }}</td>
+                            <td style="padding: 12px 16px;">{{ number_format($p['nominal'], 0, ',', '.') }}</td>
+                            <td style="padding: 12px 16px; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $p['deskripsi'] }}</td>
+                            <td style="padding: 12px 16px;">
+                                {{ $p['tanggal_proses'] ? date('d M Y', strtotime($p['tanggal_proses'])) : '-' }}
+                            </td>
+                            <td style="padding: 12px 16px; text-align: center;">
+                                @if ($p['status'] === 'menunggu')
+                                    <span style="display: inline-block; padding: 4px 12px; background: #fef3c7; color: #92400e; border-radius: 20px; font-size: 12px; font-weight: 600;">Menunggu</span>
+                                @elseif (in_array($p['status'], ['approved', 'selesai', 'success']))
+                                    <span style="display: inline-block; padding: 4px 12px; background: #d1fae5; color: #065f46; border-radius: 20px; font-size: 12px; font-weight: 600;">Disetujui</span>
+                                @elseif (in_array($p['status'], ['ditolak', 'rejected']))
+                                    <span style="display: inline-block; padding: 4px 12px; background: #fee2e2; color: #991b1b; border-radius: 20px; font-size: 12px; font-weight: 600;">Ditolak</span>
+                                @else
+                                    <span style="display: inline-block; padding: 4px 12px; background: #e6f0ff; color: #1e3a8a; border-radius: 20px; font-size: 12px; font-weight: 600;">{{ ucfirst($p['status']) }}</span>
+                                @endif
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
+                <span style="align-self: center; font-size: 12px; color: #6b7280;">Halaman {{ $historyPenarikanMeta['page'] ?? 1 }}</span>
+                @if (!empty($historyPenarikanMeta['has_prev']))
+                    <a href="{{ route('admin.transaksi', ['tab' => 'history', 'page_penarikan_hist' => $historyPenarikanMeta['page'] - 1, 'history_status' => $historyStatus ?? 'all']) }}" style="padding: 6px 12px; background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Sebelumnya</a>
+                @endif
+                @if (!empty($historyPenarikanMeta['has_next']))
+                    <a href="{{ route('admin.transaksi', ['tab' => 'history', 'page_penarikan_hist' => $historyPenarikanMeta['page'] + 1, 'history_status' => $historyStatus ?? 'all']) }}" style="padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Berikutnya</a>
+                @endif
             </div>
         @endif
     </div>

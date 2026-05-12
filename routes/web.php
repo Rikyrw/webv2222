@@ -50,6 +50,8 @@ Route::middleware(['admin.session'])->group(function () {
 
     // Admin transaksi routes
     Route::get('/admin/transaksi', [TransaksiController::class, 'index'])->name('admin.transaksi');
+    Route::get('/admin/transaksi/setor/{id}', [TransaksiController::class, 'showSetorDetail'])->name('admin.transaksi.setor.detail');
+    Route::post('/admin/transaksi/setor/{id}', [TransaksiController::class, 'updateSetorDetail'])->name('admin.transaksi.setor.update');
 
     // Admin sampah routes
     Route::get('/admin/sampah', [SampahController::class, 'daftar'])->name('admin.sampah.daftar');
