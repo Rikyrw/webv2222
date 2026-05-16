@@ -317,7 +317,7 @@
 
                 <h3>Form Isi Saldo E-money</h3>
                 
-                <form method="POST" action="{{ Route::has('nasabah.ppob.process') ? route('nasabah.ppob.process') : '#' }}" class="emoney-form">
+                <form method="POST" action="{{ route('nasabah.emoney.store') }}" class="emoney-form">
                     @csrf
                     <input type="hidden" name="service_type" value="emoney">
 
@@ -341,10 +341,8 @@
                             <label for="category">Kategori E-money</label>
                             <div class="select-wrapper">
                                 <select id="category" name="category" required>
-                                    <option value="OVO" {{ old('category') == 'OVO' ? 'selected' : '' }}>OVO</option>
                                     <option value="DANA" {{ old('category') == 'DANA' ? 'selected' : '' }}>DANA</option>
                                     <option value="GOPAY" {{ old('category') == 'GOPAY' ? 'selected' : '' }}>GoPay</option>
-                                    <option value="LINKAJA" {{ old('category') == 'LINKAJA' ? 'selected' : '' }}>LinkAja</option>
                                 </select>
                                 <i data-lucide="chevron-down"></i>
                             </div>
@@ -354,11 +352,11 @@
                             <label for="nominal">Nominal (Rp)</label>
                             <div class="select-wrapper">
                                 <select id="nominal" name="nominal" required>
-                                    @for ($v = 5000; $v <= 100000; $v += 5000)
+                                    @foreach ([20000, 50000, 100000] as $v)
                                         <option value="{{ $v }}" {{ old('nominal') == $v ? 'selected' : ($v == 50000 ? 'selected' : '') }}>
                                             {{ number_format($v, 0, ',', '.') }}
                                         </option>
-                                    @endfor
+                                    @endforeach
                                 </select>
                                 <i data-lucide="chevron-down"></i>
                             </div>
@@ -374,7 +372,7 @@
 
                 <!-- Informasi Saldo -->
                 <div class="saldo-info">
-                    Saldo Anda saat ini: <strong>Rp {{ number_format((float)($user['saldo'] ?? 0), 0, ',', '.') }}</strong>
+                    Saldo Anda saat ini: <strong>Rp {{ number_format((float)($saldo_val ?? 0), 0, ',', '.') }}</strong>
                 </div>
 
                 <!-- Pesan Error/Success -->
@@ -429,9 +427,9 @@
                 return false;
             }
             
-            if (isNaN(nominal) || nominal < 5000 || nominal > 100000 || (nominal % 5000) !== 0) {
+            if (isNaN(nominal) || ![20000, 50000, 100000].includes(nominal)) {
                 e.preventDefault();
-                alert('Nominal tidak valid. Pilih kelipatan 5.000 (min 5.000, max 100.000).');
+                alert('Nominal tidak valid. Pilih 20.000, 50.000, atau 100.000.');
                 return false;
             }
             
@@ -453,15 +451,7 @@
             targetInput.setAttribute('readonly', 'readonly');
         }
 
-        // If route missing and action is '#', prevent actual submit (design mode)
         const emoneyForm = document.querySelector('.emoney-form');
-        if (emoneyForm && emoneyForm.getAttribute('action') === '#') {
-            emoneyForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                alert('Mode desain: backend tidak tersedia. Form tidak dikirim.');
-                return false;
-            });
-        }
     </script>
 
     <!-- Chat Bot -->

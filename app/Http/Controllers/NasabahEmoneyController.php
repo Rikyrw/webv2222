@@ -12,7 +12,6 @@ class NasabahEmoneyController extends Controller
     {
         $user_id = session('id_nasabah') ?? 1;
         $saldo_val = 0;
-        $emoney_error = Session::get('emoney_error', '');
 
         // Fetch user balance
         try {
@@ -32,7 +31,7 @@ class NasabahEmoneyController extends Controller
             \Log::error('Emoney balance fetch error: ' . $e->getMessage());
         }
 
-        return view('nasabah.emoney', compact('saldo_val', 'emoney_error'));
+        return view('nasabah.emoney', compact('saldo_val'));
     }
 
     public function store(Request $request)
@@ -41,8 +40,8 @@ class NasabahEmoneyController extends Controller
 
         $request->validate([
             'target' => 'required|string|max:255',
-            'category' => 'required|in:OVO,DANA,GOPAY,LINKAJA',
-            'nominal' => 'required|integer|min:5000|max:100000|multiple_of:5000',
+            'category' => 'required|in:DANA,GOPAY',
+            'nominal' => 'required|integer|in:20000,50000,100000',
         ]);
 
         $nominal = $request->input('nominal');
@@ -66,54 +65,38 @@ class NasabahEmoneyController extends Controller
             }
         } catch (\Exception $e) {
             \Log::error('Emoney balance check error: ' . $e->getMessage());
-            return redirect()->back()->with('emoney_error', 'Gagal memeriksa saldo.');
+            return redirect()->back()->with('error', 'Gagal memeriksa saldo.');
         }
 
         if ($saldo < $nominal) {
-            return redirect()->back()->with('emoney_error', 'Saldo tidak mencukupi.');
+            return redirect()->back()->with('error', 'Saldo tidak mencukupi.');
         }
 
         // Insert into penarikan table
         try {
+            $serviceKey = env('SUPABASE_SERVICE_ROLE_KEY') ?: $supabaseKey;
             $data = [
                 'id_nasabah' => $user_id,
                 'jenis_penukaran' => 'E-money',
                 'nominal' => $nominal,
                 'status' => 'menunggu',
-                'tanggal_pengajuan' => now()->toDateTimeString(),
+                'tanggal_pengajuan' => date('Y-m-d'),
                 'deskripsi' => "Top-up {$category} ke {$target}",
             ];
 
             $insertResponse = Http::withHeaders([
-                'apikey' => $supabaseKey,
-                'Authorization' => 'Bearer ' . $supabaseKey,
+                'apikey' => $serviceKey,
+                'Authorization' => 'Bearer ' . $serviceKey,
                 'Content-Type' => 'application/json',
-            ])->post($supabaseUrl . '/rest/v1/penarikan', $data);
+            ])->post($supabaseUrl . '/rest/v1/penarikan_saldo', $data);
 
             if (!$insertResponse->successful()) {
-                return redirect()->back()->with('emoney_error', 'Gagal memproses transaksi.');
+                return redirect()->back()->with('error', 'Gagal memproses transaksi.');
             }
-
-            // Update balance
-            $newSaldo = $saldo - $nominal;
-            $updateResponse = Http::withHeaders([
-                'apikey' => $supabaseKey,
-                'Authorization' => 'Bearer ' . $supabaseKey,
-                'Content-Type' => 'application/json',
-            ])->patch($supabaseUrl . '/rest/v1/nasabah?id_nasabah=eq.' . $user_id, ['saldo' => $newSaldo]);
-
-            if (!$updateResponse->successful()) {
-                // Optionally rollback the penarikan insert, but for simplicity, just log
-                \Log::error('Failed to update balance after penarikan insert');
-            }
-
-            // Update session saldo
-            session(['saldo' => $newSaldo]);
-
-            return redirect()->back()->with('emoney_error', 'Transaksi berhasil diajukan.');
+            return redirect()->back()->with('success', 'Transaksi berhasil diajukan dan menunggu persetujuan admin.');
         } catch (\Exception $e) {
             \Log::error('Emoney transaction error: ' . $e->getMessage());
-            return redirect()->back()->with('emoney_error', 'Terjadi kesalahan saat memproses transaksi.');
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat memproses transaksi.');
         }
     }
 } 

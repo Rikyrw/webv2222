@@ -413,30 +413,17 @@
                 <!-- PROFILE SECTION -->
                 <div class="card col-6">
                     <h3>Profil</h3>
-                    <form method="POST" style="margin-top: 8px;" enctype="multipart/form-data">
-                        @csrf
-                        <input type="hidden" name="update_profile" value="1">
-                        
+                    <div style="margin-top: 8px;">
                         <div class="form-group">
-                            <label for="nama_nasabah">Nama</label>
-                            <input type="text" id="nama_nasabah" name="nama_nasabah" value="{{ htmlspecialchars($user['nama_nasabah'] ?? '') }}" required>
+                            <label>Nama</label>
+                            <div>{{ htmlspecialchars($user['nama_nasabah'] ?? '') }}</div>
                         </div>
 
                         <div class="form-group">
-                            <label for="alamat">Alamat</label>
-                            <input type="text" id="alamat" name="alamat" value="{{ htmlspecialchars($user['alamat'] ?? '') }}">
+                            <label>Alamat</label>
+                            <div>{{ htmlspecialchars($user['alamat'] ?? '') }}</div>
                         </div>
-
-                        <div class="form-actions">
-                            <button type="submit" class="btn-primary">Update Profil</button>
-                        </div>
-
-                        @if($profile_success)
-                            <div class="success-message">{{ $profile_success }}</div>
-                        @elseif($profile_error)
-                            <div class="error-message">{{ $profile_error }}</div>
-                        @endif
-                    </form>
+                    </div>
                 </div>
 
                 <!-- SETOR FORM SECTION -->
@@ -462,7 +449,7 @@
 
                         <div class="form-group">
                             <label for="beratInput">Berat (kg)</label>
-                            <input type="number" id="beratInput" min="0.01" step="0.01" value="0">
+                            <input type="number" id="beratInput" min="1" step="0.01" placeholder="Minimal 1 kg">
                         </div>
 
                         <div class="form-actions">
@@ -537,18 +524,18 @@
         // Handle file selection
         photoInput.addEventListener('change', function(e) {
             const files = Array.from(e.target.files);
-            
+
             files.forEach(file => {
                 if (!file.type.match('image.*')) {
                     alert('File ' + file.name + ' bukan gambar');
                     return;
                 }
-                
+
                 if (file.size > 2 * 1024 * 1024) {
                     alert('Ukuran file ' + file.name + ' terlalu besar (maks 2MB)');
                     return;
                 }
-                
+
                 const reader = new FileReader();
                 reader.onload = function(evt) {
                     // Assign photo to the last item added
@@ -697,24 +684,33 @@
             const harga = parseFloat(sel.dataset.harga || 0);
             const berat = parseFloat(beratInput.value || 0);
 
-            if (berat <= 0) {
-                alert('Masukkan berat yang valid');
+            if (berat < 1) {
+                alert('Berat minimal 1 kg');
                 return;
             }
 
-            const subtotal = (harga * berat).toFixed(2);
-            items.push({
-                id,
-                nama,
-                berat: berat.toFixed(2),
-                harga: harga.toFixed(2),
-                subtotal,
-                photo: null,
-                photoFile: null
-            });
+            const existingIndex = items.findIndex(item => String(item.id) === String(id));
+            if (existingIndex >= 0) {
+                const existing = items[existingIndex];
+                const newBerat = parseFloat(existing.berat) + berat;
+                existing.berat = newBerat.toFixed(2);
+                existing.subtotal = (harga * newBerat).toFixed(2);
+                items[existingIndex] = existing;
+            } else {
+                const subtotal = (harga * berat).toFixed(2);
+                items.push({
+                    id,
+                    nama,
+                    berat: berat.toFixed(2),
+                    harga: harga.toFixed(2),
+                    subtotal,
+                    photo: null,
+                    photoFile: null
+                });
+            }
 
             renderItems();
-            beratInput.value = '0';
+            beratInput.value = '';
             jenisSelect.selectedIndex = 0;
         });
 
@@ -725,13 +721,10 @@
                 return;
             }
             
-            // Optional: Check if all items have photos
             const itemsWithoutPhoto = items.filter(item => !item.photo);
             if (itemsWithoutPhoto.length > 0) {
-                const confirmSubmit = confirm(`${itemsWithoutPhoto.length} item belum memiliki foto. Lanjutkan tanpa foto?`);
-                if (!confirmSubmit) {
-                    e.preventDefault();
-                }
+                e.preventDefault();
+                alert('Setiap item wajib memiliki foto');
             }
         });
     </script>

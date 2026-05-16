@@ -79,6 +79,21 @@
             border: 1px solid #e5e7eb;
         }
 
+        .filter-note {
+            margin-top: 12px;
+            color: #b91c1c;
+            font-size: 14px;
+        }
+
+        .filter-note ul {
+            margin-top: 6px;
+            padding-left: 18px;
+        }
+
+        .filter-note li {
+            margin-bottom: 4px;
+        }
+
         .filter-header {
             margin-bottom: 16px;
         }
@@ -392,6 +407,15 @@
             color: #9ca3af;
         }
 
+        .error-message {
+            color: #b91c1c;
+            background: #fee2e2;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            border-left: 4px solid #dc2626;
+        }
+
         .empty-state svg {
             width: 48px;
             height: 48px;
@@ -489,19 +513,19 @@
                     <div class="filter-header">
                         <h3>Filter Transaksi</h3>
                     </div>
-                    <div class="filter-controls">
+                    <form method="GET" class="filter-controls" id="filterForm">
                         <div class="filter-group">
                             <label for="tanggalMulai">Tanggal Mulai</label>
-                            <input type="date" id="tanggalMulai" class="date-input">
+                            <input type="date" id="tanggalMulai" name="tanggal_mulai" class="date-input" value="{{ htmlspecialchars($startDate ?? '') }}">
                         </div>
 
                         <div class="filter-group">
                             <label for="tanggalAkhir">Tanggal Akhir</label>
-                            <input type="date" id="tanggalAkhir" class="date-input">
+                            <input type="date" id="tanggalAkhir" name="tanggal_akhir" class="date-input" value="{{ htmlspecialchars($endDate ?? '') }}">
                         </div>
 
                         <div class="filter-actions">
-                            <button type="button" class="btn-secondary" onclick="applyFilter()">
+                            <button type="submit" class="btn-secondary">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                                 </svg>
@@ -515,7 +539,17 @@
                                 Reset
                             </button>
                         </div>
+                    </form>
+                    <div class="filter-note">
+                        <div>Catatan.</div>
+                        <ul>
+                            <li>Periode mutasi yang dapat dipilih minimal 1 hari.</li>
+                            <li>Mutasi rekening maksimum 30 hari yang lalu.</li>
+                        </ul>
                     </div>
+                    @if(!empty($filterError))
+                        <div class="error-message" style="margin-top: 12px;">{{ $filterError }}</div>
+                    @endif
                 </div>
 
                 <div class="table-actions">
@@ -544,11 +578,11 @@
                         <tr>
                             <th>No. Transaksi</th>
                             <th>Jenis Sampah</th>
-                            <th>Berat (kg)</th>
-                            <th>Harga/kg</th>
-                            <th>Subtotal</th>
+                            <th>Total Berat (kg)</th>
+                            <th>Total Nilai</th>
                             <th>Tanggal</th>
                             <th>Status</th>
+                            <th>Deskripsi Ditolak</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody">
@@ -576,7 +610,6 @@
                                     <td>#{{ $transaction['id_transaksi'] }}</td>
                                     <td>{{ htmlspecialchars($transaction['nama_jenis'] ?? 'N/A') }}</td>
                                     <td>{{ number_format($transaction['berat_kg'] ?? 0, 2) }}</td>
-                                    <td>Rp {{ number_format($transaction['harga_per_kg'] ?? 0, 0, ',', '.') }}</td>
                                     <td>Rp {{ number_format($transaction['subtotal'] ?? 0, 0, ',', '.') }}</td>
                                     <td>{{ date('d/m/Y', strtotime($transaction['tanggal_setor'])) }}</td>
                                     <td>
@@ -584,6 +617,7 @@
                                             {{ ucfirst($transaction['status']) }}
                                         </span>
                                     </td>
+                                    <td>{{ htmlspecialchars($transaction['rejected_notes'] ?? '') }}</td>
                                 </tr>
                             @endforeach
                         @endif
@@ -626,6 +660,9 @@
         const pageIndicator = document.getElementById('pageIndicator');
         const prevBtn = document.getElementById('prevBtn');
         const nextBtn = document.getElementById('nextBtn');
+        const filterForm = document.getElementById('filterForm');
+        const tanggalMulaiInput = document.getElementById('tanggalMulai');
+        const tanggalAkhirInput = document.getElementById('tanggalAkhir');
 
         let currentPage = 1;
         let rowsPerPage = 10;
@@ -633,6 +670,58 @@
 
         // Initialize
         paginationText.textContent = `${totalRows} dari ${totalRows} transaksi`;
+
+        function formatDate(value) {
+            const year = value.getFullYear();
+            const month = String(value.getMonth() + 1).padStart(2, '0');
+            const day = String(value.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function setDateConstraints() {
+            const today = new Date();
+            const maxDate = formatDate(today);
+            const minDateObj = new Date();
+            minDateObj.setDate(minDateObj.getDate() - 30);
+            const minDate = formatDate(minDateObj);
+
+            tanggalMulaiInput.min = minDate;
+            tanggalMulaiInput.max = maxDate;
+            tanggalAkhirInput.min = minDate;
+            tanggalAkhirInput.max = maxDate;
+        }
+
+        function getDateDiffDays(startValue, endValue) {
+            const start = new Date(startValue + 'T00:00:00');
+            const end = new Date(endValue + 'T00:00:00');
+            const diffMs = end.getTime() - start.getTime();
+            return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+        }
+
+        if (filterForm) {
+            setDateConstraints();
+            filterForm.addEventListener('submit', function(e) {
+                const startValue = tanggalMulaiInput.value;
+                const endValue = tanggalAkhirInput.value;
+                if (!startValue || !endValue) {
+                    e.preventDefault();
+                    alert('Pilih tanggal mulai dan tanggal akhir terlebih dahulu.');
+                    return;
+                }
+
+                const rangeDays = getDateDiffDays(startValue, endValue);
+                if (Number.isNaN(rangeDays) || rangeDays < 1) {
+                    e.preventDefault();
+                    alert('Rentang pencarian minimal 1 hari.');
+                    return;
+                }
+
+                if (rangeDays > 30) {
+                    e.preventDefault();
+                    alert('Rentang pencarian maksimal 30 hari.');
+                }
+            });
+        }
 
         // Search functionality
         searchInput.addEventListener('input', function() {
@@ -671,18 +760,8 @@
             URL.revokeObjectURL(url);
         }
 
-        // Filter functions
-        function applyFilter() {
-            alert('Filter diterapkan');
-        }
-
         function resetFilter() {
-            document.getElementById('tanggalMulai').value = '';
-            document.getElementById('tanggalAkhir').value = '';
-            searchInput.value = '';
-            filteredRows = [...allRows];
-            currentPage = 1;
-            updatePaginationDisplay();
+            window.location.href = window.location.pathname;
         }
 
         // Pagination functions

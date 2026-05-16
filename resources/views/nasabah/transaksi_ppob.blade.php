@@ -56,6 +56,90 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
+        .filter-section {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .filter-header {
+            margin-bottom: 16px;
+        }
+
+        .filter-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .filter-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: flex-end;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 0 0 auto;
+            min-width: 180px;
+        }
+
+        .filter-group label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #4b5563;
+        }
+
+        .date-input {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+        }
+
+        .date-input:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-note {
+            margin-top: 12px;
+            color: #b91c1c;
+            font-size: 14px;
+        }
+
+        .filter-note ul {
+            margin-top: 6px;
+            padding-left: 18px;
+        }
+
+        .filter-note li {
+            margin-bottom: 4px;
+        }
+
+        .error-message {
+            color: #b91c1c;
+            background: #fee2e2;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 16px;
+            font-size: 14px;
+            border-left: 4px solid #dc2626;
+        }
+
         .table-header {
             display: flex;
             justify-content: space-between;
@@ -337,6 +421,49 @@
 
             <!-- Transactions Table -->
             <div class="card">
+                <div class="card filter-section">
+                    <div class="filter-header">
+                        <h3>Filter Transaksi</h3>
+                    </div>
+                    <form method="GET" class="filter-controls" id="filterForm">
+                        <div class="filter-group">
+                            <label for="tanggalMulai">Tanggal Mulai</label>
+                            <input type="date" id="tanggalMulai" name="tanggal_mulai" class="date-input" value="{{ htmlspecialchars($startDate ?? '') }}">
+                        </div>
+
+                        <div class="filter-group">
+                            <label for="tanggalAkhir">Tanggal Akhir</label>
+                            <input type="date" id="tanggalAkhir" name="tanggal_akhir" class="date-input" value="{{ htmlspecialchars($endDate ?? '') }}">
+                        </div>
+
+                        <div class="filter-actions">
+                            <button type="submit" class="btn-export" style="margin-top: 0; transform: none;">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                                </svg>
+                                Terapkan Filter
+                            </button>
+                            <button type="button" class="btn-export" style="margin-top: 0; transform: none;" onclick="resetFilter()">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="23 4 23 10 17 10"></polyline>
+                                    <path d="M20.49 15a9 9 0 1 1-2-8.83"></path>
+                                </svg>
+                                Reset
+                            </button>
+                        </div>
+                    </form>
+                    <div class="filter-note">
+                        <div>Catatan.</div>
+                        <ul>
+                            <li>Periode mutasi yang dapat dipilih minimal 1 hari.</li>
+                            <li>Mutasi rekening maksimum 30 hari yang lalu.</li>
+                        </ul>
+                    </div>
+                    @if(!empty($filterError))
+                        <div class="error-message">{{ $filterError }}</div>
+                    @endif
+                </div>
+
                 <div class="table-header">
                     <h3>Daftar Transaksi</h3>
                     <div class="table-actions">
@@ -376,11 +503,11 @@
                                         $statusClass = 'pending';
                                         $statusText = ucfirst($status ?: 'Menunggu');
                                         
-                                        if (in_array($status, ['approved','success'])) {
+                                        if (in_array($status, ['approved','success','selesai'])) {
                                             $statusClass = 'success';
                                             $statusText = 'Berhasil';
                                         }
-                                        if (in_array($status, ['rejected','failed'])) {
+                                        if (in_array($status, ['rejected','failed','ditolak'])) {
                                             $statusClass = 'failed';
                                             $statusText = 'Gagal';
                                         }
@@ -454,6 +581,65 @@
         let totalRows = {{ count($hist) }};
         let totalPages = Math.ceil(totalRows / rowsPerPage);
         let allRows = [];
+        const filterForm = document.getElementById('filterForm');
+        const tanggalMulaiInput = document.getElementById('tanggalMulai');
+        const tanggalAkhirInput = document.getElementById('tanggalAkhir');
+
+        function formatDate(value) {
+            const year = value.getFullYear();
+            const month = String(value.getMonth() + 1).padStart(2, '0');
+            const day = String(value.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function setDateConstraints() {
+            const today = new Date();
+            const maxDate = formatDate(today);
+            const minDateObj = new Date();
+            minDateObj.setDate(minDateObj.getDate() - 30);
+            const minDate = formatDate(minDateObj);
+
+            tanggalMulaiInput.min = minDate;
+            tanggalMulaiInput.max = maxDate;
+            tanggalAkhirInput.min = minDate;
+            tanggalAkhirInput.max = maxDate;
+        }
+
+        function getDateDiffDays(startValue, endValue) {
+            const start = new Date(startValue + 'T00:00:00');
+            const end = new Date(endValue + 'T00:00:00');
+            const diffMs = end.getTime() - start.getTime();
+            return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+        }
+
+        function resetFilter() {
+            window.location.href = window.location.pathname;
+        }
+
+        if (filterForm) {
+            setDateConstraints();
+            filterForm.addEventListener('submit', function(e) {
+                const startValue = tanggalMulaiInput.value;
+                const endValue = tanggalAkhirInput.value;
+                if (!startValue || !endValue) {
+                    e.preventDefault();
+                    alert('Pilih tanggal mulai dan tanggal akhir terlebih dahulu.');
+                    return;
+                }
+
+                const rangeDays = getDateDiffDays(startValue, endValue);
+                if (Number.isNaN(rangeDays) || rangeDays < 1) {
+                    e.preventDefault();
+                    alert('Rentang pencarian minimal 1 hari.');
+                    return;
+                }
+
+                if (rangeDays > 30) {
+                    e.preventDefault();
+                    alert('Rentang pencarian maksimal 30 hari.');
+                }
+            });
+        }
 
         function updateTableDisplay() {
             const startIndex = (currentPage - 1) * rowsPerPage;

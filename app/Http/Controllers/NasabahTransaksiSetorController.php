@@ -67,29 +67,7 @@ class NasabahTransaksiSetorController extends Controller
             ];
         }
 
-        // Dummy jenis sampah
-        $waste_types = [
-            [
-                'id_jenis' => 1,
-                'nama_jenis' => 'Kertas',
-                'harga_per_kg' => 1500
-            ],
-            [
-                'id_jenis' => 2,
-                'nama_jenis' => 'Plastik',
-                'harga_per_kg' => 2000
-            ],
-            [
-                'id_jenis' => 3,
-                'nama_jenis' => 'Logam',
-                'harga_per_kg' => 5000
-            ],
-            [
-                'id_jenis' => 4,
-                'nama_jenis' => 'Kaca',
-                'harga_per_kg' => 1000
-            ]
-        ];
+        $waste_types = $this->fetchWasteTypes();
 
         session([
             'nama_nasabah' => $user['nama_nasabah'],
@@ -97,86 +75,109 @@ class NasabahTransaksiSetorController extends Controller
             'alamat' => $user['alamat']
         ]);
 
-        // Handle profile update
-        $profile_success = null;
-        $profile_error = null;
-        if ($request->isMethod('post') && $request->has('update_profile')) {
-            $validated = $request->validate([
-                'nama_nasabah' => 'required|string|max:255',
-                'alamat' => 'nullable|string|max:500',
-            ], [
-                'nama_nasabah.required' => 'Nama lengkap harus diisi',
-                'nama_nasabah.max' => 'Nama lengkap tidak boleh lebih dari 255 karakter',
-                'alamat.max' => 'Alamat tidak boleh lebih dari 500 karakter',
-            ]);
-
-            // Attempt to PATCH Supabase if logged in
-            if ($user['id_nasabah']) {
-                try {
-                    $supabaseUrl = env('SUPABASE_URL');
-                    $serviceKey = env('SUPABASE_SERVICE_ROLE_KEY') ?: env('SUPABASE_KEY');
-
-                    $payload = [
-                        'nama_lengkap' => $validated['nama_nasabah'],
-                        'alamat' => $validated['alamat'] ?? '',
-                    ];
-
-                    $resp = Http::withHeaders([
-                        'apikey' => $serviceKey,
-                        'Authorization' => 'Bearer ' . $serviceKey,
-                        'Content-Type' => 'application/json',
-                        'Prefer' => 'return=representation',
-                    ])->patch($supabaseUrl . '/rest/v1/nasabah?id_nasabah=eq.' . intval($user['id_nasabah']), $payload);
-
-                    $body = $resp->body();
-                    \Log::info('Supabase update nasabah from setor: ' . $resp->status() . ' ' . substr($body,0,300));
-
-                    $result = null;
-                    try { $result = $resp->json(); } catch (\Exception $e) { }
-
-                    if ($resp->successful() && is_array($result) && count($result) > 0) {
-                        $row = $result[0];
-                        session([
-                            'nama_nasabah' => $row['nama_lengkap'] ?? $validated['nama_nasabah'],
-                            'alamat' => $row['alamat'] ?? ($validated['alamat'] ?? ''),
-                        ]);
-                        $user['nama_nasabah'] = session('nama_nasabah');
-                        $user['alamat'] = session('alamat');
-                        $profile_success = 'Profil berhasil diperbarui';
-                    } else {
-                        $profile_error = 'Gagal memperbarui profil.';
-                        if (!empty($result) && is_array($result)) {
-                            $profile_error = isset($result['message']) ? $result['message'] : json_encode($result);
-                        } else {
-                            $profile_error = 'Gagal memperbarui profil (HTTP ' . $resp->status() . '). ' . substr($body,0,300);
-                        }
-                    }
-                } catch (\Exception $e) {
-                    \Log::error('Setor profile update error: ' . $e->getMessage());
-                    $profile_error = 'Terjadi kesalahan saat memperbarui profil';
-                }
-            }
-        }
-
         // Handle setor transaction submission
         $success = null;
         $error = null;
         if ($request->isMethod('post') && $request->has('submit_transaction')) {
             $waste_items = $request->input('waste_items', []);
-            
+            $waste_photos = $request->input('waste_photos', []);
+
             if (empty($waste_items)) {
-                $error = "Tambahkan minimal 1 item sebelum mengajukan setor";
+                $error = 'Tambahkan minimal 1 item sebelum mengajukan setor';
+            } elseif (!$user['id_nasabah']) {
+                $error = 'Akun tidak ditemukan. Silakan login ulang.';
             } else {
-                // Simulate successful transaction
-                $total_berat = $request->input('total_berat', 0);
-                $total_nilai = $request->input('total_nilai', 0);
-                
-                // In real implementation, this would be saved to database via Supabase
-                $success = "Transaksi setor sampah berhasil diajukan! Status: Menunggu persetujuan admin.";
-                
-                // Update user saldo (dummy)
-                $user['saldo'] = $user['saldo'] + (float)$total_nilai;
-                session(['saldo' => $user['saldo']]);
+                $validationError = $this->validateWasteItems($waste_items, $waste_photos);
+                if ($validationError) {
+                    $error = $validationError;
+                } else {
+                    try {
+                        $serviceKey = env('SUPABASE_SERVICE_ROLE_KEY') ?: env('SUPABASE_KEY');
+                        $supabaseUrl = env('SUPABASE_URL');
+
+                        $calcResult = $this->calculateTotalsFromSupabase($waste_items, $serviceKey, $supabaseUrl);
+                        if ($calcResult['error']) {
+                            $error = $calcResult['error'];
+                        } else {
+                            $totalNilai = $calcResult['total_nilai'];
+                            $detailRows = $calcResult['detail_rows'];
+
+                            $transaksiPayload = [
+                                'id_nasabah' => intval($user['id_nasabah']),
+                                'total_nilai' => $totalNilai,
+                                'tanggal_setor' => date('Y-m-d'),
+                                'status' => 'menunggu',
+                            ];
+
+                            $transaksiResp = Http::withHeaders([
+                                'apikey' => $serviceKey,
+                                'Authorization' => 'Bearer ' . $serviceKey,
+                                'Content-Type' => 'application/json',
+                                'Prefer' => 'return=representation',
+                            ])->post($supabaseUrl . '/rest/v1/transaksi_setor', $transaksiPayload);
+
+                            if (!$transaksiResp->successful()) {
+                                $error = 'Gagal mengajukan transaksi setor (HTTP ' . $transaksiResp->status() . ').';
+                            } else {
+                                $transaksiData = $transaksiResp->json();
+                                $transaksiId = is_array($transaksiData) && count($transaksiData) > 0
+                                    ? ($transaksiData[0]['id_transaksi_setor'] ?? null)
+                                    : null;
+
+                                if (!$transaksiId) {
+                                    $error = 'Transaksi dibuat tetapi ID tidak ditemukan.';
+                                } else {
+                                    foreach ($detailRows as &$row) {
+                                        $row['id_transaksi_setor'] = intval($transaksiId);
+                                    }
+                                    unset($row);
+
+                                    $detailResp = Http::withHeaders([
+                                        'apikey' => $serviceKey,
+                                        'Authorization' => 'Bearer ' . $serviceKey,
+                                        'Content-Type' => 'application/json',
+                                        'Prefer' => 'return=representation',
+                                    ])->post($supabaseUrl . '/rest/v1/detail_setor', $detailRows);
+
+                                    if (!$detailResp->successful()) {
+                                        $error = 'Transaksi dibuat, tetapi detail setor gagal disimpan.';
+                                    } else {
+                                        $fotoRows = [];
+                                        foreach ($waste_items as $index => $item) {
+                                            $foto = $waste_photos[$index] ?? null;
+                                            if ($foto) {
+                                                $fotoRows[] = [
+                                                    'id_transaksi_setor' => intval($transaksiId),
+                                                    'foto_url' => $foto,
+                                                ];
+                                            }
+                                        }
+
+                                        if (count($fotoRows) > 0) {
+                                            $fotoResp = Http::withHeaders([
+                                                'apikey' => $serviceKey,
+                                                'Authorization' => 'Bearer ' . $serviceKey,
+                                                'Content-Type' => 'application/json',
+                                                'Prefer' => 'return=representation',
+                                            ])->post($supabaseUrl . '/rest/v1/foto_setor', $fotoRows);
+
+                                            if (!$fotoResp->successful()) {
+                                                $error = 'Transaksi dibuat, tetapi foto gagal disimpan.';
+                                            }
+                                        }
+
+                                        if (!$error) {
+                                            $success = 'Transaksi setor sampah berhasil diajukan! Status: Menunggu persetujuan admin.';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        \Log::error('Setor transaksi error: ' . $e->getMessage());
+                        $error = 'Terjadi kesalahan saat mengajukan setor.';
+                    }
+                }
             }
         }
 
@@ -184,10 +185,125 @@ class NasabahTransaksiSetorController extends Controller
             'activePage' => $activePage,
             'user' => $user,
             'waste_types' => $waste_types,
-            'profile_success' => $profile_success,
-            'profile_error' => $profile_error,
             'success' => $success,
             'error' => $error
         ]);
+    }
+
+    private function fetchWasteTypes(): array
+    {
+        $supabaseUrl = env('SUPABASE_URL');
+        $supabaseKey = env('SUPABASE_KEY');
+        if (!$supabaseUrl || !$supabaseKey) {
+            return [];
+        }
+
+        try {
+            $resp = Http::withHeaders([
+                'apikey' => $supabaseKey,
+                'Authorization' => 'Bearer ' . $supabaseKey,
+            ])->get($supabaseUrl . '/rest/v1/jenis_sampah?select=id_jenis_sampah,nama_jenis,harga_per_kg&order=nama_jenis.asc');
+
+            $rows = $resp->json();
+            if (!is_array($rows)) {
+                return [];
+            }
+
+            return array_map(function ($row) {
+                return [
+                    'id_jenis' => $row['id_jenis_sampah'] ?? null,
+                    'nama_jenis' => $row['nama_jenis'] ?? '-',
+                    'harga_per_kg' => $row['harga_per_kg'] ?? 0,
+                ];
+            }, $rows);
+        } catch (\Exception $e) {
+            \Log::warning('Failed to fetch jenis sampah: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    private function validateWasteItems(array $wasteItems, array $wastePhotos): ?string
+    {
+        foreach ($wasteItems as $index => $item) {
+            $idJenis = isset($item['id_jenis']) ? intval($item['id_jenis']) : 0;
+            $berat = isset($item['berat']) ? (float) $item['berat'] : 0;
+
+            if ($idJenis <= 0) {
+                return 'Jenis sampah tidak valid.';
+            }
+
+            if ($berat < 1) {
+                return 'Berat minimal 1 kg untuk setiap item.';
+            }
+
+            if (!isset($wastePhotos[$index]) || trim((string) $wastePhotos[$index]) === '') {
+                return 'Setiap item wajib memiliki foto.';
+            }
+        }
+
+        return null;
+    }
+
+    private function calculateTotalsFromSupabase(array $wasteItems, string $serviceKey, string $supabaseUrl): array
+    {
+        $ids = array_values(array_unique(array_map(function ($item) {
+            return intval($item['id_jenis'] ?? 0);
+        }, $wasteItems)));
+
+        $ids = array_filter($ids, function ($id) {
+            return $id > 0;
+        });
+
+        if (count($ids) === 0) {
+            return ['error' => 'Jenis sampah tidak ditemukan.', 'total_nilai' => 0, 'detail_rows' => []];
+        }
+
+        $idFilter = implode(',', $ids);
+        $resp = Http::withHeaders([
+            'apikey' => $serviceKey,
+            'Authorization' => 'Bearer ' . $serviceKey,
+        ])->get($supabaseUrl . '/rest/v1/jenis_sampah?select=id_jenis_sampah,harga_per_kg&id_jenis_sampah=in.(' . $idFilter . ')');
+
+        if (!$resp->successful()) {
+            return ['error' => 'Gagal memuat harga jenis sampah.', 'total_nilai' => 0, 'detail_rows' => []];
+        }
+
+        $rows = $resp->json();
+        if (!is_array($rows)) {
+            return ['error' => 'Data jenis sampah tidak valid.', 'total_nilai' => 0, 'detail_rows' => []];
+        }
+
+        $priceMap = [];
+        foreach ($rows as $row) {
+            $id = $row['id_jenis_sampah'] ?? null;
+            if ($id !== null) {
+                $priceMap[intval($id)] = (float) ($row['harga_per_kg'] ?? 0);
+            }
+        }
+
+        $totalNilai = 0;
+        $detailRows = [];
+
+        foreach ($wasteItems as $item) {
+            $idJenis = intval($item['id_jenis'] ?? 0);
+            $berat = (float) ($item['berat'] ?? 0);
+            if (!isset($priceMap[$idJenis])) {
+                return ['error' => 'Jenis sampah tidak ditemukan.', 'total_nilai' => 0, 'detail_rows' => []];
+            }
+
+            $harga = $priceMap[$idJenis];
+            $subtotal = round($harga * $berat, 2);
+            $totalNilai += $subtotal;
+
+            $detailRows[] = [
+                'id_jenis' => $idJenis,
+                'berat_kg' => $berat,
+                'harga_kg' => $harga,
+                'subtotal' => $subtotal,
+                'status_item' => 'pending',
+            ];
+        }
+
+        return ['error' => null, 'total_nilai' => $totalNilai, 'detail_rows' => $detailRows];
     }
 }
