@@ -313,7 +313,7 @@
                     <a href="{{ Route::has('nasabah.dashboard') ? route('nasabah.dashboard') : url('/') }}" class="back-btn">Kembali</a>
                 </div>
                 <h3>Form Isi Pulsa</h3>
-                <form method="POST" action="{{ Route::has('nasabah.ppob.process') ? route('nasabah.ppob.process') : '#' }}" class="pulsa-form">
+                <form method="POST" action="{{ Route::has('nasabah.pulsa.store') ? route('nasabah.pulsa.store') : '#' }}" class="pulsa-form">
                     @csrf
                     <input type="hidden" name="service_type" value="pulsa">
 
@@ -333,8 +333,6 @@
                                     <option value="TELKOMSEL" {{ old('category') == 'TELKOMSEL' ? 'selected' : '' }}>Telkomsel</option>
                                     <option value="INDOSAT" {{ old('category') == 'INDOSAT' ? 'selected' : '' }}>Indosat</option>
                                     <option value="XL" {{ old('category') == 'XL' ? 'selected' : '' }}>XL</option>
-                                    <option value="TRI" {{ old('category') == 'TRI' ? 'selected' : '' }}>Tri</option>
-                                    <option value="SMARTFREN" {{ old('category') == 'SMARTFREN' ? 'selected' : '' }}>Smartfren</option>
                                 </select>
                                 <i data-lucide="chevron-down"></i>
                             </div>
@@ -344,7 +342,7 @@
                             <label for="nominal">Nominal (Rp)</label>
                             <div class="select-wrapper">
                                 <select id="nominal" name="nominal" required>
-                                    @for ($v = 5000; $v <= 100000; $v += 5000)
+                                    @for ($v = 5000; $v <= 50000; $v += 5000)
                                         <option value="{{ $v }}" {{ old('nominal') == $v ? 'selected' : ($v == 50000 ? 'selected' : '') }}>
                                             {{ number_format($v,0,',','.') }}
                                         </option>
@@ -400,7 +398,7 @@
             const target = document.getElementById('phoneNumber')?.value.trim() || '';
             const nominal = parseInt(document.getElementById('nominal')?.value || '0', 10);
             if (!target) { e.preventDefault(); alert('Harap masukkan nomor tujuan!'); return false; }
-            if (isNaN(nominal) || nominal < 5000 || nominal > 100000 || (nominal % 5000) !== 0) { e.preventDefault(); alert('Nominal tidak valid. Pilih kelipatan 5.000 (min 5.000, max 100.000).'); return false; }
+            if (isNaN(nominal) || nominal < 5000 || nominal > 50000 || (nominal % 5000) !== 0) { e.preventDefault(); alert('Nominal tidak valid. Pilih kelipatan 5.000 (min 5.000, max 50.000).'); return false; }
             if (target.length < 5) { e.preventDefault(); alert('Nomor tujuan tidak valid. Minimal 5 digit.'); return false; }
             return true;
         });
