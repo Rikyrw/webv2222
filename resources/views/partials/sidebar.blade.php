@@ -181,12 +181,7 @@
 
   <nav class="nav">
     <a href="{{ url('/admin/dashboard') }}" class="{{ ($activePage == 'dashboard') ? 'active' : '' }}">
-      <svg class="icon" viewBox="0 0 24 24">
-        <rect x="3" y="3" width="8" height="8" />
-        <rect x="13" y="3" width="8" height="8" />
-        <rect x="3" y="13" width="8" height="8" />
-        <rect x="13" y="13" width="8" height="8" />
-      </svg>
+      <img src="{{ asset('images/Dashboard Layout.png') }}" alt="Dashboard" class="icon">
       <span>Dashboard</span>
     </a>
 

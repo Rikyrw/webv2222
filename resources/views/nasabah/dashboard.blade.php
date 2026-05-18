@@ -81,6 +81,23 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
+        .metric-card {
+            position: relative;
+            border-left: 6px solid #2b6844;
+        }
+
+        .metric-icon {
+            position: absolute;
+            top: 18px;
+            right: 18px;
+            width: 40px;
+            height: 40px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #edf3ee;
+            object-fit: contain;
+        }
+
         .card h3 {
             font-size: 18px;
             font-weight: 600;
@@ -120,12 +137,12 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 8px;
-            padding: 16px;
+            gap: 12px;
+            padding: 0;
             background: transparent;
-            color: #059669;
-            border: 1px solid #059669;
-            border-radius: 8px;
+            color: #24573a;
+            border: none;
+            border-radius: 0;
             text-decoration: none;
             cursor: pointer;
             flex: 0 0 calc(33.333% - 11px);
@@ -133,11 +150,9 @@
         }
 
         .ppob-card:hover {
-            background: linear-gradient(135deg, #059669, #10b981);
-            color: white;
-            border-color: #059669;
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+            color: #24573a;
+            transform: translateY(-2px);
+            box-shadow: none;
         }
 
         .ppob-card:active {
@@ -146,32 +161,25 @@
         }
 
         .ppob-card img {
-            width: 48px;
-            height: 48px;
-            margin-bottom: 8px;
+            width: 88px;
+            height: 88px;
+            padding: 24px;
+            margin-bottom: 0;
+            object-fit: contain;
+            background: #edf3ee;
+            border-radius: 12px;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .ppob-card:hover img {
-            transform: scale(1.15);
-            filter: brightness(0) invert(1);
+            transform: translateY(-2px);
+            filter: none;
         }
 
         .ppob-card span {
             font-size: 13px;
             font-weight: 500;
             transition: color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .ppob-card i, 
-        .ppob-card svg {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .ppob-card:hover i,
-        .ppob-card:hover svg {
-            color: white;
-            transform: scale(1.15);
         }
 
         .transaction-list {
@@ -304,8 +312,9 @@
             <!-- TOP CARDS -->
             <div class="grid grid-2">
                 <!-- Card 1: Transaksi Setor Sampah -->
-                <div class="card">
+                <div class="card metric-card">
                     <h3>Transaksi Setor Sampah</h3>
+                    <img src="{{ asset('images/Health Graph.png') }}" alt="" class="metric-icon">
                     <div class="metric">
                         <span class="value">{{ number_format((int)($setor_count ?? 0), 0, ',', '.') }}</span>
                         <span class="delta">+12 dari bulan lalu</span>
@@ -313,8 +322,9 @@
                 </div>
 
                 <!-- Card 2: Transaksi PPOB -->
-                <div class="card">
+                <div class="card metric-card">
                     <h3>Transaksi PPOB</h3>
+                    <img src="{{ asset('images/Health Graph.png') }}" alt="" class="metric-icon">
                     <div class="metric">
                         <span class="value">Rp {{ number_format((float)($ppob_total ?? 0), 0, ',', '.') }}</span>
                         <span class="delta">+12% dari bulan lalu</span>
@@ -328,26 +338,17 @@
         <h3>PPOB</h3>
         <div class="ppob-cards">
             <a href="{{ route('nasabah.emoney') }}" class="ppob-card" title="E money">
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="6" y="10" width="36" height="26" rx="2" stroke="currentColor" stroke-width="2"/>
-                    <line x1="6" y1="18" x2="42" y2="18" stroke="currentColor" stroke-width="2"/>
-                    <circle cx="36" cy="29" r="3" fill="currentColor"/>
-                </svg>
+                <img src="{{ asset('images/Card Wallet.png') }}" alt="" />
                 <span>E money</span>
             </a>
             
             <a href="{{ route('nasabah.pulsa') }}" class="ppob-card" title="Pulsa">
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M24 4C12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20S35.05 4 24 4zm0 36c-8.84 0-16-7.16-16-16s7.16-16 16-16 16 7.16 16 16-7.16 16-16 16z" fill="currentColor"/>
-                    <path d="M24 10c-7.73 0-14 6.27-14 14s6.27 14 14 14 14-6.27 14-14-6.27-14-14-14zm0 24c-5.52 0-10-4.48-10-10s4.48-10 10-10 10 4.48 10 10-4.48 10-10 10z" fill="white"/>
-                </svg>
+                <img src="{{ asset('images/Phonelink Ring.png') }}" alt="" />
                 <span>Pulsa</span>
             </a>
             
             <a href="{{ route('nasabah.pln') }}" class="ppob-card" title="PLN">
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M24 2L4 10v14c0 12 20 20 20 20s20-8 20-20V10L24 2zm0 28l-12-8v-8l12-6 12 6v8l-12 8z" fill="currentColor"/>
-                </svg>
+                <img src="{{ asset('images/Flash On.png') }}" alt="" />
                 <span>PLN</span>
             </a>
         </div>

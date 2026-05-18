@@ -21,6 +21,7 @@ use App\Http\Controllers\NasabahEmoneyController;
 use App\Http\Controllers\NasabahTransaksiSetorController;
 use App\Http\Controllers\NasabahPulsaController;
 use App\Http\Controllers\NasabahPlnController;
+use App\Http\Controllers\ChatbotController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -33,6 +34,9 @@ Route::get('/landing', function () {
 
 // Handle contact form submissions from landing page
 Route::post('/contact', [ContactController::class, 'store'])->name('contact.store');
+Route::post('/chatbot/message', [ChatbotController::class, 'send'])
+    ->middleware('throttle:30,1')
+    ->name('chatbot.message');
 
 // Admin auth routes
 Route::get('/admin/login', [AdminAuthController::class, 'showLogin'])->name('admin.login.form');

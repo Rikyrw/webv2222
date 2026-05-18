@@ -1,19 +1,22 @@
 <!-- Chat Bot Bubble -->
 <div id="chatbot-container">
     <!-- Chat Bubble Button -->
-    <button id="chatbot-bubble" class="chatbot-bubble" title="Buka Chat Bot">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-        </svg>
+    <button id="chatbot-bubble" class="chatbot-bubble" title="Buka Si Jajang">
+        <span class="chatbot-bubble-avatar">
+            <img src="{{ asset('images/sijajang.png') }}" alt="Ikon Si Jajang" class="chatbot-icon-image">
+        </span>
     </button>
 
     <!-- Chat Window -->
     <div id="chatbot-window" class="chatbot-window hidden">
         <!-- Header -->
         <div class="chatbot-header">
+            <div class="chatbot-avatar">
+                <img src="{{ asset('images/sijajang.png') }}" alt="Ikon Si Jajang" class="chatbot-icon-image">
+            </div>
             <div class="chatbot-title">
-                <h3>Chat Bot</h3>
-                <p>Kami siap membantu Anda</p>
+                <h3>Si Jajang</h3>
+                <p><span class="chatbot-status-dot"></span>Asisten Green Point</p>
             </div>
             <button id="chatbot-close" class="chatbot-close" title="Tutup Chat">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -26,21 +29,19 @@
         <!-- Messages Area -->
         <div class="chatbot-messages" id="chatbot-messages">
             <div class="chatbot-message bot-message">
-                <div class="message-content">
-                    Halo! 👋 Selamat datang. Ada yang bisa kami bantu?
-                </div>
+                <div class="message-content">Halo! 👋 Saya Si Jajang. Ada yang bisa saya bantu hari ini?</div>
             </div>
         </div>
 
         <!-- Input Area -->
         <div class="chatbot-input-area">
-            <input 
-                type="text" 
+            <textarea
                 id="chatbot-input" 
                 class="chatbot-input" 
                 placeholder="Ketik pesan Anda..." 
                 autocomplete="off"
-            />
+                rows="1"
+            ></textarea>
             <button id="chatbot-send" class="chatbot-send" title="Kirim">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -66,34 +67,35 @@
         width: 56px;
         height: 56px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        background: white;
         border: none;
-        color: white;
+        color: #047857;
         cursor: pointer;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
         transition: all 0.3s ease;
-        animation: pulse 2s infinite;
+    }
+
+    .chatbot-bubble-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 999px;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
     }
 
     .chatbot-bubble:hover {
-        transform: scale(1.1);
-        box-shadow: 0 6px 16px rgba(5, 150, 105, 0.6);
+        transform: translateY(-2px);
+        box-shadow: 0 14px 28px rgba(15, 23, 42, 0.2);
     }
 
     .chatbot-bubble:active {
         transform: scale(0.95);
-    }
-
-    @keyframes pulse {
-        0%, 100% {
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
-        }
-        50% {
-            box-shadow: 0 4px 20px rgba(5, 150, 105, 0.6);
-        }
     }
 
     /* Chat Window */
@@ -101,11 +103,12 @@
         position: absolute;
         bottom: 80px;
         right: 0;
-        width: 380px;
-        height: 500px;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 5px 40px rgba(0, 0, 0, 0.16);
+        width: 390px;
+        height: 560px;
+        background: #f5f7f6;
+        border-radius: 24px;
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -141,13 +144,37 @@
 
     /* Chat Header */
     .chatbot-header {
-        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        background: #0f8a70;
         color: white;
-        padding: 16px;
+        padding: 16px 18px;
         display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
+        align-items: center;
+        gap: 12px;
         flex-shrink: 0;
+    }
+
+    .chatbot-avatar {
+        width: 42px;
+        height: 42px;
+        border-radius: 999px;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+    }
+
+    .chatbot-icon-image {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        transform: scale(1.8);
+    }
+
+    .chatbot-title {
+        flex: 1;
     }
 
     .chatbot-title h3 {
@@ -161,6 +188,17 @@
         font-size: 12px;
         margin: 0;
         opacity: 0.9;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .chatbot-status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #bbf7d0;
+        box-shadow: 0 0 0 3px rgba(187, 247, 208, 0.18);
     }
 
     .chatbot-close {
@@ -186,11 +224,13 @@
     .chatbot-messages {
         flex: 1;
         overflow-y: auto;
-        padding: 16px;
+        padding: 18px 16px;
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        background: #f9fafb;
+        gap: 14px;
+        background:
+            radial-gradient(circle at top left, rgba(16, 185, 129, 0.09), transparent 32%),
+            #f5f7f6;
     }
 
     .chatbot-message {
@@ -218,24 +258,29 @@
     }
 
     .message-content {
-        max-width: 70%;
-        padding: 10px 14px;
-        border-radius: 12px;
-        font-size: 13px;
-        line-height: 1.4;
-        word-wrap: break-word;
+        max-width: 86%;
+        padding: 12px 14px;
+        border-radius: 18px;
+        font-size: 14px;
+        line-height: 1.55;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        white-space: pre-line;
     }
 
     .bot-message .message-content {
         background: white;
-        color: #1f2937;
-        border: 1px solid #e5e7eb;
+        color: #16312a;
+        border: 1px solid rgba(5, 150, 105, 0.12);
+        border-radius: 18px 18px 18px 6px;
+        box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
     }
 
     .user-message .message-content {
         background: #059669;
         color: white;
-        border-radius: 12px 2px 12px 12px;
+        border-radius: 18px 18px 6px 18px;
+        box-shadow: 0 8px 20px rgba(5, 150, 105, 0.12);
     }
 
     /* Scrollbar */
@@ -262,19 +307,28 @@
         gap: 8px;
         padding: 12px;
         background: white;
-        border-top: 1px solid #e5e7eb;
+        border-top: 1px solid rgba(5, 150, 105, 0.1);
+        align-items: flex-end;
         flex-shrink: 0;
     }
 
     .chatbot-input {
         flex: 1;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 10px 12px;
-        font-size: 13px;
+        min-width: 0;
+        min-height: 42px;
+        max-height: 120px;
+        border: 1px solid rgba(5, 150, 105, 0.22);
+        border-radius: 16px;
+        padding: 11px 14px;
+        font-size: 14px;
+        line-height: 1.4;
         font-family: inherit;
         transition: all 0.2s;
         outline: none;
+        resize: none;
+        overflow-y: hidden;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
     }
 
     .chatbot-input:focus {
@@ -286,9 +340,9 @@
         background: #059669;
         border: none;
         color: white;
-        width: 36px;
-        height: 36px;
-        border-radius: 8px;
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -306,6 +360,17 @@
         transform: scale(0.95);
     }
 
+    .chatbot-send:disabled,
+    .chatbot-input:disabled {
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+
+    .typing-indicator .message-content {
+        color: #6b7280;
+        font-style: italic;
+    }
+
     /* Responsive */
     @media (max-width: 480px) {
         #chatbot-container {
@@ -315,9 +380,9 @@
 
         .chatbot-window {
             width: calc(100vw - 20px);
-            height: 70vh;
-            max-height: 500px;
+            height: min(76vh, 620px);
             bottom: 70px;
+            border-radius: 22px;
         }
 
         .chatbot-bubble {
@@ -335,6 +400,10 @@
         const sendBtn = document.getElementById('chatbot-send');
         const input = document.getElementById('chatbot-input');
         const messagesArea = document.getElementById('chatbot-messages');
+        const chatbotEndpoint = @json(route('chatbot.message'));
+        const csrfToken = @json(csrf_token());
+        const conversationHistory = [];
+        let isSending = false;
 
         // Toggle chat window
         bubble.addEventListener('click', function() {
@@ -350,19 +419,70 @@
         });
 
         // Send message
-        function sendMessage() {
+        async function sendMessage() {
             const message = input.value.trim();
-            if (!message) return;
+            if (!message || isSending) return;
+
+            const historyForRequest = buildHistoryPayload();
 
             // Add user message
             addMessage(message, 'user');
+            conversationHistory.push({ role: 'user', content: message });
             input.value = '';
+            resizeInput();
+            setSendingState(true);
 
-            // Simulate bot response after a short delay
-            setTimeout(() => {
-                const botResponse = generateBotResponse(message);
+            const typingIndicator = addTypingIndicator();
+
+            try {
+                const response = await fetch(chatbotEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify({
+                        message,
+                        history: historyForRequest,
+                    }),
+                });
+
+                let payload = {};
+
+                try {
+                    payload = await response.json();
+                } catch (_) {
+                    payload = {};
+                }
+
+                if (!response.ok) {
+                    if (response.status === 422) {
+                        throw new Error('Maaf, pesan belum bisa diproses. Coba kirim ulang ya.');
+                    }
+
+                    throw new Error(payload.message || 'Gagal menghubungi chatbot.');
+                }
+
+                const botResponse = (payload.message || '').trim();
+
+                if (!botResponse) {
+                    throw new Error('Jawaban chatbot kosong.');
+                }
+
+                removeMessage(typingIndicator);
                 addMessage(botResponse, 'bot');
-            }, 500);
+                conversationHistory.push({ role: 'assistant', content: botResponse });
+            } catch (error) {
+                removeMessage(typingIndicator);
+                const fallbackMessage = error instanceof Error && error.message
+                    ? error.message
+                    : 'Maaf, Si Jajang belum bisa menjawab saat ini. Coba lagi sebentar ya.';
+
+                addMessage(fallbackMessage, 'bot');
+            } finally {
+                setSendingState(false);
+            }
         }
 
         // Add message to chat
@@ -379,39 +499,62 @@
             
             // Scroll to bottom
             messagesArea.scrollTop = messagesArea.scrollHeight;
+
+            return messageDiv;
         }
 
-        // Generate bot response
-        function generateBotResponse(userMessage) {
-            const responses = {
-                'halo': 'Halo! Senang berkenalan dengan Anda. Ada yang bisa kami bantu? 😊',
-                'apa kabar': 'Saya baik-baik saja! Terima kasih sudah bertanya. Bagaimana dengan Anda? 😊',
-                'bantuan': 'Tentu! Kami siap membantu Anda dengan pertanyaan atau masalah apa pun. Silakan tanyakan! 🙌',
-                'terima kasih': 'Sama-sama! Senang bisa membantu Anda. 😊',
-                'ok': 'Baik! Ada lagi yang bisa kami bantu?',
-                'tidak': 'Baik, jika ada yang butuh, silakan hubungi kami kembali. Terima kasih! 👋'
-            };
+        function addTypingIndicator() {
+            const typingMessage = addMessage('Si Jajang sedang mengetik...', 'bot');
+            typingMessage.classList.add('typing-indicator');
 
-            const lowerMessage = userMessage.toLowerCase();
-            
-            for (let key in responses) {
-                if (lowerMessage.includes(key)) {
-                    return responses[key];
-                }
+            return typingMessage;
+        }
+
+        function removeMessage(messageElement) {
+            if (messageElement && messageElement.parentNode) {
+                messageElement.parentNode.removeChild(messageElement);
             }
+        }
 
-            return 'Terima kasih atas pertanyaannya. Kami akan merespons Anda segera atau hubungi tim support kami untuk bantuan lebih lanjut. 🙏';
+        function setSendingState(sending) {
+            isSending = sending;
+            input.disabled = sending;
+            sendBtn.disabled = sending;
+
+            if (!sending) {
+                input.focus();
+            }
+        }
+
+        function buildHistoryPayload() {
+            return conversationHistory
+                .slice(-10)
+                .map((turn) => ({
+                    role: turn.role,
+                    content: turn.content.slice(0, 1000),
+                }));
         }
 
         // Send on button click
         sendBtn.addEventListener('click', sendMessage);
 
-        // Send on Enter key
-        input.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
+        function resizeInput() {
+            input.style.height = 'auto';
+            input.style.height = `${Math.min(input.scrollHeight, 120)}px`;
+            input.style.overflowY = input.scrollHeight > 120 ? 'auto' : 'hidden';
+        }
+
+        input.addEventListener('input', resizeInput);
+
+        // Send on Enter, keep Shift+Enter for a manual line break
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
                 sendMessage();
             }
         });
+
+        resizeInput();
 
         // Close chat when clicking outside (optional)
         document.addEventListener('click', function(e) {

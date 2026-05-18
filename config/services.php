@@ -43,4 +43,10 @@ return [
         'api_key' => env('FIREBASE_API_KEY'),
     ],
 
+    'groq' => [
+        'key' => env('GROQ_API_KEY'),
+        'endpoint' => env('GROQ_API_URL', 'https://api.groq.com/openai/v1/chat/completions'),
+        'model' => env('GROQ_MODEL', 'llama-3.1-8b-instant'),
+    ],
+
 ];
