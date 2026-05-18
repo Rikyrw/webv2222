@@ -96,7 +96,7 @@
     <main class="card">
         <h1>Lupa Password</h1>
         <p class="subtitle">
-            Masukkan email akun manual Anda. Jika email cocok, kami akan mengirim instruksi reset password.
+            Masukkan email akun manual Anda. Jika email cocok, link reset password akan dikirim lewat email.
         </p>
 
         @if (session('success'))

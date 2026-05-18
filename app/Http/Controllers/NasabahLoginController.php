@@ -44,10 +44,11 @@ class NasabahLoginController extends Controller
                 $storedPassword = $user['password'] ?? null;
 
                 // Verifikasi password dengan metode Android (jika ada salt)
-                $loginSuccess = $this->verifyPasswordLikeAndroid($password, $storedPassword, $user['salt'] ?? null);
+                $loginSuccess = !$this->mustUseFirebaseOnly($storedPassword)
+                    && $this->verifyPasswordLikeAndroid($password, $storedPassword, $user['salt'] ?? null);
 
                 // Fallback untuk user lama atau jika tabel tidak menyimpan salt: coba password_verify dan plain compare
-                if (!$loginSuccess) {
+                if (!$loginSuccess && !$this->mustUseFirebaseOnly($storedPassword)) {
                     if ($storedPassword && password_verify($password, $storedPassword)) {
                         $loginSuccess = true;
                     } elseif ($storedPassword && $password === $storedPassword) {
@@ -55,14 +56,23 @@ class NasabahLoginController extends Controller
                     }
                 }
 
-                // Akun lama dari mobile menyimpan marker `firebase-auth:{uid}`, bukan hash password lokal.
-                // Untuk tipe akun ini, validasi password harus dilakukan ke Firebase Auth.
-                if (!$loginSuccess && $this->isFirebaseBackedPassword($storedPassword)) {
-                    $loginSuccess = $this->verifyPasswordWithFirebase(
-                        $user['email'] ?? null,
-                        $password,
-                        $storedPassword
-                    );
+                // Firebase menjadi fallback untuk:
+                // 1. akun lama dari mobile yang menyimpan marker `firebase-auth:{uid}`;
+                // 2. akun lokal bcrypt yang baru saja reset password lewat Firebase.
+                if (!$loginSuccess) {
+                    $firebaseUid = $this->signInWithFirebase($user['email'] ?? null, $password);
+
+                    if ($firebaseUid) {
+                        if ($this->isFirebaseUidMarker($storedPassword) && !hash_equals(Str::after($storedPassword, 'firebase-auth:'), $firebaseUid)) {
+                            $loginSuccess = false;
+                        } else {
+                            $loginSuccess = true;
+
+                            if (!$this->isFirebaseUidMarker($storedPassword)) {
+                                $this->migrateToFirebaseBackedPassword((int) $user['id_nasabah'], $firebaseUid);
+                            }
+                        }
+                    }
                 }
 
                 if ($loginSuccess) {
@@ -112,22 +122,30 @@ class NasabahLoginController extends Controller
 
     private function isFirebaseBackedPassword(?string $storedPassword): bool
     {
-        return is_string($storedPassword) && str_starts_with($storedPassword, 'firebase-auth:');
+        return is_string($storedPassword) && (str_starts_with($storedPassword, 'firebase-auth:') || $storedPassword === 'firebase-auth-pending');
     }
 
-    private function verifyPasswordWithFirebase(?string $email, string $password, string $storedPassword): bool
+    private function isFirebaseUidMarker(?string $storedPassword): bool
+    {
+        return $this->isFirebaseBackedPassword($storedPassword) && $storedPassword !== 'firebase-auth-pending';
+    }
+
+    private function mustUseFirebaseOnly(?string $storedPassword): bool
+    {
+        return $this->isFirebaseBackedPassword($storedPassword);
+    }
+
+    private function signInWithFirebase(?string $email, string $password): ?string
     {
         $firebaseApiKey = config('services.firebase.api_key');
-        $firebaseUid = Str::after($storedPassword, 'firebase-auth:');
 
-        if (!$firebaseApiKey || !$email || !$firebaseUid) {
+        if (!$firebaseApiKey || !$email) {
             Log::warning('Firebase-backed nasabah login could not be verified because configuration or account data is incomplete.', [
                 'has_api_key' => (bool) $firebaseApiKey,
                 'has_email' => (bool) $email,
-                'has_uid' => (bool) $firebaseUid,
             ]);
 
-            return false;
+            return null;
         }
 
         try {
@@ -141,19 +159,48 @@ class NasabahLoginController extends Controller
             );
 
             if (!$response->successful()) {
-                return false;
+                return null;
             }
 
             $payload = $response->json();
             $firebaseLocalId = isset($payload['localId']) ? (string) $payload['localId'] : '';
 
-            return $firebaseLocalId !== '' && hash_equals($firebaseUid, $firebaseLocalId);
+            return $firebaseLocalId !== '' ? $firebaseLocalId : null;
         } catch (\Throwable $exception) {
             Log::warning('Firebase password verification failed unexpectedly.', [
                 'message' => $exception->getMessage(),
             ]);
 
-            return false;
+            return null;
+        }
+    }
+
+    private function migrateToFirebaseBackedPassword(int $idNasabah, string $firebaseUid): void
+    {
+        $serviceKey = env('SUPABASE_SERVICE_ROLE_KEY') ?: env('SUPABASE_KEY');
+
+        try {
+            $response = Http::acceptJson()->withHeaders([
+                'apikey' => $serviceKey,
+                'Authorization' => 'Bearer ' . $serviceKey,
+                'Content-Type' => 'application/json',
+                'Prefer' => 'return=minimal',
+            ])->patch(rtrim((string) env('SUPABASE_URL'), '/') . '/rest/v1/nasabah?id_nasabah=eq.' . $idNasabah, [
+                'password' => 'firebase-auth:' . $firebaseUid,
+            ]);
+
+            if (!$response->successful()) {
+                Log::warning('Failed to migrate nasabah password marker to Firebase.', [
+                    'id_nasabah' => $idNasabah,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+            }
+        } catch (\Throwable $exception) {
+            Log::warning('Failed to migrate nasabah password marker to Firebase unexpectedly.', [
+                'id_nasabah' => $idNasabah,
+                'message' => $exception->getMessage(),
+            ]);
         }
     }
 

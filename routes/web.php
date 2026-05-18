@@ -85,8 +85,6 @@ Route::post('/nasabah/google/authenticate', [NasabahGoogleAuthController::class,
 Route::get('/nasabah/logout', [NasabahLoginController::class, 'logout'])->name('nasabah.logout');
 Route::get('/nasabah/lupa-password', [NasabahPasswordResetController::class, 'showForgotForm'])->name('nasabah.password.request');
 Route::post('/nasabah/lupa-password', [NasabahPasswordResetController::class, 'sendResetLink'])->name('nasabah.password.email');
-Route::get('/nasabah/reset-password/{token}', [NasabahPasswordResetController::class, 'showResetForm'])->name('nasabah.password.reset.form');
-Route::post('/nasabah/reset-password', [NasabahPasswordResetController::class, 'reset'])->name('nasabah.password.update');
 
 // Nasabah dashboard routes
 Route::get('/nasabah/dashboard', [NasabahDashboardController::class, 'index'])->name('nasabah.dashboard');
