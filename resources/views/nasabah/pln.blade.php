@@ -315,7 +315,7 @@
                 </div>
 
                 <h3>Form PLN</h3>
-                <form method="POST" action="{{ Route::has('nasabah.ppob.process') ? route('nasabah.ppob.process') : '#' }}" class="pln-form">
+                <form method="POST" action="{{ Route::has('nasabah.pln.store') ? route('nasabah.pln.store') : '#' }}" class="pln-form">
                     @csrf
                     <input type="hidden" name="service_type" value="pln">
 
@@ -331,11 +331,11 @@
                             <label for="nominal">Nominal (Rp)</label>
                             <div class="select-wrapper">
                                 <select id="nominal" name="nominal" required>
-                                    @for ($v = 20000; $v <= 100000; $v += 10000)
+                                    @foreach ([20000, 50000, 100000] as $v)
                                         <option value="{{ $v }}" {{ old('nominal') == $v ? 'selected' : ($v == 50000 ? 'selected' : '') }}>
                                             {{ number_format($v,0,',','.') }}
                                         </option>
-                                    @endfor
+                                    @endforeach
                                 </select>
                                 <i data-lucide="chevron-down"></i>
                             </div>
@@ -375,8 +375,9 @@
         document.querySelector('.pln-form')?.addEventListener('submit', function(e) {
             const target = document.getElementById('phoneNumber')?.value.trim() || '';
             const nominal = parseInt(document.getElementById('nominal')?.value || '0', 10);
+            const allowed = [20000, 50000, 100000];
             if (!target) { e.preventDefault(); alert('Harap masukkan nomor pelanggan!'); return false; }
-            if (isNaN(nominal) || nominal < 5000 || nominal > 100000 || (nominal % 5000) !== 0) { e.preventDefault(); alert('Nominal tidak valid. Pilih kelipatan 5.000 (min 5.000, max 100.000).'); return false; }
+            if (!allowed.includes(nominal)) { e.preventDefault(); alert('Nominal PLN hanya Rp 20.000, Rp 50.000, atau Rp 100.000.'); return false; }
             return true;
         });
         const plnForm = document.querySelector('.pln-form');
