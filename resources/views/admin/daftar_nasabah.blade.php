@@ -41,23 +41,28 @@
 
                     <!-- Table -->
                     <div class="table-responsive">
-                        <table class="table table-hover table-striped align-middle">
+                        <table class="table table-hover table-striped align-middle table-bordered">
                             <thead class="table-light">
                                 <tr>
                                     <th>No.</th>
+                                    <th>Username</th>
                                     <th>Nama</th>
+                                    <th>Email</th>
                                     <th>Alamat</th>
                                     <th>No. HP</th>
                                     <th>Saldo</th>
                                     <th>Status</th>
+                                    <th>Tgl Daftar</th>
                                     <th class="text-center">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse ($nasabahs as $n)
                                     <tr>
-                                        <td class="fw-semibold">{{ $n['id_nasabah'] }}</td>
+                                        <td class="fw-semibold">{{ ($nasabahsMeta['offset'] ?? 0) + $loop->iteration }}</td>
+                                        <td>{{ $n['user_name'] ?? '-' }}</td>
                                         <td>{{ $n['nama_nasabah'] }}</td>
+                                        <td>{{ $n['email'] ?? '-' }}</td>
                                         <td>
                                             <span title="{{ $n['alamat'] }}" style="display: inline-block; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                                 {{ $n['alamat'] }}
@@ -76,6 +81,7 @@
                                                 <span class="badge bg-secondary">{{ $n['status_akun'] }}</span>
                                             @endif
                                         </td>
+                                        <td>{{ is_string($n['tanggal_daftar']) ? date('d M Y', strtotime($n['tanggal_daftar'])) : '-' }}</td>
                                         <td>
                                             <div class="d-flex gap-2 justify-content-center flex-wrap">
                                                 @if ($n['status_akun'] === 'menunggu')
@@ -92,26 +98,36 @@
                                                         <button type="submit" class="btn btn-sm btn-danger">Tolak</button>
                                                     </form>
                                                 @else
-                                                    <a href="#" class="btn btn-sm btn-secondary">Edit</a>
-                                                    <form method="POST" class="action-form d-inline" data-message="Hapus nasabah ini? Tindakan tidak dapat dibatalkan.">
+                                                    <a href="{{ route('admin.nasabah.edit', $n['id_nasabah']) }}" class="btn btn-sm btn-secondary">Edit</a>
+                                                    <form method="POST" action="{{ route('admin.nasabah.delete', $n['id_nasabah']) }}" class="action-form d-inline" data-message="Hapus nasabah ini? Tindakan tidak dapat dibatalkan.">
                                                         @csrf
-                                                        <input type="hidden" name="id" value="{{ $n['id_nasabah'] }}">
+                                                        @method('DELETE')
                                                         <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
                                                     </form>
-                                                    <a href="#" class="btn btn-sm btn-info text-white">Riwayat</a>
+                                                    <a href="{{ route('admin.nasabah.riwayat', $n['id_nasabah']) }}" class="btn btn-sm btn-info text-white">Riwayat</a>
                                                 @endif
                                             </div>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="text-center py-5 text-muted">
+                                        <td colspan="10" class="text-center py-5 text-muted">
                                             <p class="mb-0">📭 Tidak ada data nasabah</p>
                                         </td>
                                     </tr>
                                 @endforelse
                             </tbody>
                         </table>
+                    </div>
+
+                    <div class="d-flex justify-content-end align-items-center gap-2 mt-3">
+                        <span class="text-muted small">Halaman {{ $nasabahsMeta['page'] ?? 1 }}</span>
+                        @if (!empty($nasabahsMeta['has_prev']))
+                            <a href="{{ route('admin.nasabah.daftar', ['page' => ($nasabahsMeta['page'] ?? 1) - 1]) }}" class="btn btn-sm btn-outline-secondary">Sebelumnya</a>
+                        @endif
+                        @if (!empty($nasabahsMeta['has_next']))
+                            <a href="{{ route('admin.nasabah.daftar', ['page' => ($nasabahsMeta['page'] ?? 1) + 1]) }}" class="btn btn-sm btn-primary">Berikutnya</a>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -124,7 +140,7 @@
     const searchInput = document.getElementById('searchInput');
     const tableBody = document.querySelector('tbody');
     const tableRows = tableBody.querySelectorAll('tr');
-    const emptyMessageRow = tableBody.querySelector('tr td[colspan="7"]');
+    const emptyMessageRow = tableBody.querySelector('tr td[colspan="10"]');
 
     searchInput.addEventListener('keyup', function() {
         const searchTerm = this.value.toLowerCase();
@@ -136,15 +152,9 @@
                 return;
             }
 
-            const noRekening = row.cells[0].textContent.toLowerCase();
-            const nama = row.cells[1].textContent.toLowerCase();
-            const alamat = row.cells[2].textContent.toLowerCase();
-            const noHp = row.cells[3].textContent.toLowerCase();
+            const rowText = row.textContent.toLowerCase();
 
-            if (noRekening.includes(searchTerm) || 
-                nama.includes(searchTerm) || 
-                alamat.includes(searchTerm) || 
-                noHp.includes(searchTerm)) {
+            if (rowText.includes(searchTerm)) {
                 row.style.display = '';
                 visibleCount++;
             } else {
@@ -156,7 +166,7 @@
         if (visibleCount === 0) {
             if (!emptyMessageRow) {
                 const emptyRow = document.createElement('tr');
-                emptyRow.innerHTML = '<td colspan="7" class="text-center py-5 text-muted"><p class="mb-0">📭 Tidak ada data nasabah yang cocok dengan pencarian</p></td>';
+                emptyRow.innerHTML = '<td colspan="10" class="text-center py-5 text-muted"><p class="mb-0">📭 Tidak ada data nasabah yang cocok dengan pencarian</p></td>';
                 tableBody.appendChild(emptyRow);
             } else {
                 emptyMessageRow.parentElement.style.display = '';

@@ -38,6 +38,8 @@ class TransaksiController extends Controller
             'has_prev' => false,
         ];
         $databaseError = null;
+        $historyDate = $request->get('history_date');
+        $historyDate = is_string($historyDate) && $historyDate !== '' ? $historyDate : date('Y-m-d');
 
         try {
             // Get setor requests from Supabase
@@ -49,7 +51,7 @@ class TransaksiController extends Controller
             // Get setor history from Supabase
             $historyStatus = $request->get('history_status', 'all');
             $pageSetor = max(1, (int) $request->get('page_setor', 1));
-            $historySetorResult = $this->fetchSetorHistory($pageSetor, 5, $historyStatus);
+            $historySetorResult = $this->fetchSetorHistory($pageSetor, 5, $historyStatus, $historyDate);
             $historySetor = $historySetorResult['items'];
             $historySetorMeta = $historySetorResult['meta'];
 
@@ -61,7 +63,7 @@ class TransaksiController extends Controller
 
             // Get penarikan history (today only)
             $pagePenarikanHist = max(1, (int) $request->get('page_penarikan_hist', 1));
-            $historyPenarikanResult = $this->fetchPenarikanHistory($pagePenarikanHist, 5, $historyStatus);
+            $historyPenarikanResult = $this->fetchPenarikanHistory($pagePenarikanHist, 5, $historyStatus, $historyDate);
             $historyPenarikan = $historyPenarikanResult['items'];
             $historyPenarikanMeta = $historyPenarikanResult['meta'];
         } catch (\Exception $e) {
@@ -82,6 +84,7 @@ class TransaksiController extends Controller
             'historyPenarikan',
             'historyPenarikanMeta',
             'historyStatus',
+            'historyDate',
             'databaseError'
         ));
     }
@@ -353,7 +356,7 @@ class TransaksiController extends Controller
         $limit = $perPage + 1;
         $response = $this->supabaseRequest(
             'get',
-            '/rest/v1/transaksi_setor?select=id_transaksi_setor,id_nasabah,total_nilai,tanggal_setor,status,nasabah(nama_lengkap),detail_setor(berat_kg,status_item,jenis_sampah(nama_jenis))&status=in.(menunggu,pending)&order=tanggal_setor.asc&limit=' . $limit . '&offset=' . $offset,
+            '/rest/v1/transaksi_setor?select=id_transaksi_setor,id_nasabah,total_nilai,tanggal_setor,status,nasabah(nama_lengkap),detail_setor(berat_kg,status_item,jenis_sampah(nama_jenis))&status=in.(menunggu,pending)&order=tanggal_setor.desc&limit=' . $limit . '&offset=' . $offset,
             null,
             false
         );
@@ -361,7 +364,7 @@ class TransaksiController extends Controller
         if (!$response->successful()) {
             $response = $this->supabaseRequest(
                 'get',
-                '/rest/v1/transaksi_setor?select=id_transaksi_setor,id_nasabah,total_nilai,tanggal_setor,status,nasabah(nama_lengkap),detail_setor(berat_kg,jenis_sampah(nama_jenis))&status=in.(menunggu,pending)&order=tanggal_setor.asc&limit=' . $limit . '&offset=' . $offset,
+                '/rest/v1/transaksi_setor?select=id_transaksi_setor,id_nasabah,total_nilai,tanggal_setor,status,nasabah(nama_lengkap),detail_setor(berat_kg,jenis_sampah(nama_jenis))&status=in.(menunggu,pending)&order=tanggal_setor.desc&limit=' . $limit . '&offset=' . $offset,
                 null,
                 false
             );
@@ -373,6 +376,7 @@ class TransaksiController extends Controller
                     'page' => $page,
                     'has_next' => false,
                     'has_prev' => $page > 1,
+                    'offset' => $offset,
                 ],
             ];
         }
@@ -385,6 +389,7 @@ class TransaksiController extends Controller
                     'page' => $page,
                     'has_next' => false,
                     'has_prev' => $page > 1,
+                    'offset' => $offset,
                 ],
             ];
         }
@@ -476,13 +481,14 @@ class TransaksiController extends Controller
                 'page' => $page,
                 'has_next' => $hasNext,
                 'has_prev' => $page > 1,
+                'offset' => $offset,
             ],
         ];
     }
 
-    private function fetchSetorHistory(int $page, int $perPage, string $statusFilter): array
+    private function fetchSetorHistory(int $page, int $perPage, string $statusFilter, string $historyDate): array
     {
-        $today = date('Y-m-d');
+        $dateFilter = $historyDate !== '' ? $historyDate : date('Y-m-d');
         $offset = ($page - 1) * $perPage;
         $limit = $perPage + 1;
         $statusClause = $statusFilter !== 'all'
@@ -490,7 +496,7 @@ class TransaksiController extends Controller
             : '&status=in.(sebagian,selesai,ditolak)';
         $response = $this->supabaseRequest(
             'get',
-            '/rest/v1/transaksi_setor?select=id_transaksi_setor,id_nasabah,total_nilai,tanggal_setor,tanggal_proses,status,nasabah(nama_lengkap)' . $statusClause . '&tanggal_proses=eq.' . $today . '&order=tanggal_proses.desc&limit=' . $limit . '&offset=' . $offset,
+            '/rest/v1/transaksi_setor?select=id_transaksi_setor,id_nasabah,total_nilai,tanggal_setor,tanggal_proses,status,nasabah(nama_lengkap)' . $statusClause . '&tanggal_proses=eq.' . $dateFilter . '&order=tanggal_proses.desc&limit=' . $limit . '&offset=' . $offset,
             null,
             false
         );
@@ -502,6 +508,7 @@ class TransaksiController extends Controller
                     'page' => $page,
                     'has_next' => false,
                     'has_prev' => $page > 1,
+                    'offset' => $offset,
                 ],
             ];
         }
@@ -514,6 +521,7 @@ class TransaksiController extends Controller
                     'page' => $page,
                     'has_next' => false,
                     'has_prev' => $page > 1,
+                    'offset' => $offset,
                 ],
             ];
         }
@@ -564,6 +572,7 @@ class TransaksiController extends Controller
                 'page' => $page,
                 'has_next' => $hasNext,
                 'has_prev' => $page > 1,
+                'offset' => $offset,
             ],
         ];
     }
@@ -641,6 +650,7 @@ class TransaksiController extends Controller
                     'page' => $page,
                     'has_next' => false,
                     'has_prev' => $page > 1,
+                    'offset' => $offset,
                 ],
             ];
         }
@@ -653,6 +663,7 @@ class TransaksiController extends Controller
                     'page' => $page,
                     'has_next' => false,
                     'has_prev' => $page > 1,
+                    'offset' => $offset,
                 ],
             ];
         }
@@ -696,23 +707,33 @@ class TransaksiController extends Controller
                 'page' => $page,
                 'has_next' => $hasNext,
                 'has_prev' => $page > 1,
+                'offset' => $offset,
             ],
         ];
     }
 
-    private function fetchPenarikanHistory(int $page, int $perPage, string $statusFilter): array
+    private function fetchPenarikanHistory(int $page, int $perPage, string $statusFilter, string $historyDate): array
     {
-        $today = date('Y-m-d');
+        $dateFilter = $historyDate !== '' ? $historyDate : date('Y-m-d');
         $offset = ($page - 1) * $perPage;
         $limit = $perPage + 1;
 
-        $statusClause = $statusFilter !== 'all'
-            ? '&status=eq.' . urlencode($statusFilter)
+        $normalizedStatus = $statusFilter;
+        if ($statusFilter !== 'all') {
+            if ($statusFilter === 'selesai') {
+                $normalizedStatus = 'approved';
+            } elseif ($statusFilter === 'ditolak') {
+                $normalizedStatus = 'rejected';
+            }
+        }
+
+        $statusClause = $normalizedStatus !== 'all'
+            ? '&status=eq.' . urlencode($normalizedStatus)
             : '&status=not.in.(pending,menunggu)';
 
         $response = $this->supabaseRequest(
             'get',
-            '/rest/v1/penarikan_saldo?select=id_penarikan,id_nasabah,jenis_penukaran,nominal,deskripsi,tanggal_pengajuan,tanggal_proses,status,nasabah(nama_lengkap)' . $statusClause . '&tanggal_proses=eq.' . $today . '&order=tanggal_proses.desc&limit=' . $limit . '&offset=' . $offset,
+            '/rest/v1/penarikan_saldo?select=id_penarikan,id_nasabah,jenis_penukaran,nominal,deskripsi,tanggal_pengajuan,tanggal_proses,status,nasabah(nama_lengkap)' . $statusClause . '&tanggal_proses=eq.' . $dateFilter . '&order=tanggal_proses.desc&limit=' . $limit . '&offset=' . $offset,
             null,
             false
         );
@@ -724,6 +745,7 @@ class TransaksiController extends Controller
                     'page' => $page,
                     'has_next' => false,
                     'has_prev' => $page > 1,
+                    'offset' => $offset,
                 ],
             ];
         }
@@ -736,6 +758,7 @@ class TransaksiController extends Controller
                     'page' => $page,
                     'has_next' => false,
                     'has_prev' => $page > 1,
+                    'offset' => $offset,
                 ],
             ];
         }
@@ -779,6 +802,7 @@ class TransaksiController extends Controller
                 'page' => $page,
                 'has_next' => $hasNext,
                 'has_prev' => $page > 1,
+                'offset' => $offset,
             ],
         ];
     }

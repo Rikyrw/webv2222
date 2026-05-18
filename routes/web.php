@@ -49,6 +49,10 @@ Route::middleware(['admin.session'])->group(function () {
     // Admin nasabah routes
     Route::get('/admin/nasabah', [NasabahController::class, 'daftar'])->name('admin.nasabah.daftar');
     Route::post('/admin/nasabah', [NasabahController::class, 'daftar'])->name('admin.nasabah.post');
+    Route::get('/admin/nasabah/{id}/edit', [NasabahController::class, 'edit'])->name('admin.nasabah.edit');
+    Route::put('/admin/nasabah/{id}', [NasabahController::class, 'update'])->name('admin.nasabah.update');
+    Route::delete('/admin/nasabah/{id}', [NasabahController::class, 'destroy'])->name('admin.nasabah.delete');
+    Route::get('/admin/nasabah/{id}/riwayat', [NasabahController::class, 'riwayat'])->name('admin.nasabah.riwayat');
 
     // Admin transaksi routes
     Route::get('/admin/transaksi', [TransaksiController::class, 'index'])->name('admin.transaksi');

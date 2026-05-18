@@ -193,6 +193,12 @@
                     <p style="margin-top: 5px; font-size: 14px; color: #6b7280;">
                         <i class="lucide-mail"></i> {{ auth()->user()->email ?? '' }}
                     </p>
+                    @php
+                        $wibNow = \Carbon\Carbon::now('Asia/Jakarta')->locale('id');
+                    @endphp
+                    <p style="margin-top: 5px; font-size: 14px; color: #6b7280;">
+                        <i class="lucide-clock"></i> {{ $wibNow->translatedFormat('l, d F Y H:i') }} WIB
+                    </p>
                 </div>
             </div>
 

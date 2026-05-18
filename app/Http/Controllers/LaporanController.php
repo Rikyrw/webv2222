@@ -155,22 +155,31 @@ class LaporanController extends Controller
             $totalSetoran = TransaksiSetor::where('status', 'selesai')
                 ->whereBetween('tanggal_setor', [$start, $end])
                 ->sum('total_nilai') ?? 0;
+
+            $totalSetoranCount = TransaksiSetor::where('status', 'selesai')
+                ->whereBetween('tanggal_setor', [$start, $end])
+                ->count();
             
             $totalPenarikan = TransaksiPenarikan::where('status', 'selesai')
                 ->whereBetween('tanggal_proses', [$start, $end])
                 ->sum('nominal') ?? 0;
-            
-            // Generate CSV
-            $csv = "Laporan Keuangan - $periodLabel\n";
-            $csv .= "Periode: $start hingga $end\n\n";
-            $csv .= "Deskripsi,Nominal\n";
-            $csv .= "Total Setoran,Rp " . number_format($totalSetoran, 0, ',', '.') . "\n";
-            $csv .= "Total Penarikan,Rp " . number_format($totalPenarikan, 0, ',', '.') . "\n";
-            $csv .= "Selisih,Rp " . number_format($totalSetoran - $totalPenarikan, 0, ',', '.') . "\n";
-            
-            return response($csv, 200, [
-                'Content-Type' => 'text/csv; charset=utf-8',
-                'Content-Disposition' => 'attachment; filename=laporan_keuangan_' . now()->format('Y-m-d') . '.csv',
+
+            $saldoAkhir = Nasabah::where('status', 'aktif')->sum('saldo') ?? 0;
+
+            $html = view('admin.laporan-keuangan-excel', [
+                'periodLabel' => $periodLabel,
+                'start' => $start,
+                'end' => $end,
+                'totalSetoran' => $totalSetoran,
+                'totalSetoranCount' => $totalSetoranCount,
+                'totalPenarikan' => $totalPenarikan,
+                'saldoAkhir' => $saldoAkhir,
+                'currentDate' => now()->format('d F Y H:i')
+            ])->render();
+
+            return response($html, 200, [
+                'Content-Type' => 'application/vnd.ms-excel; charset=utf-8',
+                'Content-Disposition' => 'attachment; filename=laporan_keuangan_' . now()->format('Y-m-d') . '.xls',
             ]);
         } catch (\Exception $e) {
             \Log::error('Export Excel Keuangan Error: ' . $e->getMessage());
@@ -210,17 +219,25 @@ class LaporanController extends Controller
             $totalSetoran = TransaksiSetor::where('status', 'selesai')
                 ->whereBetween('tanggal_setor', [$start, $end])
                 ->sum('total_nilai') ?? 0;
+
+            $totalSetoranCount = TransaksiSetor::where('status', 'selesai')
+                ->whereBetween('tanggal_setor', [$start, $end])
+                ->count();
             
             $totalPenarikan = TransaksiPenarikan::where('status', 'selesai')
                 ->whereBetween('tanggal_proses', [$start, $end])
                 ->sum('nominal') ?? 0;
+
+            $saldoAkhir = Nasabah::where('status', 'aktif')->sum('saldo') ?? 0;
             
             $html = view('admin.laporan-keuangan-pdf', [
                 'periodLabel' => $periodLabel,
                 'start' => $start,
                 'end' => $end,
                 'totalSetoran' => $totalSetoran,
+                'totalSetoranCount' => $totalSetoranCount,
                 'totalPenarikan' => $totalPenarikan,
+                'saldoAkhir' => $saldoAkhir,
                 'currentDate' => now()->format('d F Y H:i')
             ])->render();
             
@@ -271,19 +288,23 @@ class LaporanController extends Controller
                 ->groupBy('jenis_sampah.id_jenis_sampah', 'jenis_sampah.nama_jenis')
                 ->orderBy('total_berat', 'desc')
                 ->get();
-            
-            // Generate CSV
-            $csv = "Laporan Sampah - $periodLabel\n";
-            $csv .= "Periode: $start hingga $end\n\n";
-            $csv .= "Jenis Sampah,Total Berat (kg)\n";
-            
+
+            $composition = [];
             foreach ($sampahData as $item) {
-                $csv .= $item->nama_jenis . "," . number_format($item->total_berat, 2, ',', '.') . "\n";
+                $composition[$item->nama_jenis] = (float) $item->total_berat;
             }
-            
-            return response($csv, 200, [
-                'Content-Type' => 'text/csv; charset=utf-8',
-                'Content-Disposition' => 'attachment; filename=laporan_sampah_' . now()->format('Y-m-d') . '.csv',
+
+            $html = view('admin.laporan-sampah-excel', [
+                'periodLabel' => $periodLabel,
+                'start' => $start,
+                'end' => $end,
+                'composition' => $composition,
+                'currentDate' => now()->format('d F Y H:i')
+            ])->render();
+
+            return response($html, 200, [
+                'Content-Type' => 'application/vnd.ms-excel; charset=utf-8',
+                'Content-Disposition' => 'attachment; filename=laporan_sampah_' . now()->format('Y-m-d') . '.xls',
             ]);
         } catch (\Exception $e) {
             \Log::error('Export Excel Sampah Error: ' . $e->getMessage());
@@ -328,12 +349,17 @@ class LaporanController extends Controller
                 ->groupBy('jenis_sampah.id_jenis_sampah', 'jenis_sampah.nama_jenis')
                 ->orderBy('total_berat', 'desc')
                 ->get();
-            
+
+            $composition = [];
+            foreach ($sampahData as $item) {
+                $composition[$item->nama_jenis] = (float) $item->total_berat;
+            }
+
             return view('admin.laporan-sampah-pdf', [
                 'periodLabel' => $periodLabel,
                 'start' => $start,
                 'end' => $end,
-                'sampahData' => $sampahData,
+                'composition' => $composition,
                 'currentDate' => now()->format('d F Y H:i')
             ]);
         } catch (\Exception $e) {
@@ -380,21 +406,25 @@ class LaporanController extends Controller
                 ->orderBy('total_berat', 'desc')
                 ->limit(10)
                 ->get();
-            
-            // Generate CSV
-            $csv = "Laporan Top Nasabah - $periodLabel\n";
-            $csv .= "Periode: $start hingga $end\n\n";
-            $csv .= "Peringkat,Nama Nasabah,Total Berat (kg)\n";
-            
-            $rank = 1;
-            foreach ($nasabahData as $item) {
-                $csv .= $rank . "," . $item->nama_lengkap . "," . number_format($item->total_berat, 2, ',', '.') . "\n";
-                $rank++;
-            }
-            
-            return response($csv, 200, [
-                'Content-Type' => 'text/csv; charset=utf-8',
-                'Content-Disposition' => 'attachment; filename=laporan_nasabah_' . now()->format('Y-m-d') . '.csv',
+
+            $topNasabah = $nasabahData->map(function ($item) {
+                return [
+                    'nama' => $item->nama_lengkap,
+                    'berat' => (float) $item->total_berat,
+                ];
+            })->toArray();
+
+            $html = view('admin.laporan-nasabah-excel', [
+                'periodLabel' => $periodLabel,
+                'start' => $start,
+                'end' => $end,
+                'topNasabah' => $topNasabah,
+                'currentDate' => now()->format('d F Y H:i')
+            ])->render();
+
+            return response($html, 200, [
+                'Content-Type' => 'application/vnd.ms-excel; charset=utf-8',
+                'Content-Disposition' => 'attachment; filename=laporan_nasabah_' . now()->format('Y-m-d') . '.xls',
             ]);
         } catch (\Exception $e) {
             \Log::error('Export Excel Nasabah Error: ' . $e->getMessage());
@@ -440,12 +470,19 @@ class LaporanController extends Controller
                 ->orderBy('total_berat', 'desc')
                 ->limit(10)
                 ->get();
-            
+
+            $topNasabah = $nasabahData->map(function ($item) {
+                return [
+                    'nama' => $item->nama_lengkap,
+                    'berat' => (float) $item->total_berat,
+                ];
+            })->toArray();
+
             return view('admin.laporan-nasabah-pdf', [
                 'periodLabel' => $periodLabel,
                 'start' => $start,
                 'end' => $end,
-                'topNasabah' => $nasabahData,
+                'topNasabah' => $topNasabah,
                 'currentDate' => now()->format('d F Y H:i')
             ]);
         } catch (\Exception $e) {

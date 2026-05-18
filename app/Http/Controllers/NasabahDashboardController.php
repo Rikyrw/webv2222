@@ -12,12 +12,11 @@ class NasabahDashboardController extends Controller
         // Temporarily disabled auth check for development
         $user_id = session('id_nasabah') ?? 1; // Default to user ID 1 if not logged in
         $user_name = session('nama_nasabah') ?? 'Guest User';
+        $supabaseUrl = env('SUPABASE_URL');
+        $supabaseKey = env('SUPABASE_KEY');
 
         // Fetch user data
         try {
-            $supabaseUrl = env('SUPABASE_URL');
-            $supabaseKey = env('SUPABASE_KEY');
-
             $response = Http::withHeaders([
                 'apikey' => $supabaseKey,
                 'Authorization' => 'Bearer ' . $supabaseKey,
@@ -42,55 +41,54 @@ class NasabahDashboardController extends Controller
             $response = Http::withHeaders([
                 'apikey' => $supabaseKey,
                 'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . '/rest/v1/transaksi_setor?select=id_transaksi,id_nasabah,total_berat,total_nilai,status,tanggal_setor&id_nasabah=eq.' . $user_id . '&order=tanggal_setor.desc&limit=5');
+            ])->get($supabaseUrl . '/rest/v1/transaksi_setor?select=id_transaksi_setor,total_nilai,status,tanggal_setor,detail_setor(berat_kg)&id_nasabah=eq.' . $user_id . '&order=tanggal_setor.desc&limit=5');
 
-            $recent_setor = $response->json() ?: [];
+            $items = $response->json() ?: [];
+            $recent_setor = [];
+            if (is_array($items)) {
+                foreach ($items as $item) {
+                    $totalBerat = 0;
+                    $details = isset($item['detail_setor']) && is_array($item['detail_setor']) ? $item['detail_setor'] : [];
+                    foreach ($details as $detail) {
+                        $totalBerat += isset($detail['berat_kg']) ? (float) $detail['berat_kg'] : 0;
+                    }
+                    $recent_setor[] = [
+                        'id_transaksi' => $item['id_transaksi_setor'] ?? null,
+                        'total_berat' => $totalBerat,
+                        'total_nilai' => isset($item['total_nilai']) ? (float) $item['total_nilai'] : 0,
+                        'status' => $item['status'] ?? 'menunggu',
+                        'tanggal_setor' => $item['tanggal_setor'] ?? null,
+                    ];
+                }
+            }
         } catch (\Exception $e) {
             \Log::error('Recent setor error: ' . $e->getMessage());
         }
 
-        // Fetch recent PPOB transactions
+        // Fetch recent penarikan saldo
         $recent_ppob = [];
         try {
             $penarikan = Http::withHeaders([
                 'apikey' => $supabaseKey,
                 'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . '/rest/v1/penarikan?select=id_penukaran,jenis_penukaran,nominal,status,tanggal_pengajuan,deskripsi&id_nasabah=eq.' . $user_id . '&order=tanggal_pengajuan.desc&limit=5')->json() ?: [];
-
-            $transaksi = Http::withHeaders([
-                'apikey' => $supabaseKey,
-                'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . '/rest/v1/transaksi?select=id,id_nasabah,jenis,total,status,created_at,deskripsi&id_nasabah=eq.' . $user_id . '&order=created_at.desc&limit=5')->json() ?: [];
+            ])->get($supabaseUrl . '/rest/v1/penarikan_saldo?select=id_penarikan,jenis_penukaran,nominal,status,tanggal_pengajuan,deskripsi&id_nasabah=eq.' . $user_id . '&order=tanggal_pengajuan.desc&limit=5')->json() ?: [];
 
             $hist = [];
-            foreach ($penarikan as $r) {
-                $hist[] = [
-                    'type' => 'penarikan',
-                    'id' => $r['id_penukaran'] ?? null,
-                    'service' => $r['jenis_penukaran'] ?? 'PPOB',
-                    'amount' => isset($r['nominal']) ? floatval($r['nominal']) : 0,
-                    'status' => $r['status'] ?? 'menunggu',
-                    'deskripsi' => $r['deskripsi'] ?? '',
-                    'created_at' => $r['tanggal_pengajuan'] ?? null,
-                ];
+            if (is_array($penarikan)) {
+                foreach ($penarikan as $r) {
+                    $hist[] = [
+                        'type' => 'penarikan',
+                        'id' => $r['id_penarikan'] ?? null,
+                        'service' => $r['jenis_penukaran'] ?? 'Penarikan',
+                        'amount' => isset($r['nominal']) ? floatval($r['nominal']) : 0,
+                        'status' => $r['status'] ?? 'menunggu',
+                        'deskripsi' => $r['deskripsi'] ?? '',
+                        'created_at' => $r['tanggal_pengajuan'] ?? null,
+                    ];
+                }
             }
-            foreach ($transaksi as $r) {
-                $hist[] = [
-                    'type' => 'transaksi',
-                    'id' => $r['id'] ?? null,
-                    'service' => $r['jenis'] ?? 'Transaksi',
-                    'amount' => isset($r['total']) ? floatval($r['total']) : 0,
-                    'status' => $r['status'] ?? 'success',
-                    'deskripsi' => $r['deskripsi'] ?? '',
-                    'created_at' => $r['created_at'] ?? null,
-                ];
-            }
-            usort($hist, function($a, $b) {
-                $ta = isset($a['created_at']) ? strtotime($a['created_at']) : 0;
-                $tb = isset($b['created_at']) ? strtotime($b['created_at']) : 0;
-                return $tb <=> $ta;
-            });
-            $recent_ppob = array_slice($hist, 0, 5);
+
+            $recent_ppob = $hist;
         } catch (\Exception $e) {
             \Log::error('Recent PPOB error: ' . $e->getMessage());
         }
@@ -102,13 +100,13 @@ class NasabahDashboardController extends Controller
             $all_setor = Http::withHeaders([
                 'apikey' => $supabaseKey,
                 'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . '/rest/v1/transaksi_setor?select=id_transaksi&id_nasabah=eq.' . $user_id)->json() ?: [];
+            ])->get($supabaseUrl . '/rest/v1/transaksi_setor?select=id_transaksi_setor&id_nasabah=eq.' . $user_id)->json() ?: [];
             $setor_count = is_array($all_setor) ? count($all_setor) : 0;
 
             $all_penarikan = Http::withHeaders([
                 'apikey' => $supabaseKey,
                 'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . '/rest/v1/penarikan?select=nominal&id_nasabah=eq.' . $user_id)->json() ?: [];
+            ])->get($supabaseUrl . '/rest/v1/penarikan_saldo?select=nominal&id_nasabah=eq.' . $user_id)->json() ?: [];
             $sum_penarikan = 0;
             if (is_array($all_penarikan)) {
                 foreach ($all_penarikan as $pp) {
@@ -116,18 +114,7 @@ class NasabahDashboardController extends Controller
                 }
             }
 
-            $all_transaksi = Http::withHeaders([
-                'apikey' => $supabaseKey,
-                'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . '/rest/v1/transaksi?select=total,id_nasabah,jenis&id_nasabah=eq.' . $user_id)->json() ?: [];
-            $sum_transaksi = 0;
-            if (is_array($all_transaksi)) {
-                foreach ($all_transaksi as $tt) {
-                    $sum_transaksi += isset($tt['total']) ? floatval($tt['total']) : 0;
-                }
-            }
-
-            $ppob_total = $sum_penarikan + $sum_transaksi;
+            $ppob_total = $sum_penarikan;
         } catch (\Exception $e) {
             \Log::error('Aggregates error: ' . $e->getMessage());
         }

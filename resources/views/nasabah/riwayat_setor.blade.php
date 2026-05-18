@@ -279,11 +279,12 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
+            border: 2px solid #d1d5db;
         }
 
         thead {
             background: #f3f4f6;
-            border-bottom: 2px solid #e5e7eb;
+            border-bottom: 2px solid #d1d5db;
         }
 
         th {
@@ -293,10 +294,11 @@
             color: #4b5563;
             font-size: 14px;
             white-space: nowrap;
+            border: 2px solid #d1d5db;
         }
 
         tbody tr {
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 2px solid #d1d5db;
         }
 
         tbody tr:hover {
@@ -307,6 +309,7 @@
             padding: 16px 12px;
             font-size: 14px;
             color: #1f2937;
+            border: 2px solid #d1d5db;
         }
 
         .status {
@@ -576,7 +579,7 @@
                 <table role="table" aria-label="Riwayat Setor Sampah">
                     <thead>
                         <tr>
-                            <th>No. Transaksi</th>
+                            <th>No.</th>
                             <th>Jenis Sampah</th>
                             <th>Total Berat (kg)</th>
                             <th>Total Nilai</th>
@@ -607,7 +610,7 @@
                                     }
                                 @endphp
                                 <tr>
-                                    <td>#{{ $transaction['id_transaksi'] }}</td>
+                                    <td>{{ $loop->iteration }}</td>
                                     <td>{{ htmlspecialchars($transaction['nama_jenis'] ?? 'N/A') }}</td>
                                     <td>{{ number_format($transaction['berat_kg'] ?? 0, 2) }}</td>
                                     <td>Rp {{ number_format($transaction['subtotal'] ?? 0, 0, ',', '.') }}</td>

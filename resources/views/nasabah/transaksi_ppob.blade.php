@@ -196,11 +196,12 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
+            border: 2px solid #d1d5db;
         }
 
         .transactions-table thead {
             background: #f3f4f6;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 2px solid #d1d5db;
         }
 
         .transactions-table th {
@@ -209,15 +210,17 @@
             font-weight: 600;
             color: #4b5563;
             white-space: nowrap;
+            border: 2px solid #d1d5db;
         }
 
         .transactions-table tbody tr {
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 2px solid #d1d5db;
         }
 
         .transactions-table td {
             padding: 16px 12px;
             vertical-align: middle;
+            border: 2px solid #d1d5db;
         }
 
         .transaction-detail {
@@ -482,7 +485,7 @@
                     <table class="transactions-table">
                         <thead>
                             <tr>
-                                <th>ID Transaksi</th>
+                                <th>No.</th>
                                 <th>Detail Transaksi</th>
                                 <th>Nominal</th>
                                 <th>Tanggal</th>
@@ -496,7 +499,6 @@
                             @else
                                 @foreach ($hist as $index => $item)
                                     @php
-                                        $idLabel = ($item['type'] === 'penarikan') ? ('#PPOB' . ($item['id'] ?? '')) : ('#TX' . ($item['id'] ?? ''));
                                         $service = htmlspecialchars($item['service'] ?? 'PPOB');
                                         $amount = 'Rp ' . number_format((float)($item['amount'] ?? 0), 0, ',', '.');
                                         $status = strtolower($item['status'] ?? '');
@@ -513,7 +515,7 @@
                                         }
                                     @endphp
                                     <tr class="table-row" data-row-index="{{ $index }}" style="display:table-row;">
-                                        <td>{{ htmlspecialchars($idLabel) }}</td>
+                                        <td>{{ $loop->iteration }}</td>
                                         <td>
                                             <div class="transaction-detail">
                                                 <div class="transaction-header">
@@ -535,8 +537,7 @@
                                         <td class="amount" data-amount="{{ $item['amount'] ?? 0 }}">{{ $amount }}</td>
                                         <td>
                                             @if ($item['created_at'])
-                                                {{ \Carbon\Carbon::parse($item['created_at'])->format('d M Y') }}<br>
-                                                <span class="time">{{ \Carbon\Carbon::parse($item['created_at'])->format('H:i') }} WIB</span>
+                                                {{ \Carbon\Carbon::parse($item['created_at'])->format('d M Y') }}
                                             @else
                                                 -
                                             @endif
@@ -706,7 +707,7 @@
             }
 
             let csvContent = 'data:text/csv;charset=utf-8,';
-            csvContent += 'ID Transaksi,Layanan,Status,Nominal,Tanggal\n';
+            csvContent += 'No,Layanan,Status,Nominal,Tanggal\n';
 
             rows.forEach(row => {
                 const cells = row.querySelectorAll('td');

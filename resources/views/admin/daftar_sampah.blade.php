@@ -50,7 +50,7 @@
             <table class="table table-hover table-striped align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th>ID</th>
+                        <th>No.</th>
                         <th>Jenis Sampah</th>
                         <th>Harga per kg (Rp)</th>
                         <th>Stok (kg)</th>
@@ -62,7 +62,7 @@
                     @forelse ($sampahList as $item)
                         @if ($item['status'] !== 'nonaktif')
                             <tr>
-                                <td class="fw-semibold">{{ $item['id_jenis'] }}</td>
+                                <td class="fw-semibold">{{ $loop->iteration }}</td>
                                 <td>{{ $item['nama_jenis'] }}</td>
                                 <td>Rp {{ number_format($item['harga_per_kg'], 0, ',', '.') }}</td>
                                 @if ((float)$item['stok_kg'] < 5)
@@ -79,7 +79,7 @@
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2 justify-content-center flex-wrap">
-                                        <a href="{{ route('admin.sampah.edit', $item['id_jenis']) }}" class="btn btn-sm btn-info text-white">Edit</a>
+                                        <a href="{{ route('admin.sampah.edit', $item['id_jenis']) }}" class="btn btn-sm btn-info text-white">Ubah</a>
                                         <form method="POST" class="delete-form d-inline" data-confirm="Hapus sampah {{ $item['nama_jenis'] }}?">
                                             @csrf
                                             <input type="hidden" name="action" value="delete">

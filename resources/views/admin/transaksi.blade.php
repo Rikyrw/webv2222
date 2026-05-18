@@ -7,6 +7,8 @@
         .tab-links { display: flex; gap: 0; padding: 0; }
         .tab-link { flex: 1; padding: 16px 20px; text-align: center; text-decoration: none; color: #6b7280; font-weight: 500; border-bottom: 3px solid transparent; transition: all 0.2s; display: inline-block; }
         .tab-link.is-active { color: #10b981; font-weight: 600; border-bottom-color: #10b981; }
+        .table-grid { width: 100%; border-collapse: collapse; font-size: 14px; border: 2px solid #d1d5db; }
+        .table-grid th, .table-grid td { border: 2px solid #d1d5db; }
     </style>
 
     <!-- Tab Navigation -->
@@ -38,11 +40,12 @@
                 <p>Tidak ada permintaan setor sampah yang menunggu.</p>
             </div>
         @else
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <div id="setor-table-wrap">
+                <div style="overflow-x: auto;">
+                    <table class="table-grid">
                     <thead>
                         <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">ID</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">No.</th>
                             <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Nasabah</th>
                             <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Jenis</th>
                             <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Total Berat</th>
@@ -55,12 +58,14 @@
                     <tbody>
                         @foreach ($setorRequests as $tx)
                         <tr style="border-bottom: 1px solid #e5e7eb;">
-                            <td style="padding: 12px 16px;"><strong>#{{ $tx['id_transaksi'] }}</strong></td>
+                            <td style="padding: 12px 16px;"><strong>{{ ($setorRequestsMeta['offset'] ?? 0) + $loop->iteration }}</strong></td>
                             <td style="padding: 12px 16px;">{{ $tx['nama_nasabah'] }}</td>
                             <td style="padding: 12px 16px;">{{ $tx['jenis'] }}</td>
                             <td style="padding: 12px 16px;">{{ number_format($tx['total_berat'], 2, ',', '.') }} kg</td>
                             <td style="padding: 12px 16px;">Rp {{ number_format($tx['total_nilai'], 0, ',', '.') }}</td>
-                            <td style="padding: 12px 16px;">{{ date('d M Y H:i', strtotime($tx['tanggal_setor'])) }}</td>
+                            <td style="padding: 12px 16px;">
+                                {{ $tx['tanggal_setor'] ? \Carbon\Carbon::parse($tx['tanggal_setor'])->timezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y') : '-' }}
+                            </td>
                             <td style="padding: 12px 16px; text-align: center;">
                                 @if ($tx['status'] === 'menunggu')
                                     <span style="display: inline-block; padding: 4px 12px; background: #fef3c7; color: #92400e; border-radius: 20px; font-size: 12px; font-weight: 600;">Menunggu</span>
@@ -81,15 +86,16 @@
                         @endforeach
                     </tbody>
                 </table>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
-                <span style="align-self: center; font-size: 12px; color: #6b7280;">Halaman {{ $setorRequestsMeta['page'] ?? 1 }}</span>
-                @if (!empty($setorRequestsMeta['has_prev']))
-                    <a href="{{ route('admin.transaksi', ['tab' => 'setor', 'page_setor_req' => $setorRequestsMeta['page'] - 1]) }}" style="padding: 6px 12px; background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Sebelumnya</a>
-                @endif
-                @if (!empty($setorRequestsMeta['has_next']))
-                    <a href="{{ route('admin.transaksi', ['tab' => 'setor', 'page_setor_req' => $setorRequestsMeta['page'] + 1]) }}" style="padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Berikutnya</a>
-                @endif
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
+                    <span style="align-self: center; font-size: 12px; color: #6b7280;">Halaman {{ $setorRequestsMeta['page'] ?? 1 }}</span>
+                    @if (!empty($setorRequestsMeta['has_prev']))
+                        <a href="{{ route('admin.transaksi', ['tab' => 'setor', 'page_setor_req' => $setorRequestsMeta['page'] - 1]) }}" style="padding: 6px 12px; background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Sebelumnya</a>
+                    @endif
+                    @if (!empty($setorRequestsMeta['has_next']))
+                        <a href="{{ route('admin.transaksi', ['tab' => 'setor', 'page_setor_req' => $setorRequestsMeta['page'] + 1]) }}" style="padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Berikutnya</a>
+                    @endif
+                </div>
             </div>
         @endif
     </div>
@@ -105,11 +111,12 @@
                 <p>Tidak ada permintaan penarikan yang menunggu.</p>
             </div>
         @else
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <div id="penarikan-table-wrap">
+                <div style="overflow-x: auto;">
+                    <table class="table-grid">
                     <thead>
                         <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">ID</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">No.</th>
                             <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Nasabah</th>
                             <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Jenis</th>
                             <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Nominal (Rp)</th>
@@ -122,12 +129,14 @@
                     <tbody>
                         @foreach ($penarikanRequests as $p)
                         <tr style="border-bottom: 1px solid #e5e7eb;">
-                            <td style="padding: 12px 16px;"><strong>#{{ $p['id_penukaran'] }}</strong></td>
+                            <td style="padding: 12px 16px;"><strong>{{ ($penarikanRequestsMeta['offset'] ?? 0) + $loop->iteration }}</strong></td>
                             <td style="padding: 12px 16px;">{{ $p['nama_nasabah'] }}</td>
                             <td style="padding: 12px 16px;">{{ $p['jenis_penukaran'] }}</td>
                             <td style="padding: 12px 16px;">{{ number_format($p['nominal'], 0, ',', '.') }}</td>
-                            <td style="padding: 12px 16px; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $p['deskripsi'] }}</td>
-                            <td style="padding: 12px 16px;">{{ date('d M Y H:i', strtotime($p['tanggal_pengajuan'])) }}</td>
+                            <td style="padding: 12px 16px; white-space: normal; overflow: visible;">{{ $p['deskripsi'] }}</td>
+                            <td style="padding: 12px 16px;">
+                                {{ $p['tanggal_pengajuan'] ? \Carbon\Carbon::parse($p['tanggal_pengajuan'])->timezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y') : '-' }}
+                            </td>
                             <td style="padding: 12px 16px; text-align: center;">
                                 @if ($p['status'] === 'menunggu')
                                     <span style="display: inline-block; padding: 4px 12px; background: #fef3c7; color: #92400e; border-radius: 20px; font-size: 12px; font-weight: 600;">Menunggu</span>
@@ -151,15 +160,16 @@
                         @endforeach
                     </tbody>
                 </table>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
-                <span style="align-self: center; font-size: 12px; color: #6b7280;">Halaman {{ $penarikanRequestsMeta['page'] ?? 1 }}</span>
-                @if (!empty($penarikanRequestsMeta['has_prev']))
-                    <a href="{{ route('admin.transaksi', ['tab' => 'penarikan', 'page_penarikan_req' => $penarikanRequestsMeta['page'] - 1]) }}" style="padding: 6px 12px; background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Sebelumnya</a>
-                @endif
-                @if (!empty($penarikanRequestsMeta['has_next']))
-                    <a href="{{ route('admin.transaksi', ['tab' => 'penarikan', 'page_penarikan_req' => $penarikanRequestsMeta['page'] + 1]) }}" style="padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Berikutnya</a>
-                @endif
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
+                    <span style="align-self: center; font-size: 12px; color: #6b7280;">Halaman {{ $penarikanRequestsMeta['page'] ?? 1 }}</span>
+                    @if (!empty($penarikanRequestsMeta['has_prev']))
+                        <a href="{{ route('admin.transaksi', ['tab' => 'penarikan', 'page_penarikan_req' => $penarikanRequestsMeta['page'] - 1]) }}" style="padding: 6px 12px; background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Sebelumnya</a>
+                    @endif
+                    @if (!empty($penarikanRequestsMeta['has_next']))
+                        <a href="{{ route('admin.transaksi', ['tab' => 'penarikan', 'page_penarikan_req' => $penarikanRequestsMeta['page'] + 1]) }}" style="padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Berikutnya</a>
+                    @endif
+                </div>
             </div>
         @endif
     </div>
@@ -172,7 +182,7 @@
 
         <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px;">
             <h4 style="margin: 0; font-size: 16px; font-weight: 600;">Riwayat Setor Sampah</h4>
-            <form method="GET" action="{{ route('admin.transaksi') }}" style="display: flex; align-items: center; gap: 8px;">
+            <form method="GET" action="{{ route('admin.transaksi') }}" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <input type="hidden" name="tab" value="history">
                 <label style="font-size: 12px; color: #6b7280;">Filter status</label>
                 <select name="history_status" onchange="this.form.submit()" style="padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 12px;">
@@ -181,18 +191,21 @@
                     <option value="sebagian" {{ ($historyStatus ?? 'all') === 'sebagian' ? 'selected' : '' }}>Sebagian</option>
                     <option value="ditolak" {{ ($historyStatus ?? 'all') === 'ditolak' ? 'selected' : '' }}>Ditolak</option>
                 </select>
+                <label style="font-size: 12px; color: #6b7280;">Tanggal</label>
+                <input type="date" name="history_date" value="{{ $historyDate ?? '' }}" onchange="this.form.submit()" style="padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 12px;">
             </form>
         </div>
-        @if (count($historySetor) == 0)
-            <div style="text-align: center; padding: 32px 16px; color: #6b7280;">
-                <p>Belum ada riwayat setor.</p>
-            </div>
-        @else
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+        <div id="history-setor-wrap">
+            @if (count($historySetor) == 0)
+                <div style="text-align: center; padding: 32px 16px; color: #6b7280;">
+                    <p>Belum ada riwayat setor.</p>
+                </div>
+            @else
+                <div style="overflow-x: auto;">
+                    <table class="table-grid">
                     <thead>
                         <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">ID</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">No.</th>
                             <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Nasabah</th>
                             <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Jenis</th>
                             <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Total Berat</th>
@@ -207,7 +220,7 @@
                     <tbody>
                         @foreach ($historySetor as $h)
                         <tr style="border-bottom: 1px solid #e5e7eb;">
-                            <td style="padding: 12px 16px;"><strong>#{{ $h['id_transaksi'] }}</strong></td>
+                            <td style="padding: 12px 16px;"><strong>{{ ($historySetorMeta['offset'] ?? 0) + $loop->iteration }}</strong></td>
                             <td style="padding: 12px 16px;">{{ $h['nama_nasabah'] }}</td>
                             <td style="padding: 12px 16px;">{{ $h['jenis'] }}</td>
                             <td style="padding: 12px 16px;">{{ number_format($h['total_berat'], 2, ',', '.') }} kg</td>
@@ -240,7 +253,7 @@
                                 @endif
                             </td>
                             <td style="padding: 12px 16px;">
-                                {{ $h['tanggal_proses'] ? date('d M Y', strtotime($h['tanggal_proses'])) : '-' }}
+                                {{ $h['tanggal_proses'] ? \Carbon\Carbon::parse($h['tanggal_proses'])->timezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y') : '-' }}
                             </td>
                             <td style="padding: 12px 16px; text-align: center;">
                                 @if ($h['status'] === 'menunggu')
@@ -257,29 +270,31 @@
                         @endforeach
                     </tbody>
                 </table>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
-                <span style="align-self: center; font-size: 12px; color: #6b7280;">Halaman {{ $historySetorMeta['page'] ?? 1 }}</span>
-                @if (!empty($historySetorMeta['has_prev']))
-                    <a href="{{ route('admin.transaksi', ['tab' => 'history', 'page_setor' => $historySetorMeta['page'] - 1, 'history_status' => $historyStatus ?? 'all']) }}" style="padding: 6px 12px; background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Sebelumnya</a>
-                @endif
-                @if (!empty($historySetorMeta['has_next']))
-                    <a href="{{ route('admin.transaksi', ['tab' => 'history', 'page_setor' => $historySetorMeta['page'] + 1, 'history_status' => $historyStatus ?? 'all']) }}" style="padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Berikutnya</a>
-                @endif
-            </div>
-        @endif
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
+                    <span style="align-self: center; font-size: 12px; color: #6b7280;">Halaman {{ $historySetorMeta['page'] ?? 1 }}</span>
+                    @if (!empty($historySetorMeta['has_prev']))
+                        <a href="{{ route('admin.transaksi', ['tab' => 'history', 'page_setor' => $historySetorMeta['page'] - 1, 'history_status' => $historyStatus ?? 'all', 'history_date' => $historyDate ?? null]) }}" style="padding: 6px 12px; background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Sebelumnya</a>
+                    @endif
+                    @if (!empty($historySetorMeta['has_next']))
+                        <a href="{{ route('admin.transaksi', ['tab' => 'history', 'page_setor' => $historySetorMeta['page'] + 1, 'history_status' => $historyStatus ?? 'all', 'history_date' => $historyDate ?? null]) }}" style="padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Berikutnya</a>
+                    @endif
+                </div>
+            @endif
+        </div>
 
         <h4 style="margin: 24px 0 12px; font-size: 16px; font-weight: 600;">Riwayat Penarikan</h4>
-        @if (count($historyPenarikan) == 0)
-            <div style="text-align: center; padding: 32px 16px; color: #6b7280;">
-                <p>Belum ada riwayat penarikan.</p>
-            </div>
-        @else
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+        <div id="history-penarikan-wrap">
+            @if (count($historyPenarikan) == 0)
+                <div style="text-align: center; padding: 32px 16px; color: #6b7280;">
+                    <p>Belum ada riwayat penarikan.</p>
+                </div>
+            @else
+                <div style="overflow-x: auto;">
+                    <table class="table-grid">
                     <thead>
                         <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">ID</th>
+                            <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">No.</th>
                             <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Nasabah</th>
                             <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Jenis</th>
                             <th style="text-align: left; padding: 12px 16px; font-weight: 600; color: #374151;">Nominal (Rp)</th>
@@ -291,13 +306,13 @@
                     <tbody>
                         @foreach ($historyPenarikan as $p)
                         <tr style="border-bottom: 1px solid #e5e7eb;">
-                            <td style="padding: 12px 16px;"><strong>#{{ $p['id_penarikan'] }}</strong></td>
+                            <td style="padding: 12px 16px;"><strong>{{ ($historyPenarikanMeta['offset'] ?? 0) + $loop->iteration }}</strong></td>
                             <td style="padding: 12px 16px;">{{ $p['nama_nasabah'] }}</td>
                             <td style="padding: 12px 16px;">{{ $p['jenis_penukaran'] }}</td>
                             <td style="padding: 12px 16px;">{{ number_format($p['nominal'], 0, ',', '.') }}</td>
-                            <td style="padding: 12px 16px; max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ $p['deskripsi'] }}</td>
+                            <td style="padding: 12px 16px; white-space: normal; overflow: visible;">{{ $p['deskripsi'] }}</td>
                             <td style="padding: 12px 16px;">
-                                {{ $p['tanggal_proses'] ? date('d M Y', strtotime($p['tanggal_proses'])) : '-' }}
+                                {{ $p['tanggal_proses'] ? \Carbon\Carbon::parse($p['tanggal_proses'])->timezone('Asia/Jakarta')->locale('id')->translatedFormat('d M Y') : '-' }}
                             </td>
                             <td style="padding: 12px 16px; text-align: center;">
                                 @if ($p['status'] === 'menunggu')
@@ -314,17 +329,18 @@
                         @endforeach
                     </tbody>
                 </table>
-            </div>
-            <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
-                <span style="align-self: center; font-size: 12px; color: #6b7280;">Halaman {{ $historyPenarikanMeta['page'] ?? 1 }}</span>
-                @if (!empty($historyPenarikanMeta['has_prev']))
-                    <a href="{{ route('admin.transaksi', ['tab' => 'history', 'page_penarikan_hist' => $historyPenarikanMeta['page'] - 1, 'history_status' => $historyStatus ?? 'all']) }}" style="padding: 6px 12px; background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Sebelumnya</a>
-                @endif
-                @if (!empty($historyPenarikanMeta['has_next']))
-                    <a href="{{ route('admin.transaksi', ['tab' => 'history', 'page_penarikan_hist' => $historyPenarikanMeta['page'] + 1, 'history_status' => $historyStatus ?? 'all']) }}" style="padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Berikutnya</a>
-                @endif
-            </div>
-        @endif
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
+                    <span style="align-self: center; font-size: 12px; color: #6b7280;">Halaman {{ $historyPenarikanMeta['page'] ?? 1 }}</span>
+                    @if (!empty($historyPenarikanMeta['has_prev']))
+                        <a href="{{ route('admin.transaksi', ['tab' => 'history', 'page_penarikan_hist' => $historyPenarikanMeta['page'] - 1, 'history_status' => $historyStatus ?? 'all', 'history_date' => $historyDate ?? null]) }}" style="padding: 6px 12px; background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Sebelumnya</a>
+                    @endif
+                    @if (!empty($historyPenarikanMeta['has_next']))
+                        <a href="{{ route('admin.transaksi', ['tab' => 'history', 'page_penarikan_hist' => $historyPenarikanMeta['page'] + 1, 'history_status' => $historyStatus ?? 'all', 'history_date' => $historyDate ?? null]) }}" style="padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600;">Berikutnya</a>
+                    @endif
+                </div>
+            @endif
+        </div>
     </div>
     @endif
 
@@ -465,6 +481,33 @@ window.addEventListener('click', function(e) {
     if (e.target === modalSetor) modalSetor.style.display = 'none';
     if (e.target === modalPenarikan) modalPenarikan.style.display = 'none';
 });
+
+function refreshTransaksiTables() {
+    const activeElement = document.activeElement;
+    if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'SELECT' || activeElement.tagName === 'TEXTAREA')) {
+        return;
+    }
+
+    fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            ['setor-table-wrap', 'penarikan-table-wrap'].forEach(function(id) {
+                const current = document.getElementById(id);
+                const incoming = doc.getElementById(id);
+                if (current && incoming) {
+                    current.innerHTML = incoming.innerHTML;
+                }
+            });
+        })
+        .catch(() => {
+            // Skip errors to avoid interrupting user flow.
+        });
+}
+
+refreshTransaksiTables();
+setInterval(refreshTransaksiTables, 5000);
 </script>
 
 @endsection

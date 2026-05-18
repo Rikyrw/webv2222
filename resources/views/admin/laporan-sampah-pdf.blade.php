@@ -107,7 +107,8 @@
     <div class="header">
         <h1>Laporan Sampah Masuk</h1>
         <p>Detail jenis dan berat sampah yang masuk</p>
-        <p>Periode: {{ ucfirst($period) }} | {{ date('d-m-Y H:i') }}</p>
+        <p>Periode: {{ $periodLabel }} ({{ $start }} hingga {{ $end }})</p>
+        <p>Dibuat pada {{ $currentDate }}</p>
     </div>
 
     <div class="section">
@@ -116,12 +117,16 @@
         <div class="composition-box">
             @php
                 $totalBerat = array_sum($composition);
-                $jenisMax = array_key_first($composition);
-                $beratMax = max($composition);
-                foreach($composition as $jenis => $berat) {
-                    if ($berat == $beratMax) {
-                        $jenisMax = $jenis;
-                        break;
+                $jenisMax = '';
+                $beratMax = 0;
+                if (!empty($composition)) {
+                    $jenisMax = array_key_first($composition);
+                    $beratMax = max($composition);
+                    foreach($composition as $jenis => $berat) {
+                        if ($berat == $beratMax) {
+                            $jenisMax = $jenis;
+                            break;
+                        }
                     }
                 }
             @endphp
@@ -156,12 +161,12 @@
 
             <div class="info-row">
                 <span class="info-label">Rata-rata Berat per Jenis</span>
-                <span class="info-value">{{ number_format($totalBerat / count($composition), 1, ',', '.') }} kg</span>
+                <span class="info-value">{{ number_format($totalBerat / (count($composition) > 0 ? count($composition) : 1), 1, ',', '.') }} kg</span>
             </div>
 
             <div class="info-row">
                 <span class="info-label">Sampah Tertinggi</span>
-                <span class="info-value">{{ $jenisMax }} ({{ number_format($beratMax, 1, ',', '.') }} kg)</span>
+                <span class="info-value">{{ $jenisMax ? $jenisMax . ' (' . number_format($beratMax, 1, ',', '.') . ' kg)' : 'Tidak ada data' }}</span>
             </div>
         </div>
     </div>
@@ -173,7 +178,7 @@
             @foreach($composition as $jenis => $berat)
                 <div class="info-row">
                     <span class="info-label">{{ $jenis }}</span>
-                    <span class="info-value">{{ round(($berat / $totalBerat) * 100, 2) }}%</span>
+                    <span class="info-value">{{ $totalBerat > 0 ? round(($berat / $totalBerat) * 100, 2) : 0 }}%</span>
                 </div>
             @endforeach
         </div>

@@ -291,6 +291,12 @@
                 <div class="header-content">
                     <h2>Dashboard</h2>
                     <p>Selamat datang, {{ htmlspecialchars($user_name ?? 'User') }}! di sistem manajemen bank sampah</p>
+                    @php
+                        $wibNow = \Carbon\Carbon::now('Asia/Jakarta')->locale('id');
+                    @endphp
+                    <p style="margin-top: 6px; color: #6b7280; font-size: 14px;">
+                        {{ $wibNow->translatedFormat('l, d F Y H:i') }} WIB
+                    </p>
                 </div>
             </div>
             
@@ -380,7 +386,6 @@
                                 @endphp
                                 <li class="transaction-item">
                                     <div class="transaction-info">
-                                        <div class="id">ID: {{ htmlspecialchars($rs['id_transaksi'] ?? '-') }}</div>
                                         <div class="title">Total Berat: {{ htmlspecialchars(number_format((float)($rs['total_berat'] ?? 0), 2, ',', '.')) }} kg</div>
                                         <div class="desc">Nilai: Rp {{ number_format((float)($rs['total_nilai'] ?? 0), 0, ',', '.') }}</div>
                                     </div>

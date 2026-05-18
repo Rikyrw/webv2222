@@ -92,7 +92,8 @@
     <div class="header">
         <h1>Laporan Keuangan</h1>
         <p>Ringkasan pemasukan dan pengeluaran</p>
-        <p>Periode: {{ ucfirst($period) }} | {{ date('d-m-Y H:i') }}</p>
+        <p>Periode: {{ $periodLabel }} ({{ $start }} hingga {{ $end }})</p>
+        <p>Dibuat pada {{ $currentDate }}</p>
     </div>
 
     <div class="section">
@@ -141,14 +142,17 @@
         <div class="section-title">Persentase Aliran Kas</div>
 
         <div class="info-box">
+            @php
+                $totalArus = $totalSetoran + $totalPenarikan;
+            @endphp
             <div class="info-row">
                 <span class="info-label">Persentase Setoran dari Total</span>
-                <span class="info-value">{{ round(($totalSetoran / ($totalSetoran + $totalPenarikan)) * 100, 2) }}%</span>
+                <span class="info-value">{{ $totalArus > 0 ? round(($totalSetoran / $totalArus) * 100, 2) : 0 }}%</span>
             </div>
 
             <div class="info-row">
                 <span class="info-label">Persentase Penarikan dari Total</span>
-                <span class="info-value">{{ round(($totalPenarikan / ($totalSetoran + $totalPenarikan)) * 100, 2) }}%</span>
+                <span class="info-value">{{ $totalArus > 0 ? round(($totalPenarikan / $totalArus) * 100, 2) : 0 }}%</span>
             </div>
         </div>
     </div>

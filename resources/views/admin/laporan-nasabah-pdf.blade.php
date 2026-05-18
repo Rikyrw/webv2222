@@ -123,7 +123,8 @@
     <div class="header">
         <h1>Laporan Data Nasabah</h1>
         <p>Top penabung dan data kontribusi nasabah</p>
-        <p>Periode: {{ ucfirst($period) }} | {{ date('d-m-Y H:i') }}</p>
+        <p>Periode: {{ $periodLabel }} ({{ $start }} hingga {{ $end }})</p>
+        <p>Dibuat pada {{ $currentDate }}</p>
     </div>
 
     <div class="section">
@@ -210,7 +211,7 @@
             @foreach($topNasabah as $index => $nasabah)
                 <div class="info-row">
                     <span class="info-label">{{ $index + 1 }}. {{ $nasabah['nama'] }}</span>
-                    <span class="info-value">{{ round(($nasabah['berat'] / $totalBerat) * 100, 2) }}% ({{ number_format($nasabah['berat'], 1, ',', '.') }} kg)</span>
+                    <span class="info-value">{{ $totalBerat > 0 ? round(($nasabah['berat'] / $totalBerat) * 100, 2) : 0 }}% ({{ number_format($nasabah['berat'], 1, ',', '.') }} kg)</span>
                 </div>
             @endforeach
         </div>
