@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class NasabahLoginController extends Controller
 {
@@ -39,17 +41,28 @@ class NasabahLoginController extends Controller
 
             if (is_array($users) && count($users) > 0) {
                 $user = $users[0];
+                $storedPassword = $user['password'] ?? null;
 
                 // Verifikasi password dengan metode Android (jika ada salt)
-                $loginSuccess = $this->verifyPasswordLikeAndroid($password, $user['password'], $user['salt'] ?? null);
+                $loginSuccess = $this->verifyPasswordLikeAndroid($password, $storedPassword, $user['salt'] ?? null);
 
                 // Fallback untuk user lama atau jika tabel tidak menyimpan salt: coba password_verify dan plain compare
                 if (!$loginSuccess) {
-                    if (isset($user['password']) && password_verify($password, $user['password'])) {
+                    if ($storedPassword && password_verify($password, $storedPassword)) {
                         $loginSuccess = true;
-                    } elseif (isset($user['password']) && $password === $user['password']) {
+                    } elseif ($storedPassword && $password === $storedPassword) {
                         $loginSuccess = true;
                     }
+                }
+
+                // Akun lama dari mobile menyimpan marker `firebase-auth:{uid}`, bukan hash password lokal.
+                // Untuk tipe akun ini, validasi password harus dilakukan ke Firebase Auth.
+                if (!$loginSuccess && $this->isFirebaseBackedPassword($storedPassword)) {
+                    $loginSuccess = $this->verifyPasswordWithFirebase(
+                        $user['email'] ?? null,
+                        $password,
+                        $storedPassword
+                    );
                 }
 
                 if ($loginSuccess) {
@@ -93,6 +106,53 @@ class NasabahLoginController extends Controller
 
             return $hashedInputBase64 === $storedHash;
         } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    private function isFirebaseBackedPassword(?string $storedPassword): bool
+    {
+        return is_string($storedPassword) && str_starts_with($storedPassword, 'firebase-auth:');
+    }
+
+    private function verifyPasswordWithFirebase(?string $email, string $password, string $storedPassword): bool
+    {
+        $firebaseApiKey = config('services.firebase.api_key');
+        $firebaseUid = Str::after($storedPassword, 'firebase-auth:');
+
+        if (!$firebaseApiKey || !$email || !$firebaseUid) {
+            Log::warning('Firebase-backed nasabah login could not be verified because configuration or account data is incomplete.', [
+                'has_api_key' => (bool) $firebaseApiKey,
+                'has_email' => (bool) $email,
+                'has_uid' => (bool) $firebaseUid,
+            ]);
+
+            return false;
+        }
+
+        try {
+            $response = Http::acceptJson()->post(
+                'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' . urlencode($firebaseApiKey),
+                [
+                    'email' => $email,
+                    'password' => $password,
+                    'returnSecureToken' => true,
+                ]
+            );
+
+            if (!$response->successful()) {
+                return false;
+            }
+
+            $payload = $response->json();
+            $firebaseLocalId = isset($payload['localId']) ? (string) $payload['localId'] : '';
+
+            return $firebaseLocalId !== '' && hash_equals($firebaseUid, $firebaseLocalId);
+        } catch (\Throwable $exception) {
+            Log::warning('Firebase password verification failed unexpectedly.', [
+                'message' => $exception->getMessage(),
+            ]);
+
             return false;
         }
     }

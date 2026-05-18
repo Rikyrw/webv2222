@@ -204,6 +204,23 @@
             color: #059669;
         }
 
+        .forgot-password {
+            margin-top: -8px;
+            margin-bottom: 18px;
+            text-align: right;
+            font-size: 13px;
+        }
+
+        .forgot-password a {
+            color: #10b981;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .forgot-password a:hover {
+            text-decoration: underline;
+        }
+
         /* Responsive */
         @media (max-width: 480px) {
             body {
@@ -254,8 +271,18 @@
                 >
             </div>
 
+            <p class="forgot-password">
+                <a href="{{ route('nasabah.password.request') }}">Lupa password?</a>
+            </p>
+
             <button type="submit" name="login">Login ke Dashboard</button>
         </form>
+
+        @include('nasabah.partials.google-sso', [
+            'buttonId' => 'google-login-button',
+            'errorId' => 'google-login-error',
+            'buttonText' => 'signin_with',
+        ])
 
         <p class="footer-text">
             Belum punya akun? <a href="{{ route('nasabah.register') }}">Daftar di sini</a>

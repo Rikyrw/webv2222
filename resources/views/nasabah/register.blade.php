@@ -369,6 +369,12 @@
             <button type="submit" name="register">Daftar</button>
         </form>
 
+        @include('nasabah.partials.google-sso', [
+            'buttonId' => 'google-register-button',
+            'errorId' => 'google-register-error',
+            'buttonText' => 'signup_with',
+        ])
+
         <p class="footer-text">
             Sudah punya akun? <a href="{{ route('nasabah.login') }}">Login di sini</a>
         </p>

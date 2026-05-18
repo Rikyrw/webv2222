@@ -11,6 +11,8 @@ use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\PengaturanAdminController;
 use App\Http\Controllers\NasabahLoginController;
 use App\Http\Controllers\NasabahRegisterController;
+use App\Http\Controllers\NasabahGoogleAuthController;
+use App\Http\Controllers\NasabahPasswordResetController;
 use App\Http\Controllers\NasabahDashboardController;
 use App\Http\Controllers\NasabahTransaksiPPOBController;
 use App\Http\Controllers\NasabahRiwayatSetorController;
@@ -79,7 +81,12 @@ Route::middleware(['admin.session'])->group(function () {
 // Nasabah login routes
 Route::get('/nasabah/login', [NasabahLoginController::class, 'showLogin'])->name('nasabah.login');
 Route::post('/nasabah/authenticate', [NasabahLoginController::class, 'authenticate'])->name('nasabah.authenticate');
+Route::post('/nasabah/google/authenticate', [NasabahGoogleAuthController::class, 'authenticate'])->name('nasabah.google.authenticate');
 Route::get('/nasabah/logout', [NasabahLoginController::class, 'logout'])->name('nasabah.logout');
+Route::get('/nasabah/lupa-password', [NasabahPasswordResetController::class, 'showForgotForm'])->name('nasabah.password.request');
+Route::post('/nasabah/lupa-password', [NasabahPasswordResetController::class, 'sendResetLink'])->name('nasabah.password.email');
+Route::get('/nasabah/reset-password/{token}', [NasabahPasswordResetController::class, 'showResetForm'])->name('nasabah.password.reset.form');
+Route::post('/nasabah/reset-password', [NasabahPasswordResetController::class, 'reset'])->name('nasabah.password.update');
 
 // Nasabah dashboard routes
 Route::get('/nasabah/dashboard', [NasabahDashboardController::class, 'index'])->name('nasabah.dashboard');
@@ -102,4 +109,3 @@ Route::post('/nasabah/pln', [NasabahPlnController::class, 'store'])->name('nasab
 // Nasabah register routes
 Route::get('/nasabah/register', [NasabahRegisterController::class, 'showRegister'])->name('nasabah.register');
 Route::post('/nasabah/register', [NasabahRegisterController::class, 'store'])->name('nasabah.store');
-
