@@ -1,195 +1,32 @@
 @extends('layouts.app')
 
 @section('content')
-<style>
-    .report-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 20px;
-    }
-
-    .report-card {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 16px;
-        padding: 20px;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-    }
-
-    .report-card-header {
-        margin-bottom: 16px;
-    }
-
-    .report-card-title {
-        font-size: 16px;
-        font-weight: 700;
-        color: #0f172a;
-        line-height: 1.3;
-    }
-
-    .report-card-subtitle {
-        margin-top: 4px;
-        font-size: 13px;
-        color: #64748b;
-    }
-
-    .report-panel {
-        background: #f8fafc;
-        border: 1px solid #e5e7eb;
-        border-radius: 14px;
-        padding: 16px;
-        margin-bottom: 16px;
-    }
-
-    .report-panel-label {
-        font-size: 11px;
-        font-weight: 700;
-        color: #64748b;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        margin-bottom: 12px;
-    }
-
-    .report-metric {
-        padding: 12px 0;
-        border-bottom: 1px solid #e5e7eb;
-    }
-
-    .report-metric:last-child {
-        border-bottom: 0;
-        padding-bottom: 0;
-    }
-
-    .report-metric-label {
-        font-size: 12px;
-        font-weight: 600;
-        color: #64748b;
-        margin-bottom: 4px;
-    }
-
-    .report-metric-value {
-        font-size: 17px;
-        font-weight: 700;
-        color: #0f172a;
-    }
-
-    .report-metric-meta {
-        font-size: 12px;
-        color: #64748b;
-        margin-top: 4px;
-    }
-
-    .report-list {
-        display: grid;
-        gap: 10px;
-    }
-
-    .report-list-item {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        align-items: center;
-        padding: 10px 0;
-        border-bottom: 1px solid #e5e7eb;
-    }
-
-    .report-list-item:last-child {
-        border-bottom: 0;
-        padding-bottom: 0;
-    }
-
-    .report-list-name {
-        font-size: 14px;
-        font-weight: 600;
-        color: #1f2937;
-        min-width: 0;
-    }
-
-    .report-list-value {
-        font-size: 14px;
-        font-weight: 700;
-        color: #0f172a;
-        flex-shrink: 0;
-    }
-
-    .report-actions {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .report-actions .btn {
-        min-width: 112px;
-        justify-content: center;
-    }
-
-    .filter-container {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 12px 16px;
-        background: #f8fafc;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-    }
-
-    .filter-container label {
-        font-size: 13px;
-        font-weight: 600;
-        color: #475569;
-        white-space: nowrap;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .filter-container select {
-        font-size: 13px;
-        padding: 6px 10px;
-        border-radius: 6px;
-    }
-
-    @media (max-width: 640px) {
-        .report-card {
-            padding: 16px;
-        }
-
-        .report-actions .btn {
-            width: 100%;
-        }
-
-        .filter-container {
-            flex-direction: column;
-            align-items: flex-start;
-        }
-    }
-</style>
-<div class="page-shell">
-    <div class="section-header">
-        <div>
-            <div class="section-title">Laporan</div>
-            <div class="section-subtitle">Ringkasan data keuangan, sampah, dan nasabah dalam satu tampilan.</div>
-        </div>
-
-        <div class="filter-container">
-            <label for="periode"><i class="lucide-calendar"></i>Periode</label>
-            <select id="periode" name="periode" class="select">
-                <option value="today" {{ ($period == 'today') ? 'selected' : '' }}>Hari Ini</option>
-                <option value="week" {{ ($period == 'week') ? 'selected' : '' }}>Minggu Ini</option>
-                <option value="month" {{ ($period == 'month') ? 'selected' : '' }}>Bulan Ini</option>
-                <option value="year" {{ ($period == 'year') ? 'selected' : '' }}>Tahun Ini</option>
-            </select>
-        </div>
+<div class="gp-page">
+    <div class="card">
+        <div class="card-body">
+            <div class="gp-card-header">
+                <div>
+                    <h2 class="gp-title">Filter Laporan</h2>
+                    <p class="gp-subtitle mb-0">Pilih periode sebelum mengunduh laporan.</p>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <label for="periode" class="form-label mb-0"><i class="bi bi-calendar3"></i> Periode</label>
+                    <select id="periode" name="periode" class="form-select form-select-sm" style="min-width: 170px;">
+                        <option value="today" {{ ($period == 'today') ? 'selected' : '' }}>Hari Ini</option>
+                        <option value="week" {{ ($period == 'week') ? 'selected' : '' }}>Minggu Ini</option>
+                        <option value="month" {{ ($period == 'month') ? 'selected' : '' }}>Bulan Ini</option>
+                        <option value="year" {{ ($period == 'year') ? 'selected' : '' }}>Tahun Ini</option>
+                    </select>
+                </div>
+            </div>
         </div>
     </div>
 
     <div class="report-grid">
         <div class="report-card">
             <div class="report-card-header">
-                <div>
-                    <div class="report-card-title">Laporan Keuangan</div>
-                    <div class="report-card-subtitle">Ringkasan pemasukan dan pengeluaran.</div>
-                </div>
+                <div class="report-card-title">Laporan Keuangan</div>
+                <div class="report-card-subtitle">Ringkasan pemasukan dan pengeluaran.</div>
             </div>
 
             <div class="report-panel">
@@ -212,17 +49,15 @@
             </div>
 
             <div class="report-actions">
-                <a href="{{ route('admin.laporan.excel.keuangan', ['periode' => $period]) }}" class="btn btn-primary" target="_blank"><i class="lucide-file-spreadsheet"></i>Excel</a>
-                <a href="{{ route('admin.laporan.pdf.keuangan', ['periode' => $period]) }}" class="btn btn-danger" target="_blank"><i class="lucide-file-text"></i>PDF</a>
+                <a href="{{ route('admin.laporan.excel.keuangan', ['periode' => $period]) }}" class="btn btn-primary" target="_blank"><i class="bi bi-file-earmark-spreadsheet"></i>Excel</a>
+                <a href="{{ route('admin.laporan.pdf.keuangan', ['periode' => $period]) }}" class="btn btn-danger" target="_blank"><i class="bi bi-file-earmark-pdf"></i>PDF</a>
             </div>
         </div>
 
         <div class="report-card">
             <div class="report-card-header">
-                <div>
-                    <div class="report-card-title">Laporan Sampah Masuk</div>
-                    <div class="report-card-subtitle">Detail jenis dan berat sampah yang masuk.</div>
-                </div>
+                <div class="report-card-title">Laporan Sampah Masuk</div>
+                <div class="report-card-subtitle">Detail jenis dan berat sampah yang masuk.</div>
             </div>
 
             <div class="report-panel">
@@ -234,23 +69,21 @@
                             <span class="report-list-value">{{ number_format($berat, 1, ',', '.') }} kg</span>
                         </div>
                     @empty
-                        <div style="color:#64748b; font-weight:600; font-size:14px;">Tidak ada data</div>
+                        <div class="gp-empty">Tidak ada data</div>
                     @endforelse
                 </div>
             </div>
 
             <div class="report-actions">
-                <a href="{{ route('admin.laporan.excel.sampah', ['periode' => $period]) }}" class="btn btn-primary" target="_blank"><i class="lucide-file-spreadsheet"></i>Excel</a>
-                <a href="{{ route('admin.laporan.pdf.sampah', ['periode' => $period]) }}" class="btn btn-danger" target="_blank"><i class="lucide-file-text"></i>PDF</a>
+                <a href="{{ route('admin.laporan.excel.sampah', ['periode' => $period]) }}" class="btn btn-primary" target="_blank"><i class="bi bi-file-earmark-spreadsheet"></i>Excel</a>
+                <a href="{{ route('admin.laporan.pdf.sampah', ['periode' => $period]) }}" class="btn btn-danger" target="_blank"><i class="bi bi-file-earmark-pdf"></i>PDF</a>
             </div>
         </div>
 
         <div class="report-card">
             <div class="report-card-header">
-                <div>
-                    <div class="report-card-title">Laporan Data Nasabah</div>
-                    <div class="report-card-subtitle">Top penabung dan data kontribusi nasabah.</div>
-                </div>
+                <div class="report-card-title">Laporan Data Nasabah</div>
+                <div class="report-card-subtitle">Top penabung dan data kontribusi nasabah.</div>
             </div>
 
             <div class="report-panel">
@@ -259,29 +92,121 @@
                     @forelse($topNasabah as $index => $nasabah)
                         <div class="report-list-item">
                             <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-                                <span style="width:24px; height:24px; border-radius:999px; display:grid; place-items:center; background:#e2e8f0; color:#0f172a; font-size:12px; font-weight:700; flex-shrink:0;">{{ $index + 1 }}</span>
+                                <span class="rank-dot">{{ $index + 1 }}</span>
                                 <span class="report-list-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $nasabah['nama'] }}</span>
                             </div>
                             <span class="report-list-value">{{ number_format($nasabah['berat'], 1, ',', '.') }} kg</span>
                         </div>
                     @empty
-                        <div style="color:#64748b; font-weight:600; font-size:14px;">Tidak ada data</div>
+                        <div class="gp-empty">Tidak ada data</div>
                     @endforelse
                 </div>
             </div>
 
             <div class="report-actions">
-                <a href="{{ route('admin.laporan.excel.nasabah', ['periode' => $period]) }}" class="btn btn-primary" target="_blank"><i class="lucide-file-spreadsheet"></i>Excel</a>
-                <a href="{{ route('admin.laporan.pdf.nasabah', ['periode' => $period]) }}" class="btn btn-danger" target="_blank"><i class="lucide-file-text"></i>PDF</a>
+                <a href="{{ route('admin.laporan.excel.nasabah', ['periode' => $period]) }}" class="btn btn-primary" target="_blank"><i class="bi bi-file-earmark-spreadsheet"></i>Excel</a>
+                <a href="{{ route('admin.laporan.pdf.nasabah', ['periode' => $period]) }}" class="btn btn-danger" target="_blank"><i class="bi bi-file-earmark-pdf"></i>PDF</a>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+    .report-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+    }
+
+    .report-card {
+        padding: 20px;
+    }
+
+    .report-card-header {
+        margin-bottom: 16px;
+    }
+
+    .report-panel {
+        background: #fbfcfb;
+        border: 1px solid #dfe7e1;
+        border-radius: 8px;
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+
+    .report-panel-label,
+    .report-metric-label {
+        color: #6d7a71;
+        font-size: 12px;
+        font-weight: 800;
+    }
+
+    .report-metric {
+        padding: 10px 0;
+        border-bottom: 1px solid #e8eee9;
+    }
+
+    .report-metric:last-child,
+    .report-list-item:last-child {
+        border-bottom: 0;
+    }
+
+    .report-metric-value,
+    .report-list-value {
+        color: #17231b;
+        font-size: 14px;
+        font-weight: 800;
+    }
+
+    .report-metric-meta {
+        color: #6d7a71;
+        font-size: 12px;
+        margin-top: 3px;
+    }
+
+    .report-list {
+        display: grid;
+        gap: 6px;
+    }
+
+    .report-list-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid #e8eee9;
+    }
+
+    .report-list-name {
+        color: #17231b;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .report-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .rank-dot {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 999px;
+        background: #edf5ef;
+        color: #2f5f3e;
+        font-size: 12px;
+        font-weight: 800;
+        flex-shrink: 0;
+    }
+</style>
+
 <script>
     document.getElementById('periode').addEventListener('change', function() {
-        const periode = this.value;
-        window.location.href = '{{ url("/admin/laporan") }}?periode=' + periode;
+        window.location.href = '{{ url("/admin/laporan") }}?periode=' + this.value;
     });
 </script>
 @endsection

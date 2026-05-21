@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar Nasabah • GreenPoint</title>
+    <title>Daftar Nasabah - GreenPoint</title>
     
     <style>
         * {
@@ -264,27 +264,21 @@
             }
         }
     </style>
+    @include('partials.greenpoint-theme')
 </head>
 <body>
     <div class="register-container">
         <h2>Daftar Nasabah</h2>
 
         @if ($errors->any() || session('error'))
-            <div class="alert alert-error">
-                @if (session('error'))
-                    {{ session('error') }}
-                @elseif ($errors->any())
-                    @foreach ($errors->all() as $error)
-                        {{ $error }}<br>
-                    @endforeach
-                @endif
-            </div>
+            @include('partials.toast', [
+                'type' => 'danger',
+                'messages' => session('error') ? [session('error')] : $errors->all(),
+            ])
         @endif
 
         @if (session('success'))
-            <div class="alert alert-success">
-                {{ session('success') }}
-            </div>
+            @include('partials.toast', ['type' => 'success', 'message' => session('success')])
         @endif
 
         <form method="POST" action="{{ route('nasabah.store') }}">

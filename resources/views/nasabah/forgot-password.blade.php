@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lupa Password • GreenPoint</title>
+    <title>Lupa Password - GreenPoint</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -91,6 +91,7 @@
             text-decoration: none;
         }
     </style>
+    @include('partials.greenpoint-theme')
 </head>
 <body>
     <main class="card">
@@ -100,15 +101,11 @@
         </p>
 
         @if (session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
+            @include('partials.toast', ['type' => 'success', 'message' => session('success')])
         @endif
 
         @if ($errors->any())
-            <div class="alert alert-error">
-                @foreach ($errors->all() as $error)
-                    {{ $error }}<br>
-                @endforeach
-            </div>
+            @include('partials.toast', ['type' => 'danger', 'messages' => $errors->all()])
         @endif
 
         <form method="POST" action="{{ route('nasabah.password.email') }}">

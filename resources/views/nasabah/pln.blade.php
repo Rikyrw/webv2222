@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GreenPoint • PLN</title>
+    <title>GreenPoint - PLN</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -301,6 +301,7 @@
             }
         }
     </style>
+    @include('partials.greenpoint-theme')
 </head>
 <body>
     <div class="app">
@@ -309,13 +310,13 @@
         <main class="main">
             
             <div class="card">
-                <div class="page-header">
-                    <div class="header-content">
-                        <h2>PLN</h2>
-                        <p>Bayar token atau tagihan PLN</p>
-                    </div>
-                    <a href="{{ Route::has('nasabah.dashboard') ? route('nasabah.dashboard') : url('/') }}" class="back-btn">Kembali</a>
-                </div>
+                @include('partials.nasabah-header', [
+                    'title' => 'PLN',
+                    'subtitle' => 'Bayar token atau tagihan PLN',
+                    'showMeta' => false,
+                    'actionUrl' => Route::has('nasabah.dashboard') ? route('nasabah.dashboard') : url('/'),
+                    'actionLabel' => 'Kembali',
+                ])
 
                 <h3>Form PLN</h3>
                 <form method="POST" action="{{ Route::has('nasabah.pln.store') ? route('nasabah.pln.store') : '#' }}" class="pln-form">
@@ -352,14 +353,10 @@
 
                 <div class="saldo-info">Saldo Anda saat ini: <strong>Rp {{ number_format((float)($user['saldo'] ?? 0),0,',','.') }}</strong></div>
 
-                @if(session('error'))<div class="error-message">{{ session('error') }}</div>@endif
-                @if(session('success'))<div class="success-message">{{ session('success') }}</div>@endif
+                @if(session('error'))@include('partials.toast', ['type' => 'danger', 'message' => session('error')])@endif
+                @if(session('success'))@include('partials.toast', ['type' => 'success', 'message' => session('success')])@endif
                 @if($errors->any())
-                    <div class="error-message">
-                        @foreach ($errors->all() as $error)
-                            {{ $error }}<br>
-                        @endforeach
-                    </div>
+                    @include('partials.toast', ['type' => 'danger', 'messages' => $errors->all()])
                 @endif
 
             </div>

@@ -394,6 +394,7 @@
             }
         }
     </style>
+    @include('partials.greenpoint-theme')
 </head>
 <body>
     <div class="app">
@@ -402,12 +403,10 @@
 
         <!-- MAIN CONTENT -->
         <main class="main">
-            <div class="page-header">
-                <div class="header-content">
-                    <h2>Setor Sampah</h2>
-                    <p class="subtle">Ajukan setor sampah, tunggu persetujuan admin</p>
-                </div>
-            </div>
+            @include('partials.nasabah-header', [
+                'title' => 'Setor Sampah',
+                'subtitle' => 'Ajukan setor sampah, tunggu persetujuan admin',
+            ])
 
             <section class="grid">
                 <!-- PROFILE SECTION -->
@@ -454,7 +453,7 @@
 
                         <div class="form-actions">
                             <button type="button" id="addItemBtn" class="btn-primary">+ Tambah Item</button>
-                            <button type="button" id="uploadPhotoBtn" class="btn-secondary">📷 Upload Foto</button>
+                            <button type="button" id="uploadPhotoBtn" class="btn-secondary">Upload Foto</button>
                             <input type="file" id="photoInput" accept="image/jpeg,image/png,image/jpg" multiple style="display: none;">
                             <span id="formMsg"></span>
                         </div>
@@ -488,9 +487,9 @@
                     </form>
 
                     @if($success)
-                        <div class="success-message">{{ $success }}</div>
+                        @include('partials.toast', ['type' => 'success', 'message' => $success])
                     @elseif($error)
-                        <div class="error-message">{{ $error }}</div>
+                        @include('partials.toast', ['type' => 'danger', 'message' => $error])
                     @endif
                 </div>
             </section>

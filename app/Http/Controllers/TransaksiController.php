@@ -38,6 +38,7 @@ class TransaksiController extends Controller
             'has_prev' => false,
         ];
         $databaseError = null;
+        $historyStatus = $request->get('history_status', 'all');
         $historyDate = $request->get('history_date');
         $historyDate = is_string($historyDate) && $historyDate !== '' ? $historyDate : date('Y-m-d');
 
@@ -49,7 +50,6 @@ class TransaksiController extends Controller
             $setorRequestsMeta = $setorRequestsResult['meta'];
 
             // Get setor history from Supabase
-            $historyStatus = $request->get('history_status', 'all');
             $pageSetor = max(1, (int) $request->get('page_setor', 1));
             $historySetorResult = $this->fetchSetorHistory($pageSetor, 5, $historyStatus, $historyDate);
             $historySetor = $historySetorResult['items'];

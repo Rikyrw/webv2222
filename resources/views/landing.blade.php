@@ -9,546 +9,900 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         :root {
             --primary-green: #2d6a4f;
             --secondary-green: #40916c;
             --light-green: #52b788;
             --accent-green: #74c69d;
-            --dark-bg: #1b4332;
-            --light-bg: #f1faee;
+            --dark-green: #1b4332;
+            --soft-green: #edf7f1;
+            --page-bg: #ffffff;
+            --section-bg: #f7faf8;
+            --border-soft: #e4ece7;
+            --text-main: #102018;
+            --text-muted: #68766d;
+            --shadow-soft: 0 16px 40px rgba(16, 32, 24, 0.08);
+            --shadow-hover: 0 20px 48px rgba(45, 106, 79, 0.14);
+            --radius-card: 14px;
+            --radius-control: 10px;
+            --transition-fast: 180ms ease;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 86px;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background: var(--page-bg);
+            color: var(--text-main);
+            font-family: Inter, "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
             overflow-x: hidden;
+            text-rendering: optimizeLegibility;
         }
 
-        /* Navbar */
-        .navbar {
-            background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
-            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
-            padding: 1rem 0;
+        a {
+            text-decoration: none;
         }
 
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 1.8rem;
-            color: white !important;
-            letter-spacing: -0.5px;
-        }
-
-        .nav-link {
-            color: rgba(255, 255, 255, 0.9) !important;
-            font-weight: 500;
-            margin: 0 0.5rem;
-            transition: all 0.3s ease;
-        }
-
-        .nav-link:hover {
-            color: #fff !important;
-            transform: translateY(-2px);
-        }
-
-        .logo-white {
-            width: 60px;
-            height: 60px;
-            object-fit: contain;
-            filter: brightness(0) invert(1);
-        }
-
-        /* Hero Section */
-        .hero-section {
-            background:
-                linear-gradient(
-                    135deg,
-                    rgba(27, 67, 50, 0.88) 0%,
-                    rgba(45, 106, 79, 0.82) 100%
-                ),
-                url("{{ asset('images/bg-gunung.png') }}");
-
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-
-            color: white;
-            padding: 100px 0;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .hero-section::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 500px;
-            height: 500px;
-            background: rgba(116, 198, 157, 0.1);
-            border-radius: 50%;
-            animation: float 6s ease-in-out infinite;
-        }
-
-        .hero-section::after {
-            content: '';
-            position: absolute;
-            bottom: -30%;
-            left: 5%;
-            width: 400px;
-            height: 400px;
-            background: rgba(74, 158, 102, 0.1);
-            border-radius: 50%;
-            animation: float 8s ease-in-out infinite reverse;
-        }
-
-        .hero-image-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            overflow: visible;
-        }
-
-        .hero-image {
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            width: 100%;
-            position: relative;
-            z-index: 2;
-            animation: none !important; /* Matikan animasi float */
-        }
-
-        .hero-image img {
-            width: 100%;
+        img {
             max-width: 100%;
-            height: auto;
-            display: block;
-            transform: translateZ(0);
-            backface-visibility: hidden;
-            position: relative;
-            
-            /* KUNCI: Paksa gambar ke kanan */
-            margin-left: auto;
-            margin-right: -40px;
         }
 
-        .hero-section .col-lg-6:last-child {
-            padding-right: 0 !important;
+        .container {
+            --bs-gutter-x: 1.5rem;
         }
 
-        .col-lg-6 {
-            position: relative;
-            overflow: visible;
+        .navbar-landing {
+            min-height: 72px;
+            padding: 0;
+            background: rgba(255, 255, 255, 0.96);
+            border-bottom: 1px solid var(--border-soft);
+            box-shadow: none;
+            backdrop-filter: blur(12px) saturate(140%);
+            -webkit-backdrop-filter: blur(12px) saturate(140%);
+            transition: background-color var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
         }
 
-        @keyframes float {
-
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-
-            50% {
-                transform: translateY(20px);
-            }
+        .navbar-landing.is-scrolled {
+            background: rgba(255, 255, 255, 0.98);
+            border-bottom-color: #dfe7e1;
+            box-shadow: 0 10px 28px rgba(16, 32, 24, 0.06);
         }
 
-        .hero-content {
-            position: relative;
-            z-index: 2;
+        .landing-nav-shell {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.25rem;
+            padding: 1rem 1.5rem;
         }
 
-        .hero-title {
-            font-size: 3.5rem;
-            font-weight: 800;
-            margin-bottom: 1.5rem;
-            line-height: 1.2;
-            animation: slideInDown 0.8s ease;
-        }
-
-        .hero-subtitle {
-            font-size: 1.3rem;
-            margin-bottom: 2rem;
-            color: rgba(255, 255, 255, 0.95);
-            line-height: 1.6;
-            animation: slideInUp 0.8s ease;
-        }
-
-        @keyframes slideInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-30px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes slideInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .btn-hero {
-            background: linear-gradient(135deg, var(--light-green) 0%, var(--accent-green) 100%);
-            border: none;
-            padding: 14px 40px;
-            font-weight: 700;
-            border-radius: 50px;
-            color: white;
-            transition: all 0.3s ease;
-            font-size: 1.1rem;
-            box-shadow: 0 4px 15px rgba(116, 198, 157, 0.4);
-        }
-
-        .btn-hero:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 25px rgba(116, 198, 157, 0.6);
-            color: white;
-        }
-
-        .hero-image {
-            animation: float 4s ease-in-out infinite;
-        }
-
-        /* Features Section */
-        .features-section {
-            padding: 80px 0;
-            background: white;
-        }
-
-        .feature-card {
-            background: white;
-            border: none;
-            border-radius: 15px;
-            padding: 2.5rem 1.5rem;
-            text-align: center;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
-            height: 100%;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-15px);
-            box-shadow: 0 15px 40px rgba(45, 106, 79, 0.2);
-        }
-
-        .feature-icon {
-            font-size: 3rem;
-            margin-bottom: 1.5rem;
+        .navbar-landing .navbar-brand {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            width: 100px;
-            height: 100px;
-            background: linear-gradient(135deg, rgba(116, 198, 157, 0.1) 0%, rgba(74, 158, 102, 0.1) 100%);
-            border-radius: 15px;
-        }
-
-        .feature-card h4 {
-            font-size: 1.2rem;
-            font-weight: 700;
-            color: var(--primary-green);
-            margin-top: 1rem;
-        }
-
-        .feature-card img {
-            width: 80px;
-            height: 80px;
-            object-fit: contain;
-        }
-
-        /* Tujuan Section */
-        .tujuan-section {
-            padding: 80px 0;
-            background: linear-gradient(135deg, var(--light-bg) 0%, #e8f5e9 100%);
-        }
-
-        .section-title {
-            text-align: center;
-            margin-bottom: 4rem;
-        }
-
-        .section-title h2 {
-            font-size: 2.8rem;
+            gap: 0.65rem;
+            order: 1;
+            color: var(--primary-green) !important;
+            font-size: 1.05rem;
             font-weight: 800;
+            letter-spacing: 0;
+            transition: opacity var(--transition-fast), transform var(--transition-fast);
+        }
+
+        .navbar-landing .navbar-brand:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .brand-logo {
+            width: 30px;
+            height: 30px;
+            object-fit: contain;
+            opacity: 0.96;
+        }
+
+        .navbar-landing .navbar-toggler {
+            border: 1px solid rgba(45, 106, 79, 0.18);
+            border-radius: 10px;
+            padding: 0.45rem 0.6rem;
             color: var(--primary-green);
-            margin-bottom: 1rem;
-        }
-
-        .section-title p {
-            font-size: 1.1rem;
-            color: #666;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-
-        .goal-card {
-            background: white;
-            border: none;
-            border-radius: 20px;
-            padding: 2.5rem;
-            text-align: center;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-            transition: all 0.4s ease;
-            border-top: 5px solid var(--light-green);
-            position: relative;
-        }
-
-        .goal-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 40px rgba(45, 106, 79, 0.15);
-        }
-
-        .goal-icon {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, var(--secondary-green) 0%, var(--light-green) 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1.5rem;
-            font-size: 2.5rem;
-            color: white;
-        }
-
-        .goal-card h4 {
-            color: var(--primary-green);
-            font-weight: 700;
-            font-size: 1.3rem;
-            margin-bottom: 1rem;
-        }
-
-        .goal-card p {
-            color: #666;
-            line-height: 1.8;
-        }
-
-        /* FAQ Section */
-        .faq-section {
-            padding: 80px 0;
-            background: white;
-        }
-
-        .accordion-button {
-            background: linear-gradient(135deg, var(--light-bg) 0%, white 100%);
-            border: 1px solid #e0e0e0;
-            color: var(--primary-green);
-            font-weight: 600;
-            font-size: 1.1rem;
-            padding: 1.2rem;
-        }
-
-        .accordion-button:not(.collapsed) {
-            background: linear-gradient(135deg, var(--light-green) 0%, var(--accent-green) 100%);
-            color: white;
             box-shadow: none;
         }
 
+        .navbar-landing .navbar-toggler:focus {
+            box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.12);
+        }
+
+        .navbar-landing .navbar-toggler-icon {
+            filter: none;
+        }
+
+        .landing-nav-menu {
+            order: 2;
+            flex-grow: 0;
+            margin-left: auto;
+        }
+
+        .navbar-landing .navbar-nav {
+            align-items: center;
+            gap: 1.75rem;
+        }
+
+        .navbar-landing .nav-link {
+            position: relative;
+            color: #33443a !important;
+            border: 0;
+            border-radius: 0;
+            padding: 0 !important;
+            font-size: 0.88rem;
+            font-weight: 650;
+            transition: color var(--transition-fast), transform var(--transition-fast);
+        }
+
+        .navbar-landing .nav-link:hover {
+            color: var(--primary-green) !important;
+            background: transparent;
+            transform: translateY(-1px);
+        }
+
+        .navbar-landing .nav-link:active {
+            color: var(--primary-green) !important;
+            background: transparent;
+            font-weight: 800;
+            transform: none;
+        }
+
+        .nav-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.65rem;
+            order: 3;
+            margin-left: 1.5rem;
+        }
+
+        .btn-nav-primary {
+            min-height: 40px;
+            padding: 0.58rem 0.95rem;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            background: var(--primary-green);
+            color: #ffffff;
+            box-shadow: 0 8px 18px rgba(45, 106, 79, 0.16);
+            font-size: 0.9rem;
+            font-weight: 750;
+        }
+
+        .btn-nav-primary:hover,
+        .btn-nav-primary:focus {
+            background: var(--dark-green);
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px rgba(45, 106, 79, 0.2);
+        }
+
+        .btn-nav-primary:active {
+            transform: none;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border-radius: var(--radius-control);
+            font-weight: 750;
+            line-height: 1.2;
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
+        }
+
+        .btn:focus-visible {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(82, 183, 136, 0.22);
+        }
+
+        .btn-primary-green,
+        .btn-hero,
+        .btn-submit {
+            background: var(--primary-green);
+            border: 1px solid var(--primary-green);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(45, 106, 79, 0.2);
+        }
+
+        .btn-primary-green:hover,
+        .btn-hero:hover,
+        .btn-submit:hover {
+            background: var(--dark-green);
+            border-color: var(--dark-green);
+            color: #ffffff;
+            transform: translateY(-2px);
+            box-shadow: 0 16px 30px rgba(45, 106, 79, 0.24);
+        }
+
+        .btn-hero {
+            min-height: 48px;
+            padding: 0.86rem 1.25rem;
+            border-radius: 999px;
+            font-size: 0.96rem;
+        }
+
+        .btn-outline-clean {
+            min-height: 42px;
+            padding: 0.72rem 1rem;
+            border: 1px solid rgba(45, 106, 79, 0.18);
+            background: rgba(255, 255, 255, 0.84);
+            color: var(--primary-green);
+            box-shadow: none;
+        }
+
+        .btn-outline-clean:hover {
+            border-color: rgba(45, 106, 79, 0.34);
+            background: var(--soft-green);
+            color: var(--primary-green);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(45, 106, 79, 0.1);
+        }
+
+        .hero-section {
+            position: relative;
+            min-height: 640px;
+            margin-top: 72px;
+            padding: clamp(5.5rem, 9vw, 8rem) 0 clamp(4.5rem, 8vw, 7rem);
+            overflow: hidden;
+            color: #ffffff;
+            background:
+                linear-gradient(90deg, rgba(12, 31, 23, 0.84) 0%, rgba(27, 67, 50, 0.67) 44%, rgba(27, 67, 50, 0.24) 74%, rgba(255, 255, 255, 0.08) 100%),
+                url("{{ asset('images/bg-gunung.png') }}") center / cover no-repeat;
+        }
+
+        .hero-section::after {
+            content: "";
+            position: absolute;
+            inset: auto 0 0;
+            height: min(68vh, 620px);
+            background: linear-gradient(
+                180deg,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0.24) 18%,
+                rgba(255, 255, 255, 0.74) 42%,
+                rgba(255, 255, 255, 0.96) 68%,
+                #ffffff 100%
+            );
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .hero-content,
+        .hero-media {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-section > .container {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-section > .container > .row {
+            position: relative;
+            z-index: 2;
+            transform: translateY(-104px);
+        }
+
+        .hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding: 0.4rem 0.72rem;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.88);
+            font-size: 0.8rem;
+            font-weight: 700;
+            backdrop-filter: blur(10px);
+        }
+
+        .hero-title {
+            max-width: 640px;
+            margin-bottom: 1.25rem;
+            font-size: clamp(2.55rem, 6vw, 5rem);
+            font-weight: 850;
+            line-height: 0.98;
+            letter-spacing: 0;
+        }
+
+        .hero-title .accent-text {
+            color: #b7f4cd;
+        }
+
+        .hero-subtitle {
+            max-width: 560px;
+            margin-bottom: 2rem;
+            color: rgba(255, 255, 255, 0.86);
+            font-size: clamp(1rem, 2vw, 1.18rem);
+            line-height: 1.72;
+        }
+
+        .hero-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .hero-actions .btn-outline-clean {
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.26);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .hero-actions .btn-outline-clean:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.18);
+            border-color: rgba(255, 255, 255, 0.42);
+        }
+
+        .hero-image-container {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            min-height: 430px;
+            pointer-events: none;
+        }
+
+        .hero-image {
+            width: min(670px, 60vw);
+            margin-right: -10vw;
+            filter: drop-shadow(0 28px 34px rgba(0, 0, 0, 0.22));
+        }
+
+        .hero-image img {
+            display: block;
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .section-shell {
+            padding: clamp(4.5rem, 8vw, 6.5rem) 0;
+            background: #ffffff;
+        }
+
+        .section-soft {
+            background: var(--section-bg);
+        }
+
+        .section-title {
+            max-width: 680px;
+            margin: 0 auto 3rem;
+            text-align: center;
+        }
+
+        .section-title h2 {
+            margin-bottom: 0.8rem;
+            color: var(--primary-green);
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 850;
+            line-height: 1.08;
+            letter-spacing: 0;
+        }
+
+        .section-title p {
+            margin: 0 auto;
+            color: var(--text-muted);
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+
+        .feature-card,
+        .goal-card,
+        .team-member,
+        .contact-form,
+        .contact-info-panel {
+            height: 100%;
+            background: #ffffff;
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-card);
+            box-shadow: 0 10px 28px rgba(16, 32, 24, 0.05);
+        }
+
+        .feature-card,
+        .goal-card,
+        .team-member,
+        .contact-info-item,
+        .accordion-item {
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast);
+        }
+
+        .feature-card:hover,
+        .goal-card:hover,
+        .team-member:hover,
+        .accordion-item:hover {
+            border-color: rgba(45, 106, 79, 0.24);
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-4px);
+        }
+
+        .feature-card {
+            padding: 2rem;
+        }
+
+        .feature-icon,
+        .goal-icon,
+        .contact-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            background: var(--soft-green);
+            color: var(--primary-green);
+            border: 1px solid rgba(45, 106, 79, 0.12);
+        }
+
+        .feature-icon {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 1.35rem;
+            border-radius: 14px;
+        }
+
+        .feature-card img {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+        }
+
+        .feature-card h4,
+        .goal-card h4,
+        .member-info h4,
+        .contact-info-item h5 {
+            color: var(--primary-green);
+            font-weight: 800;
+            letter-spacing: 0;
+        }
+
+        .feature-card h4 {
+            margin-bottom: 0.75rem;
+            font-size: 1.08rem;
+        }
+
+        .feature-card p,
+        .goal-card p,
+        .contact-info-item p,
+        footer p {
+            color: var(--text-muted);
+            line-height: 1.72;
+        }
+
+        .goal-card {
+            position: relative;
+            padding: 1.65rem;
+            overflow: hidden;
+        }
+
+        .goal-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto;
+            height: 3px;
+            background: var(--primary-green);
+        }
+
+        .goal-icon {
+            width: 52px;
+            height: 52px;
+            margin-bottom: 1.2rem;
+            border-radius: 12px;
+            font-size: 1.25rem;
+        }
+
+        .goal-card h4 {
+            margin-bottom: 0.75rem;
+            font-size: 1.02rem;
+            line-height: 1.35;
+        }
+
+        .goal-card p {
+            margin: 0;
+            font-size: 0.93rem;
+        }
+
+        .faq-section .accordion {
+            display: grid;
+            gap: 0.85rem;
+        }
+
+        .accordion-item {
+            overflow: hidden;
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-card) !important;
+            box-shadow: 0 10px 28px rgba(16, 32, 24, 0.04);
+        }
+
+        .accordion-button {
+            gap: 0.65rem;
+            padding: 1.1rem 1.25rem;
+            background: #ffffff;
+            color: var(--text-main);
+            border: 0;
+            font-size: 0.98rem;
+            font-weight: 750;
+            line-height: 1.35;
+            box-shadow: none;
+        }
+
+        .accordion-button i {
+            display: none;
+        }
+
+        .accordion-button:not(.collapsed) {
+            background: #ffffff;
+            color: var(--primary-green);
+            box-shadow: inset 0 -1px 0 var(--border-soft);
+        }
+
         .accordion-button:focus {
-            border-color: var(--light-green);
-            box-shadow: 0 0 0 0.25rem rgba(116, 198, 157, 0.25);
+            border-color: transparent;
+            box-shadow: 0 0 0 4px rgba(82, 183, 136, 0.16);
         }
 
         .accordion-body {
-            color: #555;
-            line-height: 1.8;
-            padding: 1.5rem;
-        }
-
-        /* Team Section */
-        .team-section {
-            padding: 80px 0;
-            background: linear-gradient(135deg, var(--light-bg) 0%, #e8f5e9 100%);
+            padding: 1.25rem;
+            color: var(--text-muted);
+            line-height: 1.76;
         }
 
         .team-member {
-            text-align: center;
-            transition: all 0.4s ease;
+            overflow: hidden;
+            text-align: left;
         }
 
         .member-img {
-            width: 230px;
-            height: 320px;
-            margin: 0 auto 20px;
+            aspect-ratio: 4 / 5;
             overflow: hidden;
-
-            border-radius: 20px;
-
-            border: 4px solid #38b26d;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-
-            background: #111;
+            background: var(--soft-green);
+            border-bottom: 1px solid var(--border-soft);
         }
 
         .member-img img {
             width: 100%;
             height: 100%;
-
             object-fit: cover;
-
             object-position: center top;
-
-            transition: 0.3s ease;
+            transition: transform 240ms ease;
         }
 
         .team-member:hover .member-img img {
-            transform: scale(1.03);
+            transform: scale(1.035);
+        }
+
+        .member-info {
+            padding: 1.15rem 1.2rem 1.25rem;
         }
 
         .member-info h4 {
-            color: var(--primary-green);
-            margin-top: 12px;
-            font-size: 22px;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.25rem;
+            font-size: 1.02rem;
         }
 
         .member-info span {
-            color: var(--light-green);
-            font-weight: 600;
-            color: #38b26d;
-            font-size: 15px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 650;
         }
 
-        /* Contact Section */
-        .contact-section {
-            padding: 80px 0;
-            background: white;
+        .contact-info-panel {
+            display: grid;
+            gap: 1rem;
+            padding: 1.35rem;
         }
 
         .contact-info-item {
             display: flex;
             align-items: flex-start;
-            margin-bottom: 2rem;
-            transition: all 0.3s ease;
+            gap: 1rem;
+            padding: 1rem;
+            border: 1px solid transparent;
+            border-radius: 12px;
         }
 
         .contact-info-item:hover {
-            transform: translateX(10px);
+            border-color: var(--border-soft);
+            background: var(--section-bg);
+            transform: translateY(-2px);
         }
 
         .contact-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, var(--secondary-green) 0%, var(--light-green) 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.5rem;
-            margin-right: 1.5rem;
-            flex-shrink: 0;
-        }
-
-        .contact-form {
-            background: linear-gradient(135deg, var(--light-bg) 0%, white 100%);
-            padding: 2.5rem;
-            border-radius: 20px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-        }
-
-        .form-control {
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 0.8rem 1rem;
-            transition: all 0.3s ease;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
             font-size: 1rem;
         }
 
+        .contact-info-item h5 {
+            margin-bottom: 0.35rem;
+            font-size: 0.95rem;
+        }
+
+        .contact-info-item p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .contact-form {
+            padding: clamp(1.35rem, 4vw, 2.25rem);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .form-label {
+            color: var(--primary-green);
+            font-size: 0.9rem;
+            font-weight: 750;
+        }
+
+        .form-control {
+            min-height: 46px;
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-control);
+            background: #fbfdfc;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+        }
+
+        textarea.form-control {
+            min-height: 140px;
+        }
+
         .form-control:focus {
-            border-color: var(--light-green);
-            box-shadow: 0 0 0 0.2rem rgba(116, 198, 157, 0.2);
+            border-color: rgba(45, 106, 79, 0.42);
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(82, 183, 136, 0.16);
         }
 
         .btn-submit {
-            background: linear-gradient(135deg, var(--secondary-green) 0%, var(--light-green) 100%);
-            border: none;
-            padding: 12px 40px;
-            border-radius: 50px;
-            color: white;
-            font-weight: 700;
-            transition: all 0.3s ease;
+            min-height: 48px;
             width: 100%;
-            font-size: 1.1rem;
+            border-radius: var(--radius-control);
+            font-size: 0.96rem;
         }
 
-        .btn-submit:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(45, 106, 79, 0.3);
-        }
-
-        /* Footer */
         footer {
-            background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
-            color: white;
-            padding: 3rem 0 1rem;
+            padding: 3.5rem 0 1.5rem;
+            background: #f7faf8;
+            border-top: 1px solid var(--border-soft);
+            color: var(--text-main);
         }
 
         footer h5 {
-            font-weight: 700;
-            margin-bottom: 1.5rem;
-            font-size: 1.2rem;
+            margin-bottom: 1.15rem;
+            color: var(--text-main);
+            font-size: 0.82rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        footer p {
+            color: var(--text-muted);
+            margin-bottom: 0;
         }
 
         footer a {
-            color: rgba(255, 255, 255, 0.9);
-            text-decoration: none;
-            transition: color 0.3s ease;
+            display: inline-flex;
+            color: var(--text-muted);
+            font-weight: 650;
+            transition: color var(--transition-fast), transform var(--transition-fast), background-color var(--transition-fast);
         }
 
         footer a:hover {
-            color: #fff;
+            color: var(--primary-green);
+            transform: translateY(-1px);
+        }
+
+        footer li + li {
+            margin-top: 0.8rem;
+        }
+
+        .footer-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--primary-green);
+            font-size: 1.35rem;
+            font-weight: 850;
+            letter-spacing: 0;
+        }
+
+        .footer-brand img {
+            width: 34px;
+            height: 34px;
+            object-fit: contain;
+        }
+
+        .footer-description {
+            max-width: 360px;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(140px, 1fr));
+            gap: 2rem;
+        }
+
+        .footer-bottom {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .footer-bottom span {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .social-links {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
 
         .social-links a {
-            width: 45px;
-            height: 45px;
-            background: rgba(255, 255, 255, 0.2);
-            display: inline-flex;
+            width: 28px;
+            height: 28px;
             align-items: center;
             justify-content: center;
-            border-radius: 50%;
-            margin-right: 0.8rem;
-            transition: all 0.3s ease;
+            border-radius: 8px;
+            color: var(--text-muted);
         }
 
         .social-links a:hover {
-            background: rgba(255, 255, 255, 0.4);
-            transform: translateY(-3px);
+            background: #edf7f1;
+            color: var(--primary-green);
         }
 
-        /* Responsive */
-        @media (max-width: 768px) {
-            .hero-title {
-                font-size: 2rem;
+        .footer-divider {
+            border-color: var(--border-soft);
+            opacity: 1;
+            margin: 2rem 0 1.3rem;
+        }
+
+        .footer-love {
+            color: var(--accent-green);
+        }
+
+        @media (max-width: 991.98px) {
+            .landing-nav-shell {
+                gap: 0.85rem;
             }
 
-            .hero-subtitle {
-                font-size: 1rem;
+            .landing-nav-menu {
+                order: 4;
+                width: 100%;
+                margin-left: 0;
             }
 
-            .section-title h2 {
-                font-size: 2rem;
+            .navbar-landing .navbar-collapse {
+                margin-top: 0.85rem;
+                padding: 0.85rem;
+                border: 1px solid rgba(228, 236, 231, 0.86);
+                border-radius: 14px;
+                background: rgba(255, 255, 255, 0.9);
+                box-shadow: 0 18px 42px rgba(16, 32, 24, 0.12);
+                backdrop-filter: blur(18px) saturate(140%);
+                -webkit-backdrop-filter: blur(18px) saturate(140%);
+            }
+
+            .navbar-landing .navbar-nav {
+                align-items: stretch;
+                gap: 0;
+            }
+
+            .navbar-landing .nav-link {
+                display: block;
+                padding: 0.7rem 0.85rem !important;
+                border-radius: 8px;
+            }
+
+            .navbar-landing .nav-link:hover {
+                background: var(--soft-green);
+                transform: none;
+            }
+
+            .nav-actions {
+                margin-left: auto;
+            }
+
+            .nav-actions .btn {
+                width: auto;
+            }
+
+            .hero-section {
+                min-height: auto;
+                padding-top: 5rem;
+            }
+
+            .hero-section > .container > .row {
+                transform: translateY(-48px);
+            }
+
+            .hero-image-container {
+                min-height: auto;
+                justify-content: center;
+                margin-top: 2rem;
+            }
+
+            .hero-image {
+                width: min(430px, 86vw);
+                margin-right: -8vw;
+                opacity: 0.94;
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            html {
+                scroll-padding-top: 74px;
+            }
+
+            .navbar-landing {
+                min-height: 66px;
+            }
+
+            .hero-section {
+                margin-top: 66px;
+                padding: 4.3rem 0 4.8rem;
+                background:
+                    linear-gradient(180deg, rgba(12, 31, 23, 0.86) 0%, rgba(27, 67, 50, 0.68) 58%, rgba(27, 67, 50, 0.36) 100%),
+                    url("{{ asset('images/bg-gunung.png') }}") center / cover no-repeat;
+            }
+
+            .hero-section > .container > .row {
+                transform: none;
+            }
+
+            .hero-actions,
+            .hero-actions .btn {
+                width: 100%;
+            }
+
+            .section-title {
+                margin-bottom: 2rem;
+                text-align: left;
+            }
+
+            .section-title p {
+                margin-left: 0;
+            }
+
+            .feature-card,
+            .goal-card {
+                padding: 1.35rem;
+            }
+
+            .contact-info-panel {
+                padding: 0.8rem;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .footer-bottom {
+                align-items: flex-start;
+                flex-direction: column;
             }
         }
     </style>
@@ -562,17 +916,24 @@
     @endphp
 
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
-        <div class="container">
-            <a class="navbar-brand" href="#home">
-                <img src="{{ asset('images/logo.png') }}" alt="GreenPoint Logo" class="logo-white">
+    <nav class="navbar navbar-expand-lg navbar-light navbar-landing fixed-top">
+        <div class="container landing-nav-shell">
+            <a class="navbar-brand" href="#hero">
+                <img src="{{ asset('images/logo.png') }}" alt="GreenPoint Logo" class="brand-logo">
                 GreenPoint
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+
+            <div class="nav-actions">
+                <a href="{{ route('nasabah.login') }}" class="btn btn-nav-primary">
+                    Sign In
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-sticky" aria-controls="navbar-sticky" aria-expanded="false" aria-label="Buka menu navigasi">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
+
+            <div class="collapse navbar-collapse landing-nav-menu" id="navbar-sticky">
+                <ul class="navbar-nav">
                     <li class="nav-item"><a class="nav-link" href="#hero">Beranda</a></li>
                     <li class="nav-item"><a class="nav-link" href="#features">Fitur</a></li>
                     <li class="nav-item"><a class="nav-link" href="#tujuan">Tujuan</a></li>
@@ -585,31 +946,40 @@
     </nav>
 
     <!-- Hero Section -->
-    <section id="hero" class="hero-section pt-5" style="margin-top: 60px;">
+    <section id="hero" class="hero-section">
         <div class="container">
-            <div class="row align-items-center min-vh-100">
-                <div class="col-lg-6 hero-content" data-aos="fade-right" data-aos-duration="1000">
+            <div class="row align-items-center">
+                <div class="col-lg-6 hero-content" data-aos="fade-right" data-aos-duration="800">
                     <h1 class="hero-title">
-                        Kelola Sampah,<br><span style="background: linear-gradient(135deg, #74c69d 0%, #52b788 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Raih Manfaat</span>
+                        Kelola Sampah,<br><span class="accent-text">Raih Manfaat</span>
                     </h1>
                     <p class="hero-subtitle">
                         Platform bank sampah digital yang mengubah sampah Anda menjadi nilai ekonomi untuk masa depan yang berkelanjutan.
                     </p>
-                    @if (Route::has('register'))
-                    <a href="{{ route('register') }}" class="btn btn-hero">
-                        <i class="fas fa-arrow-right me-2"></i>Mulai Sekarang
-                    </a>
-                    @else
-                    <a href="{{ rtrim($BASE_URL, '/') }}/nasabah/login" class="btn btn-hero">
-                        <i class="fas fa-arrow-right me-2"></i>Mulai Sekarang
-                    </a>
-                    @endif
+                    <div class="hero-actions">
+                        @if (Route::has('nasabah.register'))
+                        <a href="{{ route('nasabah.register') }}" class="btn btn-hero">
+                            Mulai Sekarang
+                            <i class="fas fa-arrow-right"></i>
+                        </a>
+                        @elseif (Route::has('nasabah.login'))
+                        <a href="{{ route('nasabah.login') }}" class="btn btn-hero">
+                            Mulai Sekarang
+                            <i class="fas fa-arrow-right"></i>
+                        </a>
+                        @else
+                        <a href="{{ rtrim($BASE_URL, '/') }}/nasabah/login" class="btn btn-hero">
+                            Mulai Sekarang
+                            <i class="fas fa-arrow-right"></i>
+                        </a>
+                        @endif
+                    </div>
                 </div>
-                <div class="col-lg-6" data-aos="fade-left" data-aos-duration="1000">
+                <div class="col-lg-6 hero-media" data-aos="fade-left" data-aos-duration="800">
                     <div class="hero-image-container">
                         <div class="hero-image">
                             <img src="{{ asset('images/tangan1.png') }}" 
-                                alt="Hero Image Tangan"
+                                alt="Tangan memegang bibit tanaman"
                                 class="img-fluid">
                         </div>
                     </div>
@@ -619,7 +989,7 @@
     </section>
 
     <!-- Features Section -->
-    <section id="features" class="features-section" data-aos="fade-up">
+    <section id="features" class="section-shell features-section" data-aos="fade-up">
         <div class="container">
             <div class="section-title" data-aos="fade-up" data-aos-duration="800">
                 <h2>Mengapa Memilih GreenPoint?</h2>
@@ -661,7 +1031,7 @@
     </section>
 
     <!-- Goals Section -->
-    <section id="tujuan" class="tujuan-section" data-aos="fade-up">
+    <section id="tujuan" class="section-shell section-soft tujuan-section" data-aos="fade-up">
         <div class="container">
             <div class="section-title" data-aos="fade-up" data-aos-duration="800">
                 <h2>Tujuan Kami</h2>
@@ -713,7 +1083,7 @@
     </section>
 
     <!-- FAQ Section -->
-    <section id="faq" class="faq-section" data-aos="fade-up">
+    <section id="faq" class="section-shell faq-section" data-aos="fade-up">
         <div class="container">
             <div class="section-title" data-aos="fade-up" data-aos-duration="800">
                 <h2>Pertanyaan Umum</h2>
@@ -781,63 +1151,68 @@
     </section>
 
     <!-- Team Section -->
-    <section id="team" class="team-section" data-aos="fade-up">
-        <div class="row justify-content-center g-4">
+    <section id="team" class="section-shell section-soft team-section" data-aos="fade-up">
+        <div class="container">
+            <div class="section-title" data-aos="fade-up" data-aos-duration="800">
+                <h2>Tim Kami</h2>
+                <p>Kenali tim yang membantu GreenPoint berjalan lebih rapi, mudah, dan bermanfaat.</p>
+            </div>
 
-            <div class="col-lg-3 col-md-6 col-sm-6">
-                <div class="team-member">
-                    <div class="member-img">
-                        <img src="{{ asset('images/aditya.jpeg') }}" alt="Aditya Fadni">
+            <div class="row justify-content-center g-4">
+                <div class="col-lg-3 col-md-6 col-sm-6" data-aos="fade-up" data-aos-delay="100">
+                    <div class="team-member">
+                        <div class="member-img">
+                            <img src="{{ asset('images/aditya.jpeg') }}" alt="Aditya Fadni">
+                        </div>
+                        <div class="member-info">
+                            <h4>Aditya Fadni</h4>
+                            <span>Master</span>
+                        </div>
                     </div>
-                    <div class="member-info">
-                        <h4>Aditya Fadni</h4>
-                        <span>Master</span>
+                </div>
+
+                <div class="col-lg-3 col-md-6 col-sm-6" data-aos="fade-up" data-aos-delay="200">
+                    <div class="team-member">
+                        <div class="member-img">
+                            <img src="{{ asset('images/riky.jpeg') }}" alt="Riky Rio">
+                        </div>
+                        <div class="member-info">
+                            <h4>Riky Rio</h4>
+                            <span>Frontend & Backend</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 col-sm-6" data-aos="fade-up" data-aos-delay="300">
+                    <div class="team-member">
+                        <div class="member-img profile-agung">
+                            <img src="{{ asset('images/agung.jpeg') }}" alt="Rizki Agung">
+                        </div>
+
+                        <div class="member-info">
+                            <h4>Rizki Agung</h4>
+                            <span>Frontend</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6 col-sm-6" data-aos="fade-up" data-aos-delay="400">
+                    <div class="team-member">
+                        <div class="member-img">
+                            <img src="{{ asset('images/dhimas.jpeg') }}" alt="Dhimas">
+                        </div>
+                        <div class="member-info">
+                            <h4>Dhimas Ananta</h4>
+                            <span>UI/UX</span>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            <div class="col-lg-3 col-md-6 col-sm-6">
-                <div class="team-member">
-                    <div class="member-img">
-                        <img src="{{ asset('images/riky.jpeg') }}" alt="Riky Rio">
-                    </div>
-                    <div class="member-info">
-                        <h4>Riky Rio</h4>
-                        <span>Frontend & Backend</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-3 col-md-6 col-sm-6">
-                <div class="team-member">
-                    <div class="member-img profile-agung">
-                        <img src="{{ asset('images/agung.jpeg') }}" alt="Rizki Agung">
-                    </div>
-
-                    <div class="member-info">
-                        <h4>Rizki Agung</h4>
-                        <span>Frontend</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-3 col-md-6 col-sm-6">
-                <div class="team-member">
-                    <div class="member-img">
-                        <img src="{{ asset('images/dhimas.jpeg') }}" alt="Dhimas">
-                    </div>
-                    <div class="member-info">
-                        <h4>Dhimas Ananta</h4>
-                        <span>UI/UX</span>
-                    </div>
-                </div>
-            </div>
-
         </div>
     </section>
 
     <!-- Contact Section -->
-    <section id="contact" class="contact-section" data-aos="fade-up">
+    <section id="contact" class="section-shell contact-section" data-aos="fade-up">
         <div class="container">
             <div class="section-title" data-aos="fade-up" data-aos-duration="800">
                 <h2>Hubungi Kami</h2>
@@ -846,43 +1221,45 @@
 
             <div class="row g-4">
                 <div class="col-lg-4" data-aos="fade-right" data-aos-delay="100">
-                    <div class="contact-info-item">
-                        <div class="contact-icon">
-                            <i class="fas fa-map-marker-alt"></i>
+                    <div class="contact-info-panel">
+                        <div class="contact-info-item">
+                            <div class="contact-icon">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <div>
+                                <h5>Alamat</h5>
+                                <p>Jl. Lingkungan Hijau No. 123<br>Kelurahan Bersih, Kecamatan Asri<br>Kota Hijau, 12345</p>
+                            </div>
                         </div>
-                        <div>
-                            <h5 style="color: var(--primary-green); font-weight: 700; margin-bottom: 0.5rem;">Alamat</h5>
-                            <p style="color: #666; margin: 0;">Jl. Lingkungan Hijau No. 123<br>Kelurahan Bersih, Kecamatan Asri<br>Kota Hijau, 12345</p>
-                        </div>
-                    </div>
 
-                    <div class="contact-info-item">
-                        <div class="contact-icon">
-                            <i class="fas fa-phone-alt"></i>
+                        <div class="contact-info-item">
+                            <div class="contact-icon">
+                                <i class="fas fa-phone-alt"></i>
+                            </div>
+                            <div>
+                                <h5>Telepon</h5>
+                                <p>(021) 1234-5678<br>0812-3456-7890 (WhatsApp)</p>
+                            </div>
                         </div>
-                        <div>
-                            <h5 style="color: var(--primary-green); font-weight: 700; margin-bottom: 0.5rem;">Telepon</h5>
-                            <p style="color: #666; margin: 0;">(021) 1234-5678<br>0812-3456-7890 (WhatsApp)</p>
-                        </div>
-                    </div>
 
-                    <div class="contact-info-item">
-                        <div class="contact-icon">
-                            <i class="fas fa-envelope"></i>
+                        <div class="contact-info-item">
+                            <div class="contact-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div>
+                                <h5>Email</h5>
+                                <p>info@greenpoint.id<br>cs@greenpoint.id</p>
+                            </div>
                         </div>
-                        <div>
-                            <h5 style="color: var(--primary-green); font-weight: 700; margin-bottom: 0.5rem;">Email</h5>
-                            <p style="color: #666; margin: 0;">info@greenpoint.id<br>cs@greenpoint.id</p>
-                        </div>
-                    </div>
 
-                    <div class="contact-info-item">
-                        <div class="contact-icon">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div>
-                            <h5 style="color: var(--primary-green); font-weight: 700; margin-bottom: 0.5rem;">Jam Operasional</h5>
-                            <p style="color: #666; margin: 0;">Senin - Jumat: 08.00 - 17.00 WIB<br>Sabtu: 08.00 - 14.00 WIB<br>Minggu & Hari Libur: Tutup</p>
+                        <div class="contact-info-item">
+                            <div class="contact-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div>
+                                <h5>Jam Operasional</h5>
+                                <p>Senin - Jumat: 08.00 - 17.00 WIB<br>Sabtu: 08.00 - 14.00 WIB<br>Minggu & Hari Libur: Tutup</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -892,19 +1269,19 @@
                         @csrf
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label" style="color: var(--primary-green); font-weight: 600;">Nama</label>
+                                <label class="form-label">Nama</label>
                                 <input type="text" name="name" class="form-control" placeholder="Masukkan nama Anda" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label" style="color: var(--primary-green); font-weight: 600;">Email</label>
+                                <label class="form-label">Email</label>
                                 <input type="email" name="email" class="form-control" placeholder="Masukkan email Anda" required>
                             </div>
                             <div class="col-md-12">
-                                <label class="form-label" style="color: var(--primary-green); font-weight: 600;">Subjek</label>
+                                <label class="form-label">Subjek</label>
                                 <input type="text" name="subject" class="form-control" placeholder="Masukkan subjek" required>
                             </div>
                             <div class="col-md-12">
-                                <label class="form-label" style="color: var(--primary-green); font-weight: 600;">Pesan</label>
+                                <label class="form-label">Pesan</label>
                                 <textarea class="form-control" name="message" rows="5" placeholder="Masukkan pesan Anda" required></textarea>
                             </div>
                             <div class="col-md-12">
@@ -922,56 +1299,57 @@
     <!-- Footer -->
     <footer>
         <div class="container">
-            <div class="row mb-4">
-                <div class="col-lg-4 col-md-6 mb-4">
-                    <h5><i class="fas fa-leaf me-2"></i>GreenPoint</h5>
-                    <p>Platform bank sampah digital yang mengubah sampah Anda menjadi nilai ekonomi untuk masa depan berkelanjutan.</p>
-                    <div class="social-links mt-3">
-                        <a href="#" title="Facebook"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#" title="Twitter"><i class="fab fa-twitter"></i></a>
-                        <a href="#" title="Instagram"><i class="fab fa-instagram"></i></a>
-                        <a href="#" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+            <div class="d-md-flex justify-content-between gap-5">
+                <div class="mb-5 mb-md-0">
+                    <a href="#hero" class="footer-brand">
+                        <img src="{{ asset('images/logo.png') }}" alt="GreenPoint Logo">
+                        <span>GreenPoint</span>
+                    </a>
+                    <p class="footer-description mt-3">Platform bank sampah digital yang mengubah sampah Anda menjadi nilai ekonomi untuk masa depan berkelanjutan.</p>
+                </div>
+
+                <div class="footer-grid">
+                    <div>
+                        <h5>Menu</h5>
+                        <ul class="list-unstyled mb-0">
+                            <li><a href="#hero">Beranda</a></li>
+                            <li><a href="#features">Fitur</a></li>
+                            <li><a href="#tujuan">Tujuan</a></li>
+                            <li><a href="#faq">FAQ</a></li>
+                        </ul>
                     </div>
-                </div>
 
-                <div class="col-lg-2 col-md-6 mb-4">
-                    <h5>Menu</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#hero">Beranda</a></li>
-                        <li><a href="#features">Fitur</a></li>
-                        <li><a href="#tujuan">Tujuan</a></li>
-                        <li><a href="#contact">Kontak</a></li>
-                    </ul>
-                </div>
+                    <div>
+                        <h5>Layanan</h5>
+                        <ul class="list-unstyled mb-0">
+                            <li><a href="#">Setoran Sampah</a></li>
+                            <li><a href="#">Penarikan Saldo</a></li>
+                            <li><a href="#">Program Loyalitas</a></li>
+                            <li><a href="#">Laporan Statistik</a></li>
+                        </ul>
+                    </div>
 
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <h5>Layanan</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#">Setoran Sampah</a></li>
-                        <li><a href="#">Penarikan Saldo</a></li>
-                        <li><a href="#">Program Loyalitas</a></li>
-                        <li><a href="#">Laporan Statistik</a></li>
-                    </ul>
-                </div>
-
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <h5>Kontak</h5>
-                    <p>
-                        <i class="fas fa-phone me-2"></i>(021) 1234-5678<br>
-                        <i class="fas fa-envelope me-2"></i>info@greenpoint.id<br>
-                        <i class="fas fa-map-marker-alt me-2"></i>Jl. Lingkungan Hijau No. 123
-                    </p>
+                    <div>
+                        <h5>Kontak</h5>
+                        <ul class="list-unstyled mb-0">
+                            <li><a href="#team">Tim Kami</a></li>
+                            <li><a href="#contact">Hubungi Kami</a></li>
+                            <li><a href="mailto:info@greenpoint.id">info@greenpoint.id</a></li>
+                            <li><a href="tel:02112345678">(021) 1234-5678</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
-            <hr style="border-color: rgba(255,255,255,0.2); margin: 2rem 0;">
+            <hr class="footer-divider">
 
-            <div class="row align-items-center">
-                <div class="col-md-6 text-center text-md-start mb-2 mb-md-0">
-                    <p>&copy; 2024 <strong>GreenPoint</strong>. All Rights Reserved.</p>
-                </div>
-                <div class="col-md-6 text-center text-md-end">
-                    <p>Designed with <i class="fas fa-heart" style="color: #ff6b6b;"></i> by GreenPoint Team</p>
+            <div class="footer-bottom">
+                <span>&copy; 2024 <a href="#hero">GreenPoint</a>. All Rights Reserved.</span>
+                <div class="social-links">
+                    <a href="#" title="Facebook" aria-label="Facebook GreenPoint"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" title="Instagram" aria-label="Instagram GreenPoint"><i class="fab fa-instagram"></i></a>
+                    <a href="#" title="Twitter" aria-label="Twitter GreenPoint"><i class="fab fa-twitter"></i></a>
+                    <a href="#" title="GitHub" aria-label="GitHub GreenPoint"><i class="fab fa-github"></i></a>
                 </div>
             </div>
         </div>
@@ -983,10 +1361,10 @@
     <script>
         // Initialize AOS
         AOS.init({
-            duration: 1000,
+            duration: 700,
             easing: 'ease-in-out',
             once: true,
-            offset: 100
+            offset: 80
         });
 
         // Smooth scroll
@@ -1003,28 +1381,17 @@
             });
         });
 
-        // Active nav link on scroll
-        window.addEventListener('scroll', () => {
-            let current = '';
-            const sections = document.querySelectorAll('section');
+        // Glass effect on scroll
+        const landingNavbar = document.querySelector('.navbar-landing');
 
-            sections.forEach(section => {
-                const sectionTop = section.offsetTop;
-                if (pageYOffset >= sectionTop - 200) {
-                    current = section.getAttribute('id');
-                }
-            });
+        const updateNavbarState = () => {
+            if (landingNavbar) {
+                landingNavbar.classList.toggle('is-scrolled', window.scrollY > 12);
+            }
+        };
 
-            document.querySelectorAll('.nav-link').forEach(link => {
-                link.classList.remove('active');
-                if (link.getAttribute('href') === '#' + current) {
-                    link.classList.add('active');
-                    link.style.borderBottom = '2px solid white';
-                } else {
-                    link.style.borderBottom = 'none';
-                }
-            });
-        });
+        window.addEventListener('scroll', updateNavbarState);
+        updateNavbarState();
     </script>
 
     <!-- Chat Bot -->

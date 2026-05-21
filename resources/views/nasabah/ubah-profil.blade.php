@@ -300,6 +300,7 @@
             }
         }
     </style>
+    @include('partials.greenpoint-theme')
 </head>
 <body>
     <div class="app">
@@ -308,40 +309,19 @@
 
         <!-- MAIN CONTENT -->
         <main class="main">
-            <div class="page-header">
-                <div class="header-content">
-                    <h2>
-                        <svg viewBox="0 0 24 24">
-                            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                        </svg>
-                        Ubah Profil
-                    </h2>
-                    <p class="subtle">Perbarui informasi profil Anda</p>
-                </div>
-            </div>
+            @include('partials.nasabah-header', [
+                'title' => 'Ubah Profil',
+                'subtitle' => 'Perbarui informasi profil Anda',
+            ])
 
             <section class="form-content">
                 <div class="form-container">
                     @if (session('success'))
-                        <div class="alert alert-success">
-                            <svg viewBox="0 0 24 24">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                            {{ session('success') }}
-                        </div>
+                        @include('partials.toast', ['type' => 'success', 'message' => session('success')])
                     @endif
 
                     @if ($errors->any())
-                        <div class="alert alert-error">
-                            <svg viewBox="0 0 24 24">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 8 12 12"></polyline>
-                                <circle cx="12" cy="16" r="1"></circle>
-                            </svg>
-                            @foreach ($errors->all() as $error)
-                                {{ $error }}<br>
-                            @endforeach
-                        </div>
+                        @include('partials.toast', ['type' => 'danger', 'messages' => $errors->all()])
                     @endif
 
                     <form method="POST" action="{{ route('nasabah.profil.update') }}" aria-label="Form ubah profil pengguna">

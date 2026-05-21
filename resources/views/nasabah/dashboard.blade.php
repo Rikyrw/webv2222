@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GreenPoint • Dashboard</title>
+    <title>GreenPoint - Dashboard</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -295,6 +295,7 @@
             }
         }
     </style>
+    @include('partials.greenpoint-theme')
 </head>
 
 <body>
@@ -304,18 +305,10 @@
 
         <!-- MAIN CONTENT -->
         <main class="main">
-            <div class="page-header">
-                <div class="header-content">
-                    <h2>Dashboard</h2>
-                    <p>Selamat datang, {{ htmlspecialchars($user_name ?? 'User') }}! di sistem manajemen bank sampah</p>
-                    @php
-                        $wibNow = \Carbon\Carbon::now('Asia/Jakarta')->locale('id');
-                    @endphp
-                    <p style="margin-top: 6px; color: #6b7280; font-size: 14px;">
-                        {{ $wibNow->translatedFormat('l, d F Y H:i') }} WIB
-                    </p>
-                </div>
-            </div>
+            @include('partials.nasabah-header', [
+                'title' => 'Dashboard',
+                'subtitle' => 'Selamat datang, ' . ($user_name ?? 'User') . '! Kelola aktivitas GreenPoint Anda.',
+            ])
             
 
             <!-- TOP CARDS -->

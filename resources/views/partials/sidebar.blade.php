@@ -1,215 +1,280 @@
 <style>
   .sidebar {
-    background: linear-gradient(135deg, #000000, #059669);
-    color: white;
-    padding: 0;
+    width: 222px;
+    min-width: 222px;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    flex: 0 0 222px;
+    background: #ffffff;
+    color: #2f5f3e;
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
-  }
-
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .brand img {
-    width: 40px;
-    height: 40px;
-  }
-
-  .brand h1 {
-    font-size: 20px;
-    font-weight: 700;
-    margin: 0;
-  }
-
-  .nav {
-    flex: 1;
-    overflow-y: auto;
-    padding: 12px 0;
-  }
-
-  .nav a {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    color: rgba(255, 255, 255, 0.7);
-    text-decoration: none;
-    transition: all 0.2s;
-    font-size: 14px;
-    border-left: 3px solid transparent;
-  }
-
-  .nav a:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: white;
-  }
-
-  .nav a.active {
-    background: rgba(16, 185, 129, 0.1);
-    border-left-color: #10b981;
-    color: #ffffff;
-  }
-
-  .icon {
-    width: 20px;
-    height: 20px;
-    stroke: currentColor;
-    fill: none;
-    stroke-width: 2;
-  }
-
-  .nav-submenu {
-    background: rgba(255, 255, 255, 0.03);
+    border-right: 1px solid #e7ece8;
+    box-shadow: 8px 0 24px rgba(15, 23, 42, 0.08);
     overflow: hidden;
-    display: none;
+    z-index: 5;
   }
 
-  .nav-submenu a {
-    padding: 10px 16px 10px 48px;
-    font-size: 13px;
-    border-left: none;
-  }
-
-  /* User Footer Section */
-  .sidebar-footer {
-    padding: 16px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .user-profile {
+  .sidebar .brand {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
+    gap: 10px;
+    padding: 24px 18px 22px;
+    min-height: 78px;
   }
 
-  .user-profile:hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  .avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 600;
-    font-size: 14px;
+  .sidebar .brand img {
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
     flex-shrink: 0;
   }
 
-  .user-info {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .user-info .role {
-    display: block;
-    font-size: 11px;
-    color: rgba(255, 255, 255, 0.6);
+  .sidebar .brand h1 {
+    margin: 0;
+    color: #2f5f3e;
+    font-size: 19px;
+    font-weight: 800;
     line-height: 1;
-    margin-bottom: 4px;
   }
 
-  .user-info .name {
-    display: block;
+  .sidebar .nav {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 12px 18px;
+    overflow-y: auto;
+  }
+
+  .sidebar .nav a,
+  .sidebar .sidebar-logout {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 42px;
+    padding: 10px 12px;
+    border-radius: 7px;
+    color: #2f5f3e;
     font-size: 13px;
-    font-weight: 500;
-    color: white;
+    font-weight: 700;
+    line-height: 1.2;
+    text-decoration: none;
+    transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+  }
+
+  .sidebar .nav a:hover,
+  .sidebar .sidebar-logout:hover {
+    background: #eef6f0;
+    color: #254d33;
+    transform: translateX(2px);
+  }
+
+  .sidebar .nav a.active {
+    background: #2f5f3e;
+    color: #ffffff;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+
+  .sidebar .icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    object-fit: contain;
+  }
+
+  .sidebar .nav a.active .icon {
+    filter: brightness(0) invert(1);
+  }
+
+  .sidebar .chevron {
+    width: 15px;
+    height: 15px;
+    margin-left: auto;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2.4;
+    transition: transform 0.2s ease;
+  }
+
+  .sidebar .nav-submenu {
+    display: none;
+    margin: 2px 0 4px 30px;
+    padding: 4px 0;
+    border-left: 1px solid #dbe8df;
+  }
+
+  .sidebar .nav-submenu a {
+    min-height: 32px;
+    padding: 8px 10px 8px 14px;
+    border-radius: 6px;
+    color: #54715d;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .sidebar .nav-submenu a:hover {
+    background: #f4f8f5;
+    color: #2f5f3e;
+    transform: none;
+  }
+
+  .sidebar .sidebar-footer {
+    border-top: 1px solid #e8eee9;
+    background: #ffffff;
+  }
+
+  .sidebar .sidebar-logout {
+    margin: 12px 12px 8px;
+  }
+
+  .sidebar .sidebar-logout .icon {
+    filter: none;
+  }
+
+  .sidebar .user-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px 16px;
+    border-top: 1px solid #eef2ef;
+  }
+
+  .sidebar .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background: #2f5f3e;
+    color: #ffffff;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .sidebar .user-info {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+  }
+
+  .sidebar .user-info .role {
+    color: #2f5f3e;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.15;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  .logout-icon-btn {
-    color: rgba(255, 255, 255, 0.5);
-    transition: color 0.2s;
-    background: none;
-    border: none;
-    padding: 4px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
+  .sidebar .user-info .name {
+    color: #111827;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .logout-icon-btn:hover {
-    color: #ef4444;
-  }
-
-  .logo-white {
-    width: 40px;
-    height: 40px;
-    object-fit: contain;
-    filter: brightness(0) invert(1);
-  }
-
-  /* Scrollbar styling */
-  .nav::-webkit-scrollbar {
+  .sidebar .nav::-webkit-scrollbar {
     width: 6px;
   }
 
-  .nav::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
+  .sidebar .nav::-webkit-scrollbar-track {
+    background: transparent;
   }
 
-  .nav::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
+  .sidebar .nav::-webkit-scrollbar-thumb {
+    background: #d9e5dc;
+    border-radius: 999px;
+  }
+
+  @media (max-width: 768px) {
+    .sidebar {
+      width: 100%;
+      min-width: 100%;
+      height: auto;
+      position: relative;
+      top: auto;
+      flex-basis: auto;
+      max-height: none;
+      overflow: visible;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+    }
+
+    .sidebar .brand {
+      min-height: 58px;
+      padding: 14px 16px;
+    }
+
+    .sidebar .nav {
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 0 12px 12px;
+    }
+
+    .sidebar .nav a {
+      white-space: nowrap;
+      min-width: max-content;
+    }
+
+    .sidebar .nav-dropdown {
+      min-width: max-content;
+    }
+
+    .sidebar .nav-submenu {
+      position: absolute;
+      margin: 4px 0 0;
+      padding: 8px;
+      border: 1px solid #dbe8df;
+      border-radius: 8px;
+      background: #ffffff;
+      box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+    }
+
+    .sidebar .sidebar-footer {
+      display: none;
+    }
   }
 </style>
 
+@php
+  $adminRole = session('admin_logged_in') ? ucfirst(session('admin_role') ?? 'Admin') : 'Admin';
+  $adminName = session('admin_logged_in') ? explode('@', session('admin_email') ?? 'admin@greenpoint.local')[0] : 'Admin';
+  $adminInitial = session('admin_logged_in') ? strtoupper(substr(session('admin_role') ?? 'AD', 0, 2)) : 'AD';
+@endphp
+
 <aside class="sidebar">
   <div class="brand">
-    <img src="{{ asset('images/logo.png') }}" alt="GreenPoint Logo" class="logo-white">
+    <img src="{{ asset('images/logo.png') }}" alt="GreenPoint Logo">
     <h1>GreenPoint</h1>
   </div>
 
   <nav class="nav">
     <a href="{{ url('/admin/dashboard') }}" class="{{ ($activePage == 'dashboard') ? 'active' : '' }}">
-      <img src="{{ asset('images/Dashboard Layout.png') }}" alt="Dashboard" class="icon">
+      <img src="{{ asset('images/Dashboard Layout.png') }}" alt="" class="icon" aria-hidden="true">
       <span>Dashboard</span>
     </a>
 
     <a href="{{ url('/admin/nasabah') }}" class="{{ ($activePage == 'nasabah') ? 'active' : '' }}">
-      <svg class="icon" viewBox="0 0 24 24">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
+      <img src="{{ asset('images/People.png') }}" alt="" class="icon" aria-hidden="true">
       <span>Daftar Nasabah</span>
     </a>
 
     <div class="nav-dropdown">
       <a href="javascript:void(0);" class="{{ ($activePage == 'transaksi') ? 'active' : '' }}" id="transaksiToggle">
-        <svg class="icon" viewBox="0 0 24 24">
-          <path d="M16 3h5v5" />
-          <path d="M8 21H3v-5" />
-          <path d="M21 3 12 12" />
-          <path d="m3 21 9-9" />
-        </svg>
-        <span style="flex: 1;">Transaksi</span>
-        <svg class="icon chevron" style="width: 16px; height: 16px; transition: transform 0.2s;" viewBox="0 0 24 24">
+        <img src="{{ asset('images/Money Circulation.png') }}" alt="" class="icon" aria-hidden="true">
+        <span>Transaksi</span>
+        <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true">
           <path d="m6 9 6 6 6-6" />
         </svg>
       </a>
-      <div class="nav-submenu" id="transaksiSubmenu"
-        style="{{ ($activePage == 'transaksi') ? 'display: block;' : '' }}">
+      <div class="nav-submenu" id="transaksiSubmenu" style="{{ ($activePage == 'transaksi') ? 'display: block;' : '' }}">
         <a href="{{ url('/admin/transaksi?tab=setor') }}">Permintaan Setor</a>
         <a href="{{ url('/admin/transaksi?tab=penarikan') }}">Permintaan Tarik</a>
         <a href="{{ url('/admin/transaksi?tab=history') }}">Riwayat</a>
@@ -217,67 +282,40 @@
     </div>
 
     <a href="{{ url('/admin/sampah') }}" class="{{ ($activePage == 'sampah') ? 'active' : '' }}">
-      <svg class="icon" viewBox="0 0 24 24">
-        <path d="M3 6h18" />
-        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-        <line x1="10" y1="11" x2="10" y2="17" />
-        <line x1="14" y1="11" x2="14" y2="17" />
-      </svg>
+      <img src="{{ asset('images/Trash.png') }}" alt="" class="icon" aria-hidden="true">
       <span>Daftar Sampah</span>
     </a>
 
     <a href="{{ url('/admin/laporan') }}" class="{{ ($activePage == 'laporan') ? 'active' : '' }}">
-      <svg class="icon" viewBox="0 0 24 24">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <line x1="16" y1="13" x2="8" y2="13" />
-        <line x1="16" y1="17" x2="8" y2="17" />
-        <polyline points="10 9 9 9 8 9" />
-      </svg>
+      <img src="{{ asset('images/Activity History.png') }}" alt="" class="icon" aria-hidden="true">
       <span>Laporan</span>
     </a>
 
     @if (session('admin_logged_in') && session('admin_role') === 'superadmin')
       <a href="{{ url('/admin/pengaturan') }}" class="{{ ($activePage == 'pengaturan') ? 'active' : '' }}">
-        <svg class="icon" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="3" />
-          <path
-            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33 1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82 1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-        </svg>
-        <span>Pengaturan</span>
+        <img src="{{ asset('images/Settings.png') }}" alt="" class="icon" aria-hidden="true">
+        <span>Pengaturan Admin</span>
       </a>
     @endif
   </nav>
 
   <div class="sidebar-footer">
-    <div class="user-profile" onclick="confirmLogout()">
-      <div class="avatar">
-        {{ session('admin_logged_in') ? strtoupper(substr(session('admin_role') ?? 'AD', 0, 2)) : 'AD' }}
-      </div>
+    <a href="{{ url('/admin/logout') }}" class="sidebar-logout" onclick="return confirm('Apakah Anda yakin ingin keluar?')">
+      <img src="{{ asset('images/Logout.png') }}" alt="" class="icon" aria-hidden="true">
+      <span>Logout</span>
+    </a>
+
+    <div class="user-profile">
+      <div class="avatar">{{ $adminInitial }}</div>
       <div class="user-info">
-        <span class="role">{{ session('admin_logged_in') ? ucfirst(session('admin_role')) : 'Admin' }}</span>
-        <span class="name">{{ session('admin_logged_in') ? explode('@', session('admin_email'))[0] : 'Admin' }}</span>
+        <span class="role">{{ $adminRole }}</span>
+        <span class="name">{{ $adminName }}</span>
       </div>
-      <button class="logout-icon-btn" title="Logout">
-        <svg class="icon" viewBox="0 0 24 24">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-          <polyline points="16 17 21 12 16 7" />
-          <line x1="21" y1="12" x2="9" y2="12" />
-        </svg>
-      </button>
     </div>
   </div>
 </aside>
 
 <script>
-  function confirmLogout() {
-    if (confirm('Apakah Anda yakin ingin keluar?')) {
-      window.location.href = '{{ url("/admin/logout") }}';
-    }
-  }
-
-  // Transaksi dropdown toggle
   const transToggle = document.getElementById('transaksiToggle');
   const transSubmenu = document.getElementById('transaksiSubmenu');
   const transChevron = transToggle ? transToggle.querySelector('.chevron') : null;

@@ -1,106 +1,72 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="container-fluid">
-    <!-- Page Header with Button -->
-    <div class="row mb-4 align-items-center">
-        <div class="col">
-            <h1 class="display-6 fw-bold mb-2">Daftar Sampah</h1>
-            <p class="text-muted">Kelola jenis sampah, harga, dan stok yang tersedia.</p>
-        </div>
-        <div class="col-auto">
-            <a href="{{ route('admin.sampah.create') }}" class="btn btn-primary">
-                <i class="lucide-plus"></i> Tambah Sampah
-            </a>
-        </div>
-    </div>
-
-    <!-- Alert Messages -->
+<div class="gp-page">
     @if (!empty($flash))
-        <div class="row mb-3">
-            <div class="col-12">
-                @if ($flashType == 'success')
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        {{ $flash }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                @else
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        {{ $flash }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                @endif
-            </div>
-        </div>
+        @include('partials.toast', ['type' => $flashType == 'success' ? 'success' : 'danger', 'message' => $flash])
     @endif
 
-    <!-- Main Card -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <!-- Card Header -->
-                    <div class="mb-4">
-                        <h5 class="card-title fw-bold mb-1">Data Jenis Sampah</h5>
-                        <p class="text-muted small mb-0">Atur harga dan stok sampah secara cepat.</p>
-                    </div>
-
-                    <!-- Table -->
-                    <div class="table-responsive">
-            <table class="table table-hover table-striped align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>No.</th>
-                        <th>Jenis Sampah</th>
-                        <th>Harga per kg (Rp)</th>
-                        <th>Stok (kg)</th>
-                        <th>Status</th>
-                        <th class="text-center">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($sampahList as $item)
-                        @if ($item['status'] !== 'nonaktif')
-                            <tr>
-                                <td class="fw-semibold">{{ $loop->iteration }}</td>
-                                <td>{{ $item['nama_jenis'] }}</td>
-                                <td>Rp {{ number_format($item['harga_per_kg'], 0, ',', '.') }}</td>
-                                @if ((float)$item['stok_kg'] < 5)
-                                    <td class="fw-bold text-danger">{{ number_format($item['stok_kg'], 1, ',', '.') }} kg</td>
-                                @else
-                                    <td class="fw-normal">{{ number_format($item['stok_kg'], 1, ',', '.') }} kg</td>
-                                @endif
-                                <td>
-                                    @if ($item['status'] === 'aktif')
-                                        <span class="badge bg-success">Aktif</span>
-                                    @else
-                                        <span class="badge bg-danger">Nonaktif</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    <div class="d-flex gap-2 justify-content-center flex-wrap">
-                                        <a href="{{ route('admin.sampah.edit', $item['id_jenis']) }}" class="btn btn-sm btn-info text-white">Ubah</a>
-                                        <form method="POST" class="delete-form d-inline" data-confirm="Hapus sampah {{ $item['nama_jenis'] }}?">
-                                            @csrf
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="id" value="{{ $item['id_jenis'] }}">
-                                            <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endif
-                    @empty
-                        <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                <p class="mb-0">📭 Tidak ada data sampah</p>
-                            </td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-                    </div>
+    <div class="card">
+        <div class="card-body">
+            <div class="gp-card-header">
+                <div>
+                    <h2 class="gp-title">Data Jenis Sampah</h2>
+                    <p class="gp-subtitle mb-0">Atur harga, stok, dan status sampah secara cepat.</p>
                 </div>
+                <a href="{{ route('admin.sampah.create') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-lg"></i>Tambah Sampah
+                </a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table gp-table gp-data-table table-hover align-middle" data-page-length="8">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Jenis Sampah</th>
+                            <th>Harga per kg (Rp)</th>
+                            <th>Stok (kg)</th>
+                            <th>Status</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($sampahList as $item)
+                            @if ($item['status'] !== 'nonaktif')
+                                <tr>
+                                    <td class="fw-semibold">{{ $loop->iteration }}</td>
+                                    <td>{{ $item['nama_jenis'] }}</td>
+                                    <td>Rp {{ number_format($item['harga_per_kg'], 0, ',', '.') }}</td>
+                                    <td class="{{ (float)$item['stok_kg'] < 5 ? 'fw-bold text-danger' : '' }}">
+                                        {{ number_format($item['stok_kg'], 1, ',', '.') }} kg
+                                    </td>
+                                    <td>
+                                        @if ($item['status'] === 'aktif')
+                                            <span class="badge bg-success">Aktif</span>
+                                        @else
+                                            <span class="badge bg-danger">Nonaktif</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <div class="d-flex justify-content-center flex-wrap gp-actions">
+                                            <a href="{{ route('admin.sampah.edit', $item['id_jenis']) }}" class="btn btn-sm btn-secondary"><i class="bi bi-pencil"></i>Edit</a>
+                                            <form method="POST" class="delete-form d-inline" data-confirm="Hapus sampah {{ $item['nama_jenis'] }}?">
+                                                @csrf
+                                                <input type="hidden" name="action" value="delete">
+                                                <input type="hidden" name="id" value="{{ $item['id_jenis'] }}">
+                                                <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i>Hapus</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endif
+                        @empty
+                            <tr>
+                                <td colspan="6" class="gp-empty">Tidak ada data sampah</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

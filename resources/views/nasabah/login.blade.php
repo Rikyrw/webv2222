@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Nasabah • GreenPoint</title>
+    <title>Login Nasabah - GreenPoint</title>
     
     <style>
         * {
@@ -232,21 +232,18 @@
             }
         }
     </style>
+    @include('partials.greenpoint-theme')
 </head>
 <body>
     <div class="login-container">
         <h2>Login Nasabah</h2>
 
         @if (session('error'))
-            <p class="error-message">{{ session('error') }}</p>
+            @include('partials.toast', ['type' => 'danger', 'message' => session('error')])
         @endif
 
         @if ($errors->any())
-            <p class="error-message">
-                @foreach ($errors->all() as $error)
-                    {{ $error }}<br>
-                @endforeach
-            </p>
+            @include('partials.toast', ['type' => 'danger', 'messages' => $errors->all()])
         @endif
 
         <form method="POST" action="{{ route('nasabah.authenticate') }}">

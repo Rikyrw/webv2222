@@ -303,6 +303,7 @@
             }
         }
     </style>
+    @include('partials.greenpoint-theme')
 </head>
 <body>
     <div class="app">
@@ -311,18 +312,10 @@
 
         <!-- MAIN CONTENT -->
         <main class="main">
-            <div class="page-header">
-                <div class="header-content">
-                    <h2>
-                        <svg viewBox="0 0 24 24">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                        Profil Saya
-                    </h2>
-                    <p class="subtle">Kelola informasi profil Anda</p>
-                </div>
-            </div>
+            @include('partials.nasabah-header', [
+                'title' => 'Profil Saya',
+                'subtitle' => 'Kelola informasi profil Anda',
+            ])
 
             <section class="profile-content">
                 <div class="profile-left">

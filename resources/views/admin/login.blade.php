@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Admin • GreenPoint</title>
+    <title>Login Admin - GreenPoint</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -173,6 +173,7 @@
             color: #64748b;
         }
     </style>
+    @include('partials.greenpoint-theme')
 </head>
 <body>
     <div class="shell">
@@ -185,10 +186,10 @@
 
             <div class="card-body">
                 @if(session('error'))
-                    <div class="alert alert-error">{{ session('error') }}</div>
+                    @include('partials.toast', ['type' => 'danger', 'message' => session('error')])
                 @endif
                 @if(session('success'))
-                    <div class="alert alert-success">{{ session('success') }}</div>
+                    @include('partials.toast', ['type' => 'success', 'message' => session('success')])
                 @endif
 
                 <form method="POST" action="{{ route('admin.login') }}">
