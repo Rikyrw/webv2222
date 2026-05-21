@@ -187,6 +187,19 @@
             transition: all 0.1s ease;
         }
 
+        .filter-action-btn {
+            margin-top: 0 !important;
+            transform: none !important;
+        }
+
+        .filter-action-btn:hover {
+            transform: none !important;
+        }
+
+        .filter-action-btn:active {
+            transform: none !important;
+        }
+
         .table-container {
             overflow-x: auto;
             margin-bottom: 20px;
@@ -440,13 +453,13 @@
                         </div>
 
                         <div class="filter-actions">
-                            <button type="submit" class="btn-export" style="margin-top: 0; transform: none;">
+                            <button type="submit" class="btn-export filter-action-btn">
                                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                                     <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                                 </svg>
                                 Terapkan Filter
                             </button>
-                            <button type="button" class="btn-export" style="margin-top: 0; transform: none;" onclick="resetFilter()">
+                            <button type="button" class="btn-export filter-action-btn" onclick="resetFilter()">
                                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="23 4 23 10 17 10"></polyline>
                                     <path d="M20.49 15a9 9 0 1 1-2-8.83"></path>

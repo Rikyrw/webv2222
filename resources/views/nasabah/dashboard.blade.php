@@ -137,12 +137,12 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 12px;
-            padding: 0;
+            gap: 8px;
+            padding: 16px;
             background: transparent;
-            color: #24573a;
-            border: none;
-            border-radius: 0;
+            color: #059669;
+            border: 1px solid #059669;
+            border-radius: 8px;
             text-decoration: none;
             cursor: pointer;
             flex: 0 0 calc(33.333% - 11px);
@@ -150,9 +150,11 @@
         }
 
         .ppob-card:hover {
-            color: #24573a;
-            transform: translateY(-2px);
-            box-shadow: none;
+            background: linear-gradient(135deg, #059669, #10b981);
+            color: white;
+            border-color: #059669;
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
         }
 
         .ppob-card:active {
@@ -166,14 +168,21 @@
             padding: 24px;
             margin-bottom: 0;
             object-fit: contain;
-            background: #edf3ee;
+            background: transparent;
             border-radius: 12px;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: brightness(0) saturate(100%) invert(38%) sepia(79%) saturate(398%) hue-rotate(126deg) brightness(100%) contrast(87%);
         }
 
         .ppob-card:hover img {
             transform: translateY(-2px);
-            filter: none;
+            color: white;
+            filter: brightness(0) saturate(100%) invert(100%) sepia(100%) saturate(10000%) hue-rotate(0deg) brightness(110%) contrast(101%);
+        }
+
+        .ppob-card:active img {
+            transform: scale(0.98);
+            transition: all 0.1s ease;
         }
 
         .ppob-card span {

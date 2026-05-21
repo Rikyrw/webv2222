@@ -145,62 +145,37 @@
             gap: 8px;
         }
 
-        .btn-secondary {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            /* transform: translate(0, -50%); */
-            background: transparent;
-            color: #059669;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .btn-secondary:hover {
-            background: linear-gradient(135deg, #059669, #10b981);
-            color: white;
-            border-color: #059669;
-            transform: translate(0, -5%) scale(1.05);
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
-        }
-
-        .btn-secondary:active {
-            transform: translate(0, -50%) scale(0.98);
-            transition: all 0.1s ease;
-        }
-
-        .btn-outline {
+        .filter-actions button,
+        .filter-actions a,
+        .btn-secondary,
+        .btn-outline,
+        .btn-export {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             padding: 8px 16px;
-            /* transform: translate(0, -50%); */
-            background: transparent;
+            background: white;
             color: #059669;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
+            font-weight: 600;
             font-size: 14px;
-            font-weight: 500;
+            font-family: inherit;
+            text-decoration: none;
+            border: 1px solid #059669;
+            border-radius: 6px;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s ease;
+            transform: none;
+            margin-top: 0;
         }
 
-        .btn-outline:hover {
-            background: linear-gradient(135deg, #059669, #10b981);
+        .filter-actions button:hover,
+        .filter-actions a:hover,
+        .btn-secondary:hover,
+        .btn-outline:hover,
+        .btn-export:hover {
+            background: #059669;
             color: white;
             border-color: #059669;
-            transform: translate(0, -5%) scale(1.05);
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
-        }
-
-        .btn-outline:active {
-            transform: translate(0, -50%) scale(0.98);
-            transition: all 0.1s ease;
         }
 
         .table-actions {
@@ -244,35 +219,6 @@
             outline: none;
             border-color: #10b981;
             box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
-        }
-
-        .btn-export {
-            transform: translate(0, -50%);
-            background: transparent;
-            color: #059669;
-            font-weight: 700;
-            padding: 8px 12px;
-            border-radius: 8px;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            border: 1px solid #059669;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            margin-top: 26px;
-        }
-
-        .btn-export:hover {
-            background: linear-gradient(135deg, #059669, #10b981);
-            color: white;
-            border-color: #059669;
-            transform: translate(0, -50%) scale(1.05);
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
-        }
-
-        .btn-export:active {
-            transform: translate(0, -50%) scale(0.98);
-            transition: all 0.1s ease;
         }
 
         table {
@@ -529,7 +475,7 @@
 
                         <div class="filter-actions">
                             <button type="submit" class="btn-secondary">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                                     <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                                 </svg>
                                 Terapkan Filter

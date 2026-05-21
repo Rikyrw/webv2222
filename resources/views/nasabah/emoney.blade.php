@@ -186,26 +186,29 @@
             width: 100%;
             min-height: 48px;
             padding: 12px 24px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            color: white;
-            border: none;
+            background: transparent;
+            color: #059669;
+            border: 1px solid #059669;
             border-radius: 14px;
             font-size: 14px;
             font-weight: 800;
             font-family: inherit;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 18px 40px rgba(16, 185, 129, 0.24);
         }
 
         .btn-primary:hover {
-            filter: brightness(0.98);
-            transform: translateY(-1px);
-            box-shadow: 0 20px 40px rgba(16, 185, 129, 0.3);
+            background: linear-gradient(135deg, #059669, #10b981);
+            color: white;
+            border-color: #059669;
+            transform: translate(0, -5%) scale(1.05);
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
         }
         
         .btn-primary:active {
-            transform: translateY(0);
+            transform: translate(0, -5%) scale(0.98);
+            transition: all 0.1s ease;
         }
 
         .btn-primary i {
