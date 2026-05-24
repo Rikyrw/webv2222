@@ -190,6 +190,104 @@
             stroke-width: 2;
         }
 
+        .topup-box {
+            margin-top: 16px;
+            padding: 16px;
+            border-radius: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            text-align: left;
+        }
+
+        .topup-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        .topup-form {
+            display: grid;
+            gap: 10px;
+        }
+
+        .topup-label {
+            font-size: 12px;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .topup-input-wrap {
+            display: grid;
+            grid-template-columns: 48px 1fr;
+            align-items: center;
+            border: 1px solid #cbd5f5;
+            border-radius: 10px;
+            background: white;
+            overflow: hidden;
+        }
+
+        .topup-prefix {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 44px;
+            font-weight: 600;
+            color: #059669;
+            background: #ecfdf3;
+            border-right: 1px solid #d1fae5;
+        }
+
+        .topup-input {
+            border: none;
+            height: 44px;
+            padding: 0 12px;
+            font-size: 16px;
+            color: #0f172a;
+            outline: none;
+        }
+
+        .btn-topup {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #059669, #10b981);
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-topup:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 14px rgba(5, 150, 105, 0.25);
+        }
+
+        .topup-hint {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .topup-status {
+            font-size: 12px;
+            font-weight: 500;
+            min-height: 18px;
+        }
+
+        .topup-status.is-success {
+            color: #16a34a;
+        }
+
+        .topup-status.is-error {
+            color: #dc2626;
+        }
+
         .form-group {
             margin-bottom: 20px;
         }
@@ -326,7 +424,7 @@
                     <div class="subtitle">{{ htmlspecialchars($user['email'] ?? '') }}</div>
                     <div class="saldo-box" role="region" aria-label="Saldo akun">
                         <span>Saldo</span>
-                        <span>Rp {{ number_format((float)($user['saldo'] ?? 0), 0, ',', '.') }}</span>
+                        <span id="saldo-amount">Rp {{ number_format((float)($user['saldo'] ?? 0), 0, ',', '.') }}</span>
                     </div>
                     <a href="{{ route('nasabah.setor') }}" class="btn-transaksi">
                         <svg viewBox="0 0 24 24">
@@ -336,6 +434,20 @@
                         </svg>
                         Transaksi Setor
                     </a>
+                    <div class="topup-box" role="region" aria-label="Top up saldo">
+                        <div class="topup-title">Top Up Saldo</div>
+                        <form id="topup-form" class="topup-form" method="post" action="{{ route('nasabah.topup.create') }}">
+                            @csrf
+                            <label class="topup-label" for="topup-amount">Nominal</label>
+                            <div class="topup-input-wrap">
+                                <span class="topup-prefix">Rp</span>
+                                <input class="topup-input" type="number" id="topup-amount" name="nominal" min="10000" step="1000" placeholder="10000" required />
+                            </div>
+                            <button type="submit" class="btn-topup">Top Up Saldo</button>
+                            <div id="topup-status" class="topup-status" aria-live="polite"></div>
+                        </form>
+                        <div class="topup-hint">Minimal Rp 10.000</div>
+                    </div>
                 </div>
 
                 <form class="profile-form" aria-label="Form profil pengguna">
@@ -424,5 +536,165 @@
 
     <!-- Chat Bot -->
     @include('partials.chatbot')
+
+    <script src="{{ env('MIDTRANS_IS_PROD') ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js' }}" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
+    <script>
+        (function () {
+            var form = document.getElementById('topup-form');
+            if (!form) {
+                return;
+            }
+
+            var statusEl = document.getElementById('topup-status');
+            var amountInput = document.getElementById('topup-amount');
+            var saldoEl = document.getElementById('saldo-amount');
+            var csrfInput = form.querySelector('input[name="_token"]');
+            var pollTimer = null;
+            var lastOrderId = null;
+            var maxPolls = 20;
+            var pollCount = 0;
+            var pollDelayMs = 3000;
+
+            var setStatus = function (message, state) {
+                if (!statusEl) {
+                    return;
+                }
+                statusEl.textContent = message || '';
+                statusEl.classList.remove('is-success', 'is-error');
+                if (state === 'success') {
+                    statusEl.classList.add('is-success');
+                }
+                if (state === 'error') {
+                    statusEl.classList.add('is-error');
+                }
+            };
+
+            var formatRupiah = function (value) {
+                var num = Number(value || 0);
+                if (Number.isNaN(num)) {
+                    num = 0;
+                }
+                return 'Rp ' + num.toLocaleString('id-ID', { maximumFractionDigits: 0 });
+            };
+
+            var stopPolling = function () {
+                if (pollTimer) {
+                    clearInterval(pollTimer);
+                    pollTimer = null;
+                }
+            };
+
+            var startPolling = function () {
+                if (!lastOrderId) {
+                    return;
+                }
+
+                stopPolling();
+                pollCount = 0;
+
+                pollTimer = setInterval(function () {
+                    pollCount += 1;
+                    if (pollCount > maxPolls) {
+                        stopPolling();
+                        return;
+                    }
+
+                    fetch("{{ route('nasabah.topup.status') }}?order_id=" + encodeURIComponent(lastOrderId), {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(function (response) {
+                        return response.json().then(function (data) {
+                            return { ok: response.ok, data: data };
+                        });
+                    })
+                    .then(function (result) {
+                        if (!result.ok || !result.data) {
+                            return;
+                        }
+
+                        var status = result.data.transaction_status || result.data.status;
+                        if (status === 'settlement' || status === 'capture') {
+                            stopPolling();
+                            if (saldoEl && typeof result.data.saldo !== 'undefined') {
+                                saldoEl.textContent = formatRupiah(result.data.saldo);
+                            }
+                            setStatus('Pembayaran sukses. Saldo sudah diperbarui.', 'success');
+                        }
+                    })
+                    .catch(function () {
+                        // Ignore polling errors and keep trying until maxPolls.
+                    });
+                }, pollDelayMs);
+            };
+
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                if (!window.snap) {
+                    setStatus('Pembayaran belum siap. Coba lagi nanti.', 'error');
+                    return;
+                }
+
+                var nominal = parseInt(amountInput.value, 10);
+                if (!nominal || nominal < 10000) {
+                    setStatus('Nominal minimal Rp 10.000.', 'error');
+                    return;
+                }
+
+                setStatus('Memproses top up...', null);
+
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfInput ? csrfInput.value : ''
+                    },
+                    body: JSON.stringify({ nominal: nominal })
+                })
+                .then(function (response) {
+                    return response.json().then(function (data) {
+                        return { ok: response.ok, data: data };
+                    });
+                })
+                .then(function (result) {
+                    if (!result.ok) {
+                        throw new Error(result.data && result.data.message ? result.data.message : 'Gagal membuat transaksi.');
+                    }
+
+                    if (!result.data || !result.data.token) {
+                        throw new Error('Token pembayaran tidak tersedia.');
+                    }
+
+                    lastOrderId = result.data.order_id || null;
+
+                    window.snap.pay(result.data.token, {
+                        onSuccess: function () {
+                            setStatus('Pembayaran sukses. Menunggu saldo diperbarui...', 'success');
+                            startPolling();
+                        },
+                        onPending: function () {
+                            setStatus('Pembayaran menunggu konfirmasi. Saldo akan diperbarui otomatis.', null);
+                            startPolling();
+                        },
+                        onError: function () {
+                            stopPolling();
+                            setStatus('Pembayaran gagal. Silakan coba lagi.', 'error');
+                        },
+                        onClose: function () {
+                            stopPolling();
+                            setStatus('Popup pembayaran ditutup.', null);
+                        }
+                    });
+                })
+                .catch(function (error) {
+                    setStatus(error.message || 'Terjadi kesalahan saat memproses top up.', 'error');
+                });
+            });
+        })();
+    </script>
 </body>
 </html>

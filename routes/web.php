@@ -21,6 +21,7 @@ use App\Http\Controllers\NasabahEmoneyController;
 use App\Http\Controllers\NasabahTransaksiSetorController;
 use App\Http\Controllers\NasabahPulsaController;
 use App\Http\Controllers\NasabahPlnController;
+use App\Http\Controllers\NasabahTopupController;
 use App\Http\Controllers\ChatbotController;
 
 Route::get('/', function () {
@@ -103,6 +104,13 @@ Route::get('/nasabah/profil/ubah', [NasabahProfilController::class, 'edit'])->na
 Route::post('/nasabah/profil/update', [NasabahProfilController::class, 'update'])->name('nasabah.profil.update');
 Route::get('/nasabah/setor', [NasabahTransaksiSetorController::class, 'index'])->name('nasabah.setor');
 Route::post('/nasabah/setor', [NasabahTransaksiSetorController::class, 'index'])->name('nasabah.setor.post');
+Route::post('/nasabah/topup', [NasabahTopupController::class, 'create'])->name('nasabah.topup.create');
+Route::get('/nasabah/topup/status', [NasabahTopupController::class, 'checkStatus'])->name('nasabah.topup.status');
+
+// Midtrans payment notifications
+Route::any('/midtrans/notification{any?}', [NasabahTopupController::class, 'handleNotification'])
+    ->where('any', '.*')
+    ->name('midtrans.notification');
 
 // Nasabah PPOB routes
 Route::get('/nasabah/emoney', [NasabahEmoneyController::class, 'index'])->name('nasabah.emoney');
@@ -115,3 +123,5 @@ Route::post('/nasabah/pln', [NasabahPlnController::class, 'store'])->name('nasab
 // Nasabah register routes
 Route::get('/nasabah/register', [NasabahRegisterController::class, 'showRegister'])->name('nasabah.register');
 Route::post('/nasabah/register', [NasabahRegisterController::class, 'store'])->name('nasabah.store');
+
+
