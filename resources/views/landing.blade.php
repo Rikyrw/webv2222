@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GreenPoint - Bank Sampah Digital</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
@@ -41,13 +44,25 @@
             margin: 0;
             background: var(--page-bg);
             color: var(--text-main);
-            font-family: Inter, "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 400;
+            line-height: 1.5;
             overflow-x: hidden;
             text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         a {
             text-decoration: none;
+        }
+
+        p,
+        li,
+        .accordion-body,
+        .contact-info-item p,
+        footer p {
+            font-weight: 400;
         }
 
         img {
@@ -141,7 +156,7 @@
             border-radius: 0;
             padding: 0 !important;
             font-size: 0.88rem;
-            font-weight: 650;
+            font-weight: 500;
             transition: color var(--transition-fast), transform var(--transition-fast);
         }
 
@@ -154,7 +169,7 @@
         .navbar-landing .nav-link:active {
             color: var(--primary-green) !important;
             background: transparent;
-            font-weight: 800;
+            font-weight: 700;
             transform: none;
         }
 
@@ -175,7 +190,7 @@
             color: #ffffff;
             box-shadow: 0 8px 18px rgba(45, 106, 79, 0.16);
             font-size: 0.9rem;
-            font-weight: 750;
+            font-weight: 600;
         }
 
         .btn-nav-primary:hover,
@@ -196,7 +211,7 @@
             justify-content: center;
             gap: 0.5rem;
             border-radius: var(--radius-control);
-            font-weight: 750;
+            font-weight: 600;
             line-height: 1.2;
             transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast), color var(--transition-fast);
         }
@@ -251,9 +266,9 @@
 
         .hero-section {
             position: relative;
-            min-height: 640px;
+            min-height: clamp(640px, 72vh, 820px);
             margin-top: 72px;
-            padding: clamp(5.5rem, 9vw, 8rem) 0 clamp(4.5rem, 8vw, 7rem);
+            padding: clamp(5rem, 7vw, 7rem) 0 clamp(5.5rem, 8vw, 7.5rem);
             overflow: hidden;
             color: #ffffff;
             background:
@@ -287,12 +302,15 @@
         .hero-section > .container {
             position: relative;
             z-index: 2;
+            width: min(1320px, calc(100% - 48px));
+            max-width: none;
         }
 
         .hero-section > .container > .row {
             position: relative;
             z-index: 2;
-            transform: translateY(-104px);
+            min-height: clamp(470px, 58vh, 650px);
+            transform: translateY(-86px);
         }
 
         .hero-eyebrow {
@@ -313,8 +331,8 @@
         .hero-title {
             max-width: 640px;
             margin-bottom: 1.25rem;
-            font-size: clamp(2.55rem, 6vw, 5rem);
-            font-weight: 850;
+            font-size: clamp(2.55rem, 5.5vw, 4.65rem);
+            font-weight: 800;
             line-height: 0.98;
             letter-spacing: 0;
         }
@@ -355,13 +373,16 @@
             display: flex;
             justify-content: flex-end;
             align-items: center;
-            min-height: 430px;
+            width: 100%;
+            min-height: clamp(380px, 45vw, 570px);
             pointer-events: none;
         }
 
         .hero-image {
-            width: min(670px, 60vw);
-            margin-right: -10vw;
+            position: relative;
+            width: clamp(500px, 39vw, 760px);
+            max-width: none;
+            margin-right: clamp(-190px, -8vw, -72px);
             filter: drop-shadow(0 28px 34px rgba(0, 0, 0, 0.22));
         }
 
@@ -370,6 +391,8 @@
             width: 100%;
             height: auto;
             object-fit: contain;
+            -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 74%, rgba(0, 0, 0, 0.9) 84%, rgba(0, 0, 0, 0.42) 94%, transparent 100%);
+            mask-image: linear-gradient(90deg, #000 0%, #000 74%, rgba(0, 0, 0, 0.9) 84%, rgba(0, 0, 0, 0.42) 94%, transparent 100%);
         }
 
         .section-shell {
@@ -391,7 +414,7 @@
             margin-bottom: 0.8rem;
             color: var(--primary-green);
             font-size: clamp(2rem, 4vw, 3rem);
-            font-weight: 850;
+            font-weight: 800;
             line-height: 1.08;
             letter-spacing: 0;
         }
@@ -466,7 +489,7 @@
         .member-info h4,
         .contact-info-item h5 {
             color: var(--primary-green);
-            font-weight: 800;
+            font-weight: 700;
             letter-spacing: 0;
         }
 
@@ -535,7 +558,7 @@
             color: var(--text-main);
             border: 0;
             font-size: 0.98rem;
-            font-weight: 750;
+            font-weight: 600;
             line-height: 1.35;
             box-shadow: none;
         }
@@ -597,7 +620,7 @@
         .member-info span {
             color: var(--text-muted);
             font-size: 0.9rem;
-            font-weight: 650;
+            font-weight: 400;
         }
 
         .contact-info-panel {
@@ -646,7 +669,7 @@
         .form-label {
             color: var(--primary-green);
             font-size: 0.9rem;
-            font-weight: 750;
+            font-weight: 600;
         }
 
         .form-control {
@@ -687,7 +710,7 @@
             margin-bottom: 1.15rem;
             color: var(--text-main);
             font-size: 0.82rem;
-            font-weight: 800;
+            font-weight: 700;
             letter-spacing: 0.04em;
             text-transform: uppercase;
         }
@@ -700,7 +723,7 @@
         footer a {
             display: inline-flex;
             color: var(--text-muted);
-            font-weight: 650;
+            font-weight: 500;
             transition: color var(--transition-fast), transform var(--transition-fast), background-color var(--transition-fast);
         }
 
@@ -719,7 +742,7 @@
             gap: 0.75rem;
             color: var(--primary-green);
             font-size: 1.35rem;
-            font-weight: 850;
+            font-weight: 800;
             letter-spacing: 0;
         }
 
@@ -834,8 +857,13 @@
                 padding-top: 5rem;
             }
 
+            .hero-section > .container {
+                max-width: min(100% - 32px, 720px);
+            }
+
             .hero-section > .container > .row {
-                transform: translateY(-48px);
+                min-height: auto;
+                transform: translateY(-42px);
             }
 
             .hero-image-container {
@@ -845,8 +873,8 @@
             }
 
             .hero-image {
-                width: min(430px, 86vw);
-                margin-right: -8vw;
+                width: clamp(340px, 74vw, 520px);
+                margin-right: 0;
                 opacity: 0.94;
             }
         }
@@ -870,6 +898,17 @@
 
             .hero-section > .container > .row {
                 transform: none;
+            }
+
+            .hero-image-container {
+                justify-content: flex-end;
+                margin-top: 1.25rem;
+            }
+
+            .hero-image {
+                width: min(390px, 92vw);
+                margin-right: -18vw;
+                opacity: 0.86;
             }
 
             .hero-actions,

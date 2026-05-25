@@ -22,6 +22,7 @@ class NasabahGoogleAuthController extends Controller
             $googleProfile = $this->verifyGoogleCredential($validated['credential']);
             $user = $this->findOrCreateNasabah($googleProfile);
 
+            session()->forget(NasabahEmailVerificationController::SESSION_KEY);
             session([
                 'id_nasabah' => $user['id_nasabah'],
                 'nama_nasabah' => $user['nama_lengkap'] ?? ($user['nama_nasabah'] ?? null),
@@ -58,7 +59,7 @@ class NasabahGoogleAuthController extends Controller
     {
         $clientId = config('services.google.client_id');
 
-        if (!$clientId) {
+        if (! $clientId) {
             throw new RuntimeException('Google SSO belum dikonfigurasi.');
         }
 
@@ -66,7 +67,7 @@ class NasabahGoogleAuthController extends Controller
             'id_token' => $credential,
         ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             throw new RuntimeException('Token Google tidak valid atau sudah kedaluwarsa.');
         }
 
@@ -80,7 +81,7 @@ class NasabahGoogleAuthController extends Controller
             throw new RuntimeException('Token Google bukan untuk aplikasi ini.');
         }
 
-        if (!in_array($issuer, ['accounts.google.com', 'https://accounts.google.com'], true)) {
+        if (! in_array($issuer, ['accounts.google.com', 'https://accounts.google.com'], true)) {
             throw new RuntimeException('Penerbit token Google tidak valid.');
         }
 
@@ -88,7 +89,7 @@ class NasabahGoogleAuthController extends Controller
             throw new RuntimeException('Token Google sudah kedaluwarsa.');
         }
 
-        if (!$emailVerified || empty($payload['email']) || empty($payload['sub'])) {
+        if (! $emailVerified || empty($payload['email']) || empty($payload['sub'])) {
             throw new RuntimeException('Akun Google belum terverifikasi dengan benar.');
         }
 
@@ -103,7 +104,7 @@ class NasabahGoogleAuthController extends Controller
     {
         $user = $this->findNasabahByGoogleSub($googleProfile['sub']);
 
-        if (!$user) {
+        if (! $user) {
             $user = $this->findNasabahByEmail($googleProfile['email']);
         }
 
@@ -112,7 +113,7 @@ class NasabahGoogleAuthController extends Controller
                 throw new RuntimeException('Akun nasabah belum aktif.');
             }
 
-            if (!empty($user['google_sub']) && $user['google_sub'] !== $googleProfile['sub']) {
+            if (! empty($user['google_sub']) && $user['google_sub'] !== $googleProfile['sub']) {
                 throw new RuntimeException('Akun ini sudah tertaut ke akun Google lain.');
             }
 
@@ -124,9 +125,9 @@ class NasabahGoogleAuthController extends Controller
 
     private function findNasabahByGoogleSub(string $googleSub): ?array
     {
-        $response = $this->supabaseRequest()->get($this->supabaseUrl() . '/rest/v1/nasabah', [
+        $response = $this->supabaseRequest()->get($this->supabaseUrl().'/rest/v1/nasabah', [
             'select' => '*',
-            'google_sub' => 'eq.' . $googleSub,
+            'google_sub' => 'eq.'.$googleSub,
             'limit' => 1,
         ]);
 
@@ -143,13 +144,13 @@ class NasabahGoogleAuthController extends Controller
 
     private function findNasabahByEmail(string $email): ?array
     {
-        $response = $this->supabaseRequest()->get($this->supabaseUrl() . '/rest/v1/nasabah', [
+        $response = $this->supabaseRequest()->get($this->supabaseUrl().'/rest/v1/nasabah', [
             'select' => '*',
-            'email' => 'eq.' . $email,
+            'email' => 'eq.'.$email,
             'limit' => 1,
         ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             throw new RuntimeException('Gagal membaca akun nasabah dari Supabase.');
         }
 
@@ -158,28 +159,36 @@ class NasabahGoogleAuthController extends Controller
 
     private function linkGoogleSubIfSupported(array $user, string $googleSub): array
     {
-        if (($user['google_sub'] ?? null) === $googleSub) {
-            return $user;
+        $payload = $this->verifiedGooglePayload();
+
+        if (($user['google_sub'] ?? null) !== $googleSub) {
+            $payload['google_sub'] = $googleSub;
         }
 
-        $response = $this->supabaseRequest(true)
-            ->withHeaders(['Prefer' => 'return=representation'])
-            ->patch($this->supabaseUrl() . '/rest/v1/nasabah?id_nasabah=eq.' . (int) $user['id_nasabah'], [
-                'google_sub' => $googleSub,
-            ]);
+        $response = null;
 
-        if ($response->successful()) {
-            return $this->firstRow($response->json()) ?? $user;
-        }
+        for ($attempt = 0; $attempt < 3 && $payload !== []; $attempt++) {
+            $response = $this->supabaseRequest(true)
+                ->withHeaders(['Prefer' => 'return=representation'])
+                ->patch($this->supabaseUrl().'/rest/v1/nasabah?id_nasabah=eq.'.(int) $user['id_nasabah'], $payload);
 
-        if ($this->googleSubColumnIsMissing($response->body())) {
-            return $user;
+            if ($response->successful()) {
+                return $this->firstRow($response->json()) ?? array_merge($user, $payload);
+            }
+
+            if (! $this->dropUnsupportedOptionalColumns($payload, $response->body())) {
+                break;
+            }
+
+            if ($payload === []) {
+                return $user;
+            }
         }
 
         Log::warning('Gagal menautkan google_sub ke akun nasabah.', [
             'id_nasabah' => $user['id_nasabah'] ?? null,
-            'status' => $response->status(),
-            'body' => $response->body(),
+            'status' => $response?->status(),
+            'body' => $response?->body(),
         ]);
 
         return $user;
@@ -198,16 +207,20 @@ class NasabahGoogleAuthController extends Controller
             'status' => 'aktif',
             'saldo' => 0,
             'google_sub' => $googleProfile['sub'],
+            ...$this->verifiedGooglePayload(),
         ];
 
         $response = $this->insertNasabah($newUser);
 
-        if (!$response->successful() && $this->googleSubColumnIsMissing($response->body())) {
-            unset($newUser['google_sub']);
+        for ($attempt = 0; ! $response->successful() && $attempt < 3; $attempt++) {
+            if (! $this->dropUnsupportedOptionalColumns($newUser, $response->body())) {
+                break;
+            }
+
             $response = $this->insertNasabah($newUser);
         }
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::warning('Gagal membuat akun nasabah dari Google.', [
                 'status' => $response->status(),
                 'body' => $response->body(),
@@ -218,7 +231,7 @@ class NasabahGoogleAuthController extends Controller
 
         $user = $this->firstRow($response->json());
 
-        if (!$user) {
+        if (! $user) {
             throw new RuntimeException('Akun nasabah baru tidak berhasil dibaca setelah dibuat.');
         }
 
@@ -229,7 +242,7 @@ class NasabahGoogleAuthController extends Controller
     {
         return $this->supabaseRequest(true)
             ->withHeaders(['Prefer' => 'return=representation'])
-            ->post($this->supabaseUrl() . '/rest/v1/nasabah', $payload);
+            ->post($this->supabaseUrl().'/rest/v1/nasabah', $payload);
     }
 
     private function generateUniqueUsername(string $email): string
@@ -246,7 +259,7 @@ class NasabahGoogleAuthController extends Controller
 
         while ($this->usernameExists($candidate)) {
             $suffixText = (string) $suffix;
-            $candidate = substr($base, 0, 50 - strlen($suffixText)) . $suffixText;
+            $candidate = substr($base, 0, 50 - strlen($suffixText)).$suffixText;
             $suffix++;
         }
 
@@ -255,13 +268,13 @@ class NasabahGoogleAuthController extends Controller
 
     private function usernameExists(string $username): bool
     {
-        $response = $this->supabaseRequest()->get($this->supabaseUrl() . '/rest/v1/nasabah', [
+        $response = $this->supabaseRequest()->get($this->supabaseUrl().'/rest/v1/nasabah', [
             'select' => 'id_nasabah',
-            'user_name' => 'eq.' . $username,
+            'user_name' => 'eq.'.$username,
             'limit' => 1,
         ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             throw new RuntimeException('Gagal memeriksa username nasabah.');
         }
 
@@ -274,13 +287,13 @@ class NasabahGoogleAuthController extends Controller
             ? (env('SUPABASE_SERVICE_ROLE_KEY') ?: env('SUPABASE_KEY'))
             : env('SUPABASE_KEY');
 
-        if (!$this->supabaseUrl() || !$key) {
+        if (! $this->supabaseUrl() || ! $key) {
             throw new RuntimeException('Konfigurasi Supabase belum lengkap.');
         }
 
         return Http::acceptJson()->withHeaders([
             'apikey' => $key,
-            'Authorization' => 'Bearer ' . $key,
+            'Authorization' => 'Bearer '.$key,
             'Content-Type' => 'application/json',
         ]);
     }
@@ -299,6 +312,45 @@ class NasabahGoogleAuthController extends Controller
     private function firstRow(mixed $rows): ?array
     {
         return is_array($rows) && isset($rows[0]) && is_array($rows[0]) ? $rows[0] : null;
+    }
+
+    private function verifiedGooglePayload(): array
+    {
+        return [
+            'email_verified_at' => now()->toIso8601String(),
+            'email_verification_token_hash' => null,
+            'email_verification_expires_at' => null,
+        ];
+    }
+
+    private function dropUnsupportedOptionalColumns(array &$payload, string $body): bool
+    {
+        $changed = false;
+
+        if (array_key_exists('google_sub', $payload) && $this->googleSubColumnIsMissing($body)) {
+            unset($payload['google_sub']);
+            $changed = true;
+        }
+
+        if ($this->verificationColumnIsMissing($body)) {
+            foreach (array_keys($this->verifiedGooglePayload()) as $column) {
+                if (array_key_exists($column, $payload)) {
+                    unset($payload[$column]);
+                    $changed = true;
+                }
+            }
+        }
+
+        return $changed;
+    }
+
+    private function verificationColumnIsMissing(string $body): bool
+    {
+        $body = strtolower($body);
+
+        return str_contains($body, 'email_verified_at')
+            || str_contains($body, 'email_verification_token_hash')
+            || str_contains($body, 'email_verification_expires_at');
     }
 
     private function googleSubColumnIsMissing(string $body): bool

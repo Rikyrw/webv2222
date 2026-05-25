@@ -11,6 +11,7 @@ use App\Http\Controllers\LaporanController;
 use App\Http\Controllers\PengaturanAdminController;
 use App\Http\Controllers\NasabahLoginController;
 use App\Http\Controllers\NasabahRegisterController;
+use App\Http\Controllers\NasabahEmailVerificationController;
 use App\Http\Controllers\NasabahGoogleAuthController;
 use App\Http\Controllers\NasabahPasswordResetController;
 use App\Http\Controllers\NasabahDashboardController;
@@ -93,7 +94,16 @@ Route::post('/nasabah/authenticate', [NasabahLoginController::class, 'authentica
 Route::post('/nasabah/google/authenticate', [NasabahGoogleAuthController::class, 'authenticate'])->name('nasabah.google.authenticate');
 Route::get('/nasabah/logout', [NasabahLoginController::class, 'logout'])->name('nasabah.logout');
 Route::get('/nasabah/lupa-password', [NasabahPasswordResetController::class, 'showForgotForm'])->name('nasabah.password.request');
-Route::post('/nasabah/lupa-password', [NasabahPasswordResetController::class, 'sendResetLink'])->name('nasabah.password.email');
+Route::post('/nasabah/lupa-password', [NasabahPasswordResetController::class, 'sendResetLink'])
+    ->middleware('throttle:3,1')
+    ->name('nasabah.password.email');
+Route::get('/nasabah/verifikasi-email', [NasabahEmailVerificationController::class, 'notice'])->name('nasabah.verification.notice');
+Route::post('/nasabah/verifikasi-email/kirim-ulang', [NasabahEmailVerificationController::class, 'resend'])
+    ->middleware('throttle:3,1')
+    ->name('nasabah.verification.resend');
+Route::get('/nasabah/verifikasi-email/{id}/{token}', [NasabahEmailVerificationController::class, 'verify'])
+    ->whereNumber('id')
+    ->name('nasabah.verification.verify');
 
 // Nasabah dashboard routes
 Route::get('/nasabah/dashboard', [NasabahDashboardController::class, 'index'])->name('nasabah.dashboard');

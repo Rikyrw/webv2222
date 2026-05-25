@@ -9,8 +9,17 @@ class NasabahDashboardController extends Controller
 {
     public function index(Request $request)
     {
-        // Temporarily disabled auth check for development
-        $user_id = session('id_nasabah') ?? 1; // Default to user ID 1 if not logged in
+        if (! session('id_nasabah')) {
+            if (session()->has(NasabahEmailVerificationController::SESSION_KEY)) {
+                return redirect()
+                    ->route('nasabah.verification.notice')
+                    ->with('error', 'Email belum diverifikasi.');
+            }
+
+            return redirect()->route('nasabah.login')->with('error', 'Silakan login terlebih dahulu');
+        }
+
+        $user_id = session('id_nasabah');
         $user_name = session('nama_nasabah') ?? 'Guest User';
         $supabaseUrl = env('SUPABASE_URL');
         $supabaseKey = env('SUPABASE_KEY');
@@ -19,8 +28,8 @@ class NasabahDashboardController extends Controller
         try {
             $response = Http::withHeaders([
                 'apikey' => $supabaseKey,
-                'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . '/rest/v1/nasabah?select=*&id_nasabah=eq.' . $user_id);
+                'Authorization' => 'Bearer '.$supabaseKey,
+            ])->get($supabaseUrl.'/rest/v1/nasabah?select=*&id_nasabah=eq.'.$user_id);
 
             $userData = $response->json();
             if (is_array($userData) && count($userData) > 0) {
@@ -32,7 +41,7 @@ class NasabahDashboardController extends Controller
                 $user_name = $user['nama_lengkap'] ?? ($user['nama_nasabah'] ?? 'User');
             }
         } catch (\Exception $e) {
-            \Log::error('Dashboard user fetch error: ' . $e->getMessage());
+            \Log::error('Dashboard user fetch error: '.$e->getMessage());
         }
 
         // Fetch recent setor transactions
@@ -40,8 +49,8 @@ class NasabahDashboardController extends Controller
         try {
             $response = Http::withHeaders([
                 'apikey' => $supabaseKey,
-                'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . '/rest/v1/transaksi_setor?select=id_transaksi_setor,total_nilai,status,tanggal_setor,detail_setor(berat_kg)&id_nasabah=eq.' . $user_id . '&order=tanggal_setor.desc&limit=5');
+                'Authorization' => 'Bearer '.$supabaseKey,
+            ])->get($supabaseUrl.'/rest/v1/transaksi_setor?select=id_transaksi_setor,total_nilai,status,tanggal_setor,detail_setor(berat_kg)&id_nasabah=eq.'.$user_id.'&order=tanggal_setor.desc&limit=5');
 
             $items = $response->json() ?: [];
             $recent_setor = [];
@@ -62,7 +71,7 @@ class NasabahDashboardController extends Controller
                 }
             }
         } catch (\Exception $e) {
-            \Log::error('Recent setor error: ' . $e->getMessage());
+            \Log::error('Recent setor error: '.$e->getMessage());
         }
 
         // Fetch recent penarikan saldo
@@ -70,8 +79,8 @@ class NasabahDashboardController extends Controller
         try {
             $penarikan = Http::withHeaders([
                 'apikey' => $supabaseKey,
-                'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . '/rest/v1/penarikan_saldo?select=id_penarikan,jenis_penukaran,nominal,status,tanggal_pengajuan,deskripsi&id_nasabah=eq.' . $user_id . '&order=tanggal_pengajuan.desc&limit=5')->json() ?: [];
+                'Authorization' => 'Bearer '.$supabaseKey,
+            ])->get($supabaseUrl.'/rest/v1/penarikan_saldo?select=id_penarikan,jenis_penukaran,nominal,status,tanggal_pengajuan,deskripsi&id_nasabah=eq.'.$user_id.'&order=tanggal_pengajuan.desc&limit=5')->json() ?: [];
 
             $hist = [];
             if (is_array($penarikan)) {
@@ -90,7 +99,7 @@ class NasabahDashboardController extends Controller
 
             $recent_ppob = $hist;
         } catch (\Exception $e) {
-            \Log::error('Recent PPOB error: ' . $e->getMessage());
+            \Log::error('Recent PPOB error: '.$e->getMessage());
         }
 
         // Compute aggregates
@@ -99,14 +108,14 @@ class NasabahDashboardController extends Controller
         try {
             $all_setor = Http::withHeaders([
                 'apikey' => $supabaseKey,
-                'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . '/rest/v1/transaksi_setor?select=id_transaksi_setor&id_nasabah=eq.' . $user_id)->json() ?: [];
+                'Authorization' => 'Bearer '.$supabaseKey,
+            ])->get($supabaseUrl.'/rest/v1/transaksi_setor?select=id_transaksi_setor&id_nasabah=eq.'.$user_id)->json() ?: [];
             $setor_count = is_array($all_setor) ? count($all_setor) : 0;
 
             $all_penarikan = Http::withHeaders([
                 'apikey' => $supabaseKey,
-                'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . '/rest/v1/penarikan_saldo?select=nominal&id_nasabah=eq.' . $user_id)->json() ?: [];
+                'Authorization' => 'Bearer '.$supabaseKey,
+            ])->get($supabaseUrl.'/rest/v1/penarikan_saldo?select=nominal&id_nasabah=eq.'.$user_id)->json() ?: [];
             $sum_penarikan = 0;
             if (is_array($all_penarikan)) {
                 foreach ($all_penarikan as $pp) {
@@ -116,7 +125,7 @@ class NasabahDashboardController extends Controller
 
             $ppob_total = $sum_penarikan;
         } catch (\Exception $e) {
-            \Log::error('Aggregates error: ' . $e->getMessage());
+            \Log::error('Aggregates error: '.$e->getMessage());
         }
 
         $activePage = 'dashboard';
@@ -134,6 +143,7 @@ class NasabahDashboardController extends Controller
     public function logout()
     {
         session()->flush();
+
         return redirect()->route('nasabah.login')->with('success', 'Anda telah logout');
     }
 }

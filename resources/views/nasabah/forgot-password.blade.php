@@ -97,7 +97,7 @@
     <main class="card">
         <h1>Lupa Password</h1>
         <p class="subtitle">
-            Masukkan email akun manual Anda. Jika email cocok, link reset password akan dikirim lewat email.
+            Masukkan email akun manual Anda. Link reset hanya dikirim ke inbox email akun tersebut.
         </p>
 
         @if (session('success'))
@@ -110,7 +110,7 @@
 
         <form method="POST" action="{{ route('nasabah.password.email') }}">
             @csrf
-            <input type="email" name="email" placeholder="Email" value="{{ old('email') }}" required>
+            <input type="email" name="email" placeholder="Email" value="{{ old('email') }}" autocomplete="email" autocapitalize="none" spellcheck="false" required>
             <button type="submit">Kirim Link Reset</button>
         </form>
 

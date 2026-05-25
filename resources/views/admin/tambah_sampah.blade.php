@@ -22,7 +22,7 @@
                 </div>
                 <div class="col-md-6">
                     <label for="harga_per_kg" class="form-label">Harga per kg (Rp) <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" id="harga_per_kg" name="harga_per_kg" required min="0" step="0.01">
+                    <input type="number" class="form-control" id="harga_per_kg" name="harga_per_kg" required min="0" step="1">
                 </div>
                 <div class="col-md-6">
                     <label for="stok" class="form-label">Stok (kg) <span class="text-danger">*</span></label>

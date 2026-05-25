@@ -255,6 +255,9 @@
                     name="username" 
                     placeholder="Username atau Email" 
                     required
+                    autocomplete="username"
+                    autocapitalize="none"
+                    spellcheck="false"
                     value="{{ old('username') }}"
                 >
             </div>

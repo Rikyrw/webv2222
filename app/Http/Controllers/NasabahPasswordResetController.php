@@ -2,13 +2,20 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\NasabahPasswordResetLinkMail;
+use App\Services\FirebasePasswordResetLinkGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class NasabahPasswordResetController extends Controller
 {
+    public function __construct(
+        private FirebasePasswordResetLinkGenerator $passwordResetLinks,
+    ) {}
+
     public function showForgotForm()
     {
         return view('nasabah.forgot-password');
@@ -25,7 +32,7 @@ class NasabahPasswordResetController extends Controller
 
         if ($user && $this->isManualAccount($user)) {
             if ($this->ensureFirebasePasswordAccountExists($email, $user['password'] ?? null)) {
-                if ($this->sendFirebasePasswordReset($email)) {
+                if ($this->sendPasswordResetMail($email, $user, $request->ip())) {
                     $this->markAccountAsFirebasePending((int) $user['id_nasabah'], $user['password'] ?? null);
                 }
             }
@@ -34,36 +41,21 @@ class NasabahPasswordResetController extends Controller
         return back()->with('success', 'Jika email terdaftar sebagai akun manual, link reset password sudah dikirim.');
     }
 
-    private function sendFirebasePasswordReset(string $email): bool
+    private function sendPasswordResetMail(string $email, array $user, ?string $userIp): bool
     {
-        $firebaseApiKey = config('services.firebase.api_key');
-
-        if (!$firebaseApiKey) {
-            Log::warning('Firebase password reset skipped because FIREBASE_API_KEY is missing.');
-            return false;
-        }
-
         try {
-            $response = Http::acceptJson()->post(
-                'https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=' . urlencode($firebaseApiKey),
-                [
-                    'requestType' => 'PASSWORD_RESET',
-                    'email' => $email,
-                ]
-            );
+            $resetUrl = $this->passwordResetLinks->generate($email, $userIp);
+            $recipientName = trim((string) ($user['nama_lengkap'] ?? ''));
 
-            if (!$response->successful()) {
-                Log::warning('Firebase password reset request failed.', [
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
-
-                return false;
-            }
+            Mail::to($email)->send(new NasabahPasswordResetLinkMail(
+                $recipientName !== '' ? $recipientName : 'Nasabah',
+                $resetUrl,
+            ));
 
             return true;
         } catch (\Throwable $exception) {
-            Log::warning('Firebase password reset request failed unexpectedly.', [
+            Log::warning('GreenPoint password reset email failed.', [
+                'email' => $email,
                 'message' => $exception->getMessage(),
             ]);
 

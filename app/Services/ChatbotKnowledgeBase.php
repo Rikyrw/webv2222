@@ -129,8 +129,9 @@ class ChatbotKnowledgeBase
                 ."1. Dari halaman awal, pilih tombol \"Daftar\".\n"
                 ."2. Isi Nama Lengkap, Username, Email, Alamat, Nomor Telepon, Password minimal 8 karakter, dan Confirm Password.\n"
                 ."3. Tekan tombol \"Daftar\".\n"
-                ."4. Kalau mau, kamu juga bisa memilih \"Daftar dengan Google\".\n"
-                ."5. Jika berhasil, kamu akan langsung diarahkan ke dashboard.";
+                ."4. Untuk daftar manual, klik link verifikasi yang dikirim ke emailmu.\n"
+                ."5. Setelah email berhasil diverifikasi, masuk dengan email atau username dan password akunmu.\n"
+                ."6. Kalau mau daftar dengan Google, pilih \"Daftar dengan Google\" supaya verifikasi email manual tidak diperlukan.";
         }
 
         if ($this->containsAny($normalizedQuestion, [

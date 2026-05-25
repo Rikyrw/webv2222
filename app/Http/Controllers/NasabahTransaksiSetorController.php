@@ -213,7 +213,7 @@ class NasabahTransaksiSetorController extends Controller
                 return [
                     'id_jenis' => $row['id_jenis_sampah'] ?? null,
                     'nama_jenis' => $row['nama_jenis'] ?? '-',
-                    'harga_per_kg' => $row['harga_per_kg'] ?? 0,
+                    'harga_per_kg' => (int) round((float) ($row['harga_per_kg'] ?? 0)),
                 ];
             }, $rows);
         } catch (\Exception $e) {
@@ -277,7 +277,7 @@ class NasabahTransaksiSetorController extends Controller
         foreach ($rows as $row) {
             $id = $row['id_jenis_sampah'] ?? null;
             if ($id !== null) {
-                $priceMap[intval($id)] = (float) ($row['harga_per_kg'] ?? 0);
+                $priceMap[intval($id)] = (int) round((float) ($row['harga_per_kg'] ?? 0));
             }
         }
 
@@ -292,7 +292,7 @@ class NasabahTransaksiSetorController extends Controller
             }
 
             $harga = $priceMap[$idJenis];
-            $subtotal = round($harga * $berat, 2);
+            $subtotal = (int) round($harga * $berat);
             $totalNilai += $subtotal;
 
             $detailRows[] = [

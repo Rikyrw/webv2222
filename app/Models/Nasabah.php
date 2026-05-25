@@ -11,8 +11,11 @@ class Nasabah extends Model
     use HasFactory;
 
     protected $table = 'nasabah';
+
     protected $primaryKey = 'id_nasabah';
+
     protected $keyType = 'int';
+
     public $timestamps = false;
 
     protected $fillable = [
@@ -24,7 +27,11 @@ class Nasabah extends Model
         'status',
         'saldo',
         'alamat',
-        'created_at'
+        'created_at',
+        'email_verified_at',
+        'email_verification_token_hash',
+        'email_verification_expires_at',
+        'email_verification_sent_at',
     ];
 
     protected $hidden = [
@@ -33,7 +40,10 @@ class Nasabah extends Model
 
     protected $casts = [
         'saldo' => 'decimal:2',
-        'created_at' => 'datetime'
+        'created_at' => 'datetime',
+        'email_verified_at' => 'datetime',
+        'email_verification_expires_at' => 'datetime',
+        'email_verification_sent_at' => 'datetime',
     ];
 
     public function transaksiSetor(): HasMany

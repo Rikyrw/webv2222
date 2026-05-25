@@ -79,7 +79,7 @@ class SampahController extends Controller
         try {
             $payload = [
                 'nama_jenis' => $request->nama_jenis,
-                'harga_per_kg' => $request->harga_per_kg,
+                'harga_per_kg' => (int) round((float) $request->harga_per_kg),
                 'stok' => $request->stok,
                 'status' => 'aktif',
                 'id_admin' => session('admin_id'),
@@ -122,7 +122,7 @@ class SampahController extends Controller
         try {
             $payload = [
                 'nama_jenis' => $request->nama_jenis,
-                'harga_per_kg' => $request->harga_per_kg,
+                'harga_per_kg' => (int) round((float) $request->harga_per_kg),
                 'stok' => $request->stok,
                 'status' => $request->status,
             ];
@@ -168,7 +168,7 @@ class SampahController extends Controller
             $mapped[] = [
                 'id_jenis' => $item['id_jenis_sampah'] ?? null,
                 'nama_jenis' => $item['nama_jenis'] ?? null,
-                'harga_per_kg' => $item['harga_per_kg'] ?? null,
+                'harga_per_kg' => (int) round((float) ($item['harga_per_kg'] ?? 0)),
                 'stok_kg' => $item['stok'] ?? null,
                 'status' => $item['status'] ?? null,
             ];
@@ -195,7 +195,10 @@ class SampahController extends Controller
             return null;
         }
 
-        return $items[0];
+        $item = $items[0];
+        $item['harga_per_kg'] = (int) round((float) ($item['harga_per_kg'] ?? 0));
+
+        return $item;
     }
 
     private function supabaseRequest(string $method, string $path, ?array $payload, bool $returnRepresentation)

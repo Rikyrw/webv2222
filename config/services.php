@@ -41,6 +41,7 @@ return [
 
     'firebase' => [
         'api_key' => env('FIREBASE_API_KEY'),
+        'service_account_path' => env('FIREBASE_SERVICE_ACCOUNT_PATH', env('GOOGLE_APPLICATION_CREDENTIALS')),
     ],
 
     'groq' => [

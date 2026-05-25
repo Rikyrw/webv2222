@@ -191,6 +191,8 @@ class TransaksiController extends Controller
                 $payload = [
                     'status_item' => $statusItem,
                     'catatan_admin' => isset($notes[$detailId]) ? (string) $notes[$detailId] : null,
+                    'harga_kg' => $item['harga_kg'],
+                    'subtotal' => $item['subtotal'],
                 ];
 
                 $this->supabaseRequest(
@@ -964,13 +966,16 @@ class TransaksiController extends Controller
 
         $mapped = [];
         foreach ($items as $item) {
+            $hargaKg = isset($item['harga_kg']) ? (int) round((float) $item['harga_kg']) : 0;
+            $subtotal = isset($item['subtotal']) ? (int) round((float) $item['subtotal']) : 0;
+
             $mapped[] = [
                 'id_detail_setor' => $item['id_detail_setor'] ?? null,
                 'id_jenis' => $item['id_jenis'] ?? null,
                 'nama_jenis' => isset($item['jenis_sampah']['nama_jenis']) ? $item['jenis_sampah']['nama_jenis'] : '-',
                 'berat_kg' => isset($item['berat_kg']) ? (float) $item['berat_kg'] : 0,
-                'harga_kg' => isset($item['harga_kg']) ? (float) $item['harga_kg'] : 0,
-                'subtotal' => isset($item['subtotal']) ? (float) $item['subtotal'] : 0,
+                'harga_kg' => $hargaKg,
+                'subtotal' => $subtotal,
                 'status_item' => $item['status_item'] ?? 'pending',
                 'catatan_admin' => $item['catatan_admin'] ?? '',
             ];

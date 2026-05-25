@@ -510,6 +510,9 @@
 
         let items = [];
         let currentPhotos = []; // Store base64 or file objects for photos
+        const formatRupiah = value => 'Rp ' + Number(value || 0).toLocaleString('id-ID', {
+            maximumFractionDigits: 0
+        });
 
         // Handle photo upload button click
         uploadPhotoBtn.addEventListener('click', function() {
@@ -566,8 +569,8 @@
                 tr.innerHTML = `
                     <td>${it.nama}</td>
                     <td>${it.berat}</td>
-                    <td>Rp ${Number(it.harga).toLocaleString('id-ID')}</td>
-                    <td>Rp ${Number(it.subtotal).toLocaleString('id-ID')}</td>
+                    <td>${formatRupiah(it.harga)}</td>
+                    <td>${formatRupiah(it.subtotal)}</td>
                     <td style="text-align: center;">${photoHtml}</td>
                     <td><button type="button" data-idx="${idx}" class="remove-btn">Hapus</button></td>
                 `;
@@ -577,7 +580,7 @@
             });
 
             totalBeratEl.textContent = totalBerat.toFixed(2);
-            totalNilaiEl.textContent = 'Rp ' + totalNilai.toLocaleString('id-ID');
+            totalNilaiEl.textContent = formatRupiah(totalNilai);
 
             // Remove existing dynamic inputs
             document.querySelectorAll('input[name^="waste_items"]').forEach(n => n.remove());
@@ -630,7 +633,7 @@
             const totalNilaiInput = document.createElement('input');
             totalNilaiInput.type = 'hidden';
             totalNilaiInput.name = 'total_nilai';
-            totalNilaiInput.value = totalNilai.toFixed(2);
+            totalNilaiInput.value = totalNilai.toFixed(0);
             setorForm.appendChild(totalNilaiInput);
 
             // Attach remove handlers
@@ -680,7 +683,7 @@
             }
             const id = sel.value;
             const nama = sel.textContent.split(' - ')[0].trim();
-            const harga = parseFloat(sel.dataset.harga || 0);
+            const harga = Math.round(parseFloat(sel.dataset.harga || 0));
             const berat = parseFloat(beratInput.value || 0);
 
             if (berat < 1) {
@@ -693,15 +696,15 @@
                 const existing = items[existingIndex];
                 const newBerat = parseFloat(existing.berat) + berat;
                 existing.berat = newBerat.toFixed(2);
-                existing.subtotal = (harga * newBerat).toFixed(2);
+                existing.subtotal = String(Math.round(harga * newBerat));
                 items[existingIndex] = existing;
             } else {
-                const subtotal = (harga * berat).toFixed(2);
+                const subtotal = String(Math.round(harga * berat));
                 items.push({
                     id,
                     nama,
                     berat: berat.toFixed(2),
-                    harga: harga.toFixed(2),
+                    harga: String(harga),
                     subtotal,
                     photo: null,
                     photoFile: null
@@ -711,6 +714,7 @@
             renderItems();
             beratInput.value = '';
             jenisSelect.selectedIndex = 0;
+            jenisSelect.dispatchEvent(new Event('change', { bubbles: true }));
         });
 
         setorForm.addEventListener('submit', function(e) {

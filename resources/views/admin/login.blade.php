@@ -243,6 +243,7 @@
             const roleSelect = document.getElementById('role');
             if (email.includes('superadmin')) roleSelect.value = 'superadmin';
             else if (email.includes('admin')) roleSelect.value = 'admin';
+            roleSelect.dispatchEvent(new Event('change', { bubbles: true }));
         });
     </script>
 </body>

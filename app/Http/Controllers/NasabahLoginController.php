@@ -21,34 +21,35 @@ class NasabahLoginController extends Controller
             'password' => 'required|string',
         ]);
 
-        $username = $validated['username'];
+        $username = trim($validated['username']);
         $password = $validated['password'];
 
+        if (str_contains($username, '@')) {
+            $username = strtolower($username);
+
+            if (! filter_var($username, FILTER_VALIDATE_EMAIL)) {
+                return back()
+                    ->withInput()
+                    ->withErrors(['username' => 'Format email login tidak valid. Periksa kembali penulisan email Anda.']);
+            }
+        }
+
         try {
-            // Query ke Supabase untuk cari nasabah aktif
-            $supabaseUrl = env('SUPABASE_URL');
-            $supabaseKey = env('SUPABASE_KEY');
-            
-            // Sesuaikan dengan kolom tabel Supabase: `user_name`, `email`, `status`
-            $query = "nasabah?select=*&or=(user_name.eq." . urlencode($username) . ",email.eq." . urlencode($username) . ")&status=eq.aktif";
-            
-            $response = Http::withHeaders([
-                'apikey' => $supabaseKey,
-                'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . '/rest/v1/' . $query);
+            $user = $this->findActiveNasabahForLogin($username);
 
-            $users = $response->json();
+            if ($user) {
+                if ($this->emailNeedsVerification($user)) {
+                    return $this->redirectToVerificationNotice($user);
+                }
 
-            if (is_array($users) && count($users) > 0) {
-                $user = $users[0];
                 $storedPassword = $user['password'] ?? null;
 
                 // Verifikasi password dengan metode Android (jika ada salt)
-                $loginSuccess = !$this->mustUseFirebaseOnly($storedPassword)
+                $loginSuccess = ! $this->mustUseFirebaseOnly($storedPassword)
                     && $this->verifyPasswordLikeAndroid($password, $storedPassword, $user['salt'] ?? null);
 
                 // Fallback untuk user lama atau jika tabel tidak menyimpan salt: coba password_verify dan plain compare
-                if (!$loginSuccess && !$this->mustUseFirebaseOnly($storedPassword)) {
+                if (! $loginSuccess && ! $this->mustUseFirebaseOnly($storedPassword)) {
                     if ($storedPassword && password_verify($password, $storedPassword)) {
                         $loginSuccess = true;
                     } elseif ($storedPassword && $password === $storedPassword) {
@@ -59,16 +60,16 @@ class NasabahLoginController extends Controller
                 // Firebase menjadi fallback untuk:
                 // 1. akun lama dari mobile yang menyimpan marker `firebase-auth:{uid}`;
                 // 2. akun lokal bcrypt yang baru saja reset password lewat Firebase.
-                if (!$loginSuccess) {
+                if (! $loginSuccess) {
                     $firebaseUid = $this->signInWithFirebase($user['email'] ?? null, $password);
 
                     if ($firebaseUid) {
-                        if ($this->isFirebaseUidMarker($storedPassword) && !hash_equals(Str::after($storedPassword, 'firebase-auth:'), $firebaseUid)) {
+                        if ($this->isFirebaseUidMarker($storedPassword) && ! hash_equals(Str::after($storedPassword, 'firebase-auth:'), $firebaseUid)) {
                             $loginSuccess = false;
                         } else {
                             $loginSuccess = true;
 
-                            if (!$this->isFirebaseUidMarker($storedPassword)) {
+                            if (! $this->isFirebaseUidMarker($storedPassword)) {
                                 $this->migrateToFirebaseBackedPassword((int) $user['id_nasabah'], $firebaseUid);
                             }
                         }
@@ -84,6 +85,7 @@ class NasabahLoginController extends Controller
                         'email' => $user['email'] ?? null,
                         'saldo' => $user['saldo'] ?? 0,
                     ]);
+                    session()->forget(NasabahEmailVerificationController::SESSION_KEY);
 
                     return redirect()->route('nasabah.dashboard')->with('success', 'Login berhasil!');
                 } else {
@@ -93,7 +95,7 @@ class NasabahLoginController extends Controller
                 return back()->withInput()->with('error', 'Username/email atau password salah!');
             }
         } catch (\Exception $e) {
-            return back()->withInput()->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Terjadi kesalahan sistem: '.$e->getMessage());
         }
     }
 
@@ -111,7 +113,7 @@ class NasabahLoginController extends Controller
             $saltBinary = base64_decode($salt);
 
             // Hash seperti Android
-            $hashedInput = hash('sha256', $saltBinary . $inputPassword, true);
+            $hashedInput = hash('sha256', $saltBinary.$inputPassword, true);
             $hashedInputBase64 = base64_encode($hashedInput);
 
             return $hashedInputBase64 === $storedHash;
@@ -135,11 +137,51 @@ class NasabahLoginController extends Controller
         return $this->isFirebaseBackedPassword($storedPassword);
     }
 
+    private function emailNeedsVerification(array $user): bool
+    {
+        return empty($user['google_sub'])
+            && array_key_exists('email_verified_at', $user)
+            && empty($user['email_verified_at']);
+    }
+
+    private function findActiveNasabahForLogin(string $username): ?array
+    {
+        $supabaseUrl = rtrim((string) env('SUPABASE_URL'), '/');
+        $supabaseKey = env('SUPABASE_KEY');
+
+        $response = Http::acceptJson()->withHeaders([
+            'apikey' => $supabaseKey,
+            'Authorization' => 'Bearer '.$supabaseKey,
+        ])->get($supabaseUrl.'/rest/v1/nasabah', [
+            'select' => '*',
+            'or' => '(user_name.eq.'.$username.',email.eq.'.$username.')',
+            'status' => 'eq.aktif',
+            'order' => 'id_nasabah.desc',
+            'limit' => 1,
+        ]);
+
+        $users = $response->json();
+
+        return is_array($users) && isset($users[0]) && is_array($users[0]) ? $users[0] : null;
+    }
+
+    private function redirectToVerificationNotice(array $user)
+    {
+        session()->put(NasabahEmailVerificationController::SESSION_KEY, [
+            'id_nasabah' => $user['id_nasabah'] ?? null,
+            'email' => $user['email'] ?? null,
+        ]);
+
+        return redirect()
+            ->route('nasabah.verification.notice')
+            ->with('error', 'Email belum diverifikasi.');
+    }
+
     private function signInWithFirebase(?string $email, string $password): ?string
     {
         $firebaseApiKey = config('services.firebase.api_key');
 
-        if (!$firebaseApiKey || !$email) {
+        if (! $firebaseApiKey || ! $email) {
             Log::warning('Firebase-backed nasabah login could not be verified because configuration or account data is incomplete.', [
                 'has_api_key' => (bool) $firebaseApiKey,
                 'has_email' => (bool) $email,
@@ -150,7 +192,7 @@ class NasabahLoginController extends Controller
 
         try {
             $response = Http::acceptJson()->post(
-                'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=' . urlencode($firebaseApiKey),
+                'https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='.urlencode($firebaseApiKey),
                 [
                     'email' => $email,
                     'password' => $password,
@@ -158,7 +200,7 @@ class NasabahLoginController extends Controller
                 ]
             );
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return null;
             }
 
@@ -182,14 +224,14 @@ class NasabahLoginController extends Controller
         try {
             $response = Http::acceptJson()->withHeaders([
                 'apikey' => $serviceKey,
-                'Authorization' => 'Bearer ' . $serviceKey,
+                'Authorization' => 'Bearer '.$serviceKey,
                 'Content-Type' => 'application/json',
                 'Prefer' => 'return=minimal',
-            ])->patch(rtrim((string) env('SUPABASE_URL'), '/') . '/rest/v1/nasabah?id_nasabah=eq.' . $idNasabah, [
-                'password' => 'firebase-auth:' . $firebaseUid,
+            ])->patch(rtrim((string) env('SUPABASE_URL'), '/').'/rest/v1/nasabah?id_nasabah=eq.'.$idNasabah, [
+                'password' => 'firebase-auth:'.$firebaseUid,
             ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::warning('Failed to migrate nasabah password marker to Firebase.', [
                     'id_nasabah' => $idNasabah,
                     'status' => $response->status(),
@@ -207,6 +249,7 @@ class NasabahLoginController extends Controller
     public function logout()
     {
         session()->flush();
+
         return redirect()->route('nasabah.login')->with('success', 'Anda telah berhasil logout');
     }
 }

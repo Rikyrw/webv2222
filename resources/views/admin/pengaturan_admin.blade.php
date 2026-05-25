@@ -204,8 +204,12 @@
         document.getElementById('edit_username').value = data.username || '';
         document.getElementById('edit_nama').value = data.nama || '';
         document.getElementById('edit_email').value = data.email || '';
-        document.getElementById('edit_role').value = data.role || 'admin';
-        document.getElementById('edit_status').value = data.status || 'aktif';
+        const editRole = document.getElementById('edit_role');
+        const editStatus = document.getElementById('edit_status');
+        editRole.value = data.role || 'admin';
+        editStatus.value = data.status || 'aktif';
+        editRole.dispatchEvent(new Event('change', { bubbles: true }));
+        editStatus.dispatchEvent(new Event('change', { bubbles: true }));
         document.getElementById('edit_no_hp').value = data.noHp || '';
         document.getElementById('edit_alamat').value = data.alamat || '';
         modalEdit.show();
