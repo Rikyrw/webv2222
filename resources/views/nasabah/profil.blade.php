@@ -424,7 +424,7 @@
                     <div class="subtitle">{{ htmlspecialchars($user['email'] ?? '') }}</div>
                     <div class="saldo-box" role="region" aria-label="Saldo akun">
                         <span>Saldo</span>
-                        <span id="saldo-amount">Rp {{ number_format((float)($user['saldo'] ?? 0), 0, ',', '.') }}</span>
+                        <span id="saldo-amount" data-live-saldo>Rp {{ number_format((float)($user['saldo'] ?? 0), 0, ',', '.') }}</span>
                     </div>
                     <a href="{{ route('nasabah.setor') }}" class="btn-transaksi">
                         <svg viewBox="0 0 24 24">
@@ -548,12 +548,14 @@
             var statusEl = document.getElementById('topup-status');
             var amountInput = document.getElementById('topup-amount');
             var saldoEl = document.getElementById('saldo-amount');
+            var saldoEls = document.querySelectorAll('[data-live-saldo]');
+            var submitBtn = form.querySelector('button[type="submit"]');
             var csrfInput = form.querySelector('input[name="_token"]');
             var pollTimer = null;
             var lastOrderId = null;
-            var maxPolls = 20;
+            var maxPolls = 60;
             var pollCount = 0;
-            var pollDelayMs = 3000;
+            var pollDelayMs = 2000;
 
             var setStatus = function (message, state) {
                 if (!statusEl) {
@@ -577,6 +579,27 @@
                 return 'Rp ' + num.toLocaleString('id-ID', { maximumFractionDigits: 0 });
             };
 
+            var setSaldo = function (value) {
+                var text = formatRupiah(value);
+                if (saldoEls.length > 0) {
+                    saldoEls.forEach(function (el) {
+                        el.textContent = text;
+                    });
+                    return;
+                }
+                if (saldoEl) {
+                    saldoEl.textContent = text;
+                }
+            };
+
+            var setLoading = function (isLoading) {
+                if (!submitBtn) {
+                    return;
+                }
+                submitBtn.disabled = isLoading;
+                submitBtn.textContent = isLoading ? 'Memproses...' : 'Top Up Saldo';
+            };
+
             var stopPolling = function () {
                 if (pollTimer) {
                     clearInterval(pollTimer);
@@ -584,50 +607,82 @@
                 }
             };
 
+            var checkTopupStatus = function () {
+                if (!lastOrderId) {
+                    return Promise.resolve(false);
+                }
+
+                return fetch("{{ route('nasabah.topup.status') }}?order_id=" + encodeURIComponent(lastOrderId), {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(function (response) {
+                    return response.json().then(function (data) {
+                        return { ok: response.ok, data: data };
+                    });
+                })
+                .then(function (result) {
+                    if (!result.ok || !result.data) {
+                        return false;
+                    }
+
+                    var status = result.data.status || result.data.transaction_status;
+                    var transactionStatus = result.data.transaction_status || status;
+                    var isSuccess = status === 'settlement';
+                    var isFailed = ['deny', 'cancel', 'expire', 'failure', 'failed'].indexOf(status) >= 0
+                        || ['deny', 'cancel', 'expire', 'failure', 'failed'].indexOf(transactionStatus) >= 0;
+
+                    if (isSuccess) {
+                        if (typeof result.data.saldo !== 'undefined') {
+                            setSaldo(result.data.saldo);
+                        }
+                        setLoading(false);
+                        setStatus('Pembayaran sukses. Saldo sudah diperbarui.', 'success');
+                        return true;
+                    }
+
+                    if (isFailed) {
+                        setLoading(false);
+                        setStatus('Pembayaran gagal atau kedaluwarsa. Silakan coba lagi.', 'error');
+                        return true;
+                    }
+
+                    return false;
+                })
+                .catch(function () {
+                    return false;
+                });
+            };
+
             var startPolling = function () {
                 if (!lastOrderId) {
+                    setLoading(false);
                     return;
                 }
 
                 stopPolling();
                 pollCount = 0;
 
-                pollTimer = setInterval(function () {
+                var runPoll = function () {
                     pollCount += 1;
                     if (pollCount > maxPolls) {
                         stopPolling();
+                        setLoading(false);
+                        setStatus('Pembayaran masih diproses. Saldo akan masuk otomatis setelah dikonfirmasi.', null);
                         return;
                     }
 
-                    fetch("{{ route('nasabah.topup.status') }}?order_id=" + encodeURIComponent(lastOrderId), {
-                        method: 'GET',
-                        headers: {
-                            'Accept': 'application/json'
-                        }
-                    })
-                    .then(function (response) {
-                        return response.json().then(function (data) {
-                            return { ok: response.ok, data: data };
-                        });
-                    })
-                    .then(function (result) {
-                        if (!result.ok || !result.data) {
-                            return;
-                        }
-
-                        var status = result.data.transaction_status || result.data.status;
-                        if (status === 'settlement' || status === 'capture') {
+                    checkTopupStatus().then(function (isDone) {
+                        if (isDone) {
                             stopPolling();
-                            if (saldoEl && typeof result.data.saldo !== 'undefined') {
-                                saldoEl.textContent = formatRupiah(result.data.saldo);
-                            }
-                            setStatus('Pembayaran sukses. Saldo sudah diperbarui.', 'success');
                         }
-                    })
-                    .catch(function () {
-                        // Ignore polling errors and keep trying until maxPolls.
                     });
-                }, pollDelayMs);
+                };
+
+                runPoll();
+                pollTimer = setInterval(runPoll, pollDelayMs);
             };
 
             form.addEventListener('submit', function (event) {
@@ -644,6 +699,7 @@
                     return;
                 }
 
+                setLoading(true);
                 setStatus('Memproses top up...', null);
 
                 fetch(form.action, {
@@ -670,6 +726,7 @@
                     }
 
                     lastOrderId = result.data.order_id || null;
+                    startPolling();
 
                     window.snap.pay(result.data.token, {
                         onSuccess: function () {
@@ -682,15 +739,22 @@
                         },
                         onError: function () {
                             stopPolling();
+                            setLoading(false);
                             setStatus('Pembayaran gagal. Silakan coba lagi.', 'error');
                         },
                         onClose: function () {
-                            stopPolling();
-                            setStatus('Popup pembayaran ditutup.', null);
+                            if (lastOrderId) {
+                                setStatus('Popup pembayaran ditutup. Mengecek status pembayaran...', null);
+                                startPolling();
+                            } else {
+                                setLoading(false);
+                                setStatus('Popup pembayaran ditutup.', null);
+                            }
                         }
                     });
                 })
                 .catch(function (error) {
+                    setLoading(false);
                     setStatus(error.message || 'Terjadi kesalahan saat memproses top up.', 'error');
                 });
             });

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\MobileNasabahAuthController;
+use App\Http\Controllers\NasabahTopupController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('mobile/nasabah')->group(function () {
@@ -14,5 +15,8 @@ Route::prefix('mobile/nasabah')->group(function () {
         ->middleware('throttle:3,1');
 
     Route::post('/verify-login', [MobileNasabahAuthController::class, 'verifyLogin'])
+        ->middleware('throttle:10,1');
+
+    Route::post('/topup', [NasabahTopupController::class, 'create'])
         ->middleware('throttle:10,1');
 });

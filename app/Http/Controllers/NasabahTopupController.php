@@ -12,10 +12,11 @@ class NasabahTopupController extends Controller
 {
     public function create(Request $request)
     {
-        $userId = session('id_nasabah');
-        if (!$userId) {
+        $userId = session('id_nasabah') ?: $request->input('id_nasabah');
+        if (!$userId || !is_numeric($userId)) {
             return response()->json(['message' => 'Silakan login terlebih dahulu.'], 401);
         }
+        $userId = (int) $userId;
 
         $validator = Validator::make($request->all(), [
             'nominal' => 'required|integer|min:10000|max:10000000',
@@ -50,7 +51,7 @@ class NasabahTopupController extends Controller
         }
 
         $topupPayload = [
-            'id_nasabah' => (int) $userId,
+            'id_nasabah' => $userId,
             'order_id' => $orderId,
             'gross_amount' => $nominal,
             'status' => 'pending',
@@ -69,9 +70,9 @@ class NasabahTopupController extends Controller
             : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
 
         $customerDetails = [
-            'first_name' => session('nama_nasabah') ?? 'Nasabah',
-            'email' => session('email') ?? 'unknown@example.com',
-            'phone' => session('no_hp') ?? '',
+            'first_name' => session('nama_nasabah') ?: ($request->input('nama_lengkap') ?: 'Nasabah'),
+            'email' => session('email') ?: ($request->input('email') ?: 'unknown@example.com'),
+            'phone' => session('no_hp') ?: ($request->input('no_hp') ?: ''),
         ];
 
         $payload = [
@@ -157,7 +158,7 @@ class NasabahTopupController extends Controller
 
         $topupResp = $this->supabaseRequest(
             'get',
-            '/rest/v1/topup_saldo?select=id_topup,id_nasabah,status,gross_amount&order_id=eq.' . urlencode($orderId) . '&limit=1',
+            '/rest/v1/topup_saldo?select=id_topup,id_nasabah,status,transaction_status,gross_amount,payment_type&order_id=eq.' . urlencode($orderId) . '&limit=1',
             null,
             false,
             true
@@ -180,49 +181,7 @@ class NasabahTopupController extends Controller
         }
 
         $topup = $rows[0];
-        $currentStatus = $topup['status'] ?? 'pending';
-
-        $isSuccess = in_array($transactionStatus, ['settlement', 'capture'], true) && $fraudStatus !== 'challenge';
-        $newStatus = $isSuccess ? 'settlement' : $transactionStatus;
-
-        $this->supabaseRequest('patch', '/rest/v1/topup_saldo?order_id=eq.' . urlencode($orderId), [
-            'status' => $newStatus,
-            'transaction_status' => $transactionStatus,
-            'payment_type' => $paymentType,
-            'raw_notification' => json_encode($payload),
-        ], false, true);
-
-        if ($isSuccess && $currentStatus !== 'settlement') {
-            $nasabahId = $topup['id_nasabah'] ?? null;
-            $grossAmountValue = isset($topup['gross_amount']) ? (float) $topup['gross_amount'] : (float) $grossAmount;
-
-            if ($nasabahId) {
-                $nasabahResp = $this->supabaseRequest(
-                    'get',
-                    '/rest/v1/nasabah?select=saldo&id_nasabah=eq.' . intval($nasabahId) . '&limit=1',
-                    null,
-                    false,
-                    true
-                );
-
-                if ($nasabahResp->successful()) {
-                    $nasabahRows = $nasabahResp->json();
-                    $saldo = 0;
-                    if (is_array($nasabahRows) && count($nasabahRows) > 0) {
-                        $saldo = (float) ($nasabahRows[0]['saldo'] ?? 0);
-                    }
-
-                    $newSaldo = $saldo + $grossAmountValue;
-                    $this->supabaseRequest(
-                        'patch',
-                        '/rest/v1/nasabah?id_nasabah=eq.' . intval($nasabahId),
-                        ['saldo' => $newSaldo],
-                        false,
-                        true
-                    );
-                }
-            }
-        }
+        $this->applyMidtransPayloadToTopup($topup, $orderId, $payload);
 
         return response()->json(['message' => 'OK']);
     }
@@ -236,7 +195,7 @@ class NasabahTopupController extends Controller
 
         $topupResp = $this->supabaseRequest(
             'get',
-            '/rest/v1/topup_saldo?select=id_topup,id_nasabah,status,transaction_status,gross_amount&order_id=eq.' . urlencode($orderId) . '&limit=1',
+            '/rest/v1/topup_saldo?select=id_topup,id_nasabah,status,transaction_status,gross_amount,payment_type&order_id=eq.' . urlencode($orderId) . '&limit=1',
             null,
             false,
             true
@@ -251,7 +210,7 @@ class NasabahTopupController extends Controller
             return response()->json(['status' => 'not_found']);
         }
 
-        $topup = $rows[0];
+        $topup = $this->syncTopupFromMidtrans($rows[0], $orderId);
         $status = $topup['status'] ?? 'pending';
         $transactionStatus = $topup['transaction_status'] ?? $status;
 
@@ -260,29 +219,210 @@ class NasabahTopupController extends Controller
             'transaction_status' => $transactionStatus,
         ];
 
-        if (in_array($transactionStatus, ['settlement', 'capture'], true)) {
+        if ($status === 'settlement') {
             $nasabahId = $topup['id_nasabah'] ?? null;
             if ($nasabahId) {
-                $nasabahResp = $this->supabaseRequest(
-                    'get',
-                    '/rest/v1/nasabah?select=saldo&id_nasabah=eq.' . intval($nasabahId) . '&limit=1',
-                    null,
-                    false,
-                    true
-                );
-
-                if ($nasabahResp->successful()) {
-                    $nasabahRows = $nasabahResp->json();
-                    if (is_array($nasabahRows) && count($nasabahRows) > 0) {
-                        $saldo = (float) ($nasabahRows[0]['saldo'] ?? 0);
-                        $response['saldo'] = $saldo;
-                        session(['saldo' => $saldo]);
-                    }
+                $saldo = $this->fetchNasabahSaldo((int) $nasabahId);
+                if ($saldo !== null) {
+                    $response['saldo'] = $saldo;
+                    session(['saldo' => $saldo]);
                 }
             }
         }
 
         return response()->json($response);
+    }
+
+    private function syncTopupFromMidtrans(array $topup, string $orderId): array
+    {
+        $status = strtolower(trim((string) ($topup['status'] ?? 'pending')));
+        $transactionStatus = strtolower(trim((string) ($topup['transaction_status'] ?? $status)));
+
+        if (in_array($status, ['settlement', 'expire', 'cancel', 'deny', 'failure', 'failed'], true)) {
+            return $topup;
+        }
+
+        if ($transactionStatus === 'settlement') {
+            return $this->applyMidtransPayloadToTopup($topup, $orderId, [
+                'order_id' => $orderId,
+                'transaction_status' => $transactionStatus,
+                'payment_type' => $topup['payment_type'] ?? null,
+                'gross_amount' => $topup['gross_amount'] ?? 0,
+            ]);
+        }
+
+        $midtransPayload = $this->fetchMidtransStatus($orderId);
+        if (!$midtransPayload) {
+            return $topup;
+        }
+
+        return $this->applyMidtransPayloadToTopup($topup, $orderId, $midtransPayload);
+    }
+
+    private function fetchMidtransStatus(string $orderId): ?array
+    {
+        $serverKey = env('MIDTRANS_SERVER_KEY');
+        if (!$serverKey) {
+            return null;
+        }
+
+        $isProd = filter_var(env('MIDTRANS_IS_PROD', false), FILTER_VALIDATE_BOOL);
+        $baseUrl = $isProd
+            ? 'https://api.midtrans.com/v2/'
+            : 'https://api.sandbox.midtrans.com/v2/';
+
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Basic ' . base64_encode($serverKey . ':'),
+                'Accept' => 'application/json',
+            ])->get($baseUrl . rawurlencode($orderId) . '/status');
+
+            if (!$response->successful()) {
+                Log::warning('Midtrans status check failed.', [
+                    'order_id' => $orderId,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+                return null;
+            }
+
+            $payload = $response->json();
+            return is_array($payload) ? $payload : null;
+        } catch (\Exception $e) {
+            Log::warning('Midtrans status check error: ' . $e->getMessage(), [
+                'order_id' => $orderId,
+            ]);
+            return null;
+        }
+    }
+
+    private function applyMidtransPayloadToTopup(array $topup, string $orderId, array $payload): array
+    {
+        $transactionStatus = strtolower(trim((string) ($payload['transaction_status'] ?? ($topup['transaction_status'] ?? 'pending'))));
+        $paymentType = $payload['payment_type'] ?? ($topup['payment_type'] ?? null);
+        $fraudStatus = strtolower(trim((string) ($payload['fraud_status'] ?? '')));
+        $isSuccess = in_array($transactionStatus, ['settlement', 'capture'], true) && $fraudStatus !== 'challenge';
+        $newStatus = $isSuccess ? 'settlement' : ($fraudStatus === 'challenge' ? 'challenge' : $transactionStatus);
+
+        $updatePayload = [
+            'status' => $newStatus,
+            'transaction_status' => $transactionStatus,
+            'payment_type' => $paymentType,
+            'raw_notification' => json_encode($payload),
+        ];
+
+        $updateResp = $this->supabaseRequest(
+            'patch',
+            '/rest/v1/topup_saldo?order_id=eq.' . urlencode($orderId) . '&status=neq.settlement',
+            $updatePayload,
+            true,
+            true
+        );
+
+        if (!$updateResp->successful()) {
+            Log::warning('Topup status update failed.', [
+                'order_id' => $orderId,
+                'status' => $updateResp->status(),
+                'body' => $updateResp->body(),
+            ]);
+            return $topup;
+        }
+
+        $updatedRows = $updateResp->json();
+        if (!is_array($updatedRows) || count($updatedRows) === 0) {
+            return $this->fetchTopupByOrderId($orderId) ?: array_merge($topup, $updatePayload);
+        }
+
+        $updatedTopup = array_merge($topup, $updatedRows[0]);
+
+        if ($isSuccess) {
+            $grossAmount = isset($updatedTopup['gross_amount'])
+                ? (float) $updatedTopup['gross_amount']
+                : (float) ($payload['gross_amount'] ?? 0);
+            $saldo = $this->creditTopupBalance($updatedTopup, $grossAmount);
+            if ($saldo !== null) {
+                $updatedTopup['saldo'] = $saldo;
+            }
+        }
+
+        return $updatedTopup;
+    }
+
+    private function fetchTopupByOrderId(string $orderId): ?array
+    {
+        $response = $this->supabaseRequest(
+            'get',
+            '/rest/v1/topup_saldo?select=id_topup,id_nasabah,status,transaction_status,gross_amount,payment_type&order_id=eq.' . urlencode($orderId) . '&limit=1',
+            null,
+            false,
+            true
+        );
+
+        if (!$response->successful()) {
+            return null;
+        }
+
+        $rows = $response->json();
+        return is_array($rows) && count($rows) > 0 ? $rows[0] : null;
+    }
+
+    private function fetchNasabahSaldo(int $nasabahId): ?float
+    {
+        $nasabahResp = $this->supabaseRequest(
+            'get',
+            '/rest/v1/nasabah?select=saldo&id_nasabah=eq.' . $nasabahId . '&limit=1',
+            null,
+            false,
+            true
+        );
+
+        if (!$nasabahResp->successful()) {
+            return null;
+        }
+
+        $nasabahRows = $nasabahResp->json();
+        if (!is_array($nasabahRows) || count($nasabahRows) === 0) {
+            return null;
+        }
+
+        return (float) ($nasabahRows[0]['saldo'] ?? 0);
+    }
+
+    private function creditTopupBalance(array $topup, float $grossAmount): ?float
+    {
+        $nasabahId = $topup['id_nasabah'] ?? null;
+        if (!$nasabahId || $grossAmount <= 0) {
+            return null;
+        }
+
+        $saldo = $this->fetchNasabahSaldo((int) $nasabahId);
+        if ($saldo === null) {
+            return null;
+        }
+
+        $newSaldo = $saldo + $grossAmount;
+        $saldoResp = $this->supabaseRequest(
+            'patch',
+            '/rest/v1/nasabah?id_nasabah=eq.' . intval($nasabahId),
+            ['saldo' => $newSaldo],
+            true,
+            true
+        );
+
+        if (!$saldoResp->successful()) {
+            Log::warning('Topup balance update failed.', [
+                'id_nasabah' => $nasabahId,
+                'status' => $saldoResp->status(),
+                'body' => $saldoResp->body(),
+            ]);
+            return null;
+        }
+
+        if (intval(session('id_nasabah')) === intval($nasabahId)) {
+            session(['saldo' => $newSaldo]);
+        }
+
+        return $newSaldo;
     }
 
     private function supabaseRequest(string $method, string $path, ?array $payload, bool $returnRepresentation, bool $useServiceRole)
