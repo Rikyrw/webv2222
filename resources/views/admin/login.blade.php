@@ -56,11 +56,10 @@
             padding: 34px;
             color: #ffffff;
             overflow: hidden;
-            background: linear-gradient(160deg, var(--gp-green) 0%, var(--gp-green-dark) 100%);
+            background: #1f3f2a;
         }
 
-        .login-brand-panel::before,
-        .login-brand-panel::after {
+        .login-brand-panel::before {
             position: absolute;
             inset: 0;
             content: "";
@@ -68,17 +67,10 @@
         }
 
         .login-brand-panel::before {
-            z-index: -2;
-            background: url("{{ asset('images/bg-gunung.png') }}") center bottom / cover no-repeat;
-            opacity: 0.62;
-            filter: saturate(1.08) contrast(1.14);
-        }
-
-        .login-brand-panel::after {
+            inset: -34px 0;
             z-index: -1;
-            background:
-                radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0) 34%),
-                linear-gradient(160deg, rgba(47, 95, 62, 0.66) 0%, rgba(28, 72, 43, 0.58) 100%);
+            background: url("{{ asset('images/bg-gunung.png') }}") center center / cover no-repeat;
+            filter: saturate(1.14) contrast(1.18) brightness(0.86);
         }
 
         .brand-lockup {
@@ -115,10 +107,18 @@
 
         .brand-subtitle {
             margin: 5px 0 0;
-            color: rgba(255, 255, 255, 0.74);
+            color: rgba(255, 255, 255, 0.86);
             font-size: 12px;
             font-weight: 600;
             line-height: 1.3;
+        }
+
+        .login-brand-panel .brand-title {
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+        }
+
+        .login-brand-panel .brand-subtitle {
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
         }
 
         .brand-copy {
@@ -134,6 +134,7 @@
             font-weight: 800;
             line-height: 1.08;
             letter-spacing: 0;
+            text-shadow: 0 3px 14px rgba(0, 0, 0, 0.38);
         }
 
         .brand-links {
