@@ -162,6 +162,14 @@
             transition: all 0.1s ease;
         }
 
+        .btn-primary:disabled,
+        .btn-secondary:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
         .btn-secondary {
             display: inline-flex;
             align-items: center;
@@ -508,14 +516,16 @@
         const totalBeratEl = document.getElementById('totalBerat');
         const totalNilaiEl = document.getElementById('totalNilai');
         const setorForm = document.getElementById('setorForm');
+        const formMsg = document.getElementById('formMsg');
+        const csrfToken = setorForm.querySelector('input[name="_token"]').value;
+        const detectPhotoUrl = "{{ route('nasabah.setor.detect-photo') }}";
 
         let items = [];
-        let currentPhotos = []; // Store base64 or file objects for photos
+        let activePhotoChecks = 0;
         const formatRupiah = value => 'Rp ' + Number(value || 0).toLocaleString('id-ID', {
             maximumFractionDigits: 0
         });
 
-        // Handle photo upload button click
         uploadPhotoBtn.addEventListener('click', function() {
             if (items.length === 0) {
                 alert('Tambahkan item terlebih dahulu sebelum upload foto');
@@ -524,37 +534,107 @@
             photoInput.click();
         });
 
-        // Handle file selection
-        photoInput.addEventListener('change', function(e) {
+        photoInput.addEventListener('change', async function(e) {
             const files = Array.from(e.target.files);
+            if (files.length === 0) {
+                return;
+            }
 
-            files.forEach(file => {
-                if (!file.type.match('image.*')) {
-                    alert('File ' + file.name + ' bukan gambar');
-                    return;
-                }
+            if (files.length > 1) {
+                alert('Upload satu foto untuk satu item. Foto pertama akan diperiksa.');
+            }
 
-                if (file.size > 2 * 1024 * 1024) {
-                    alert('Ukuran file ' + file.name + ' terlalu besar (maks 2MB)');
-                    return;
-                }
-
-                const reader = new FileReader();
-                reader.onload = function(evt) {
-                    // Assign photo to the last item added
-                    if (items.length > 0) {
-                        const lastIndex = items.length - 1;
-                        items[lastIndex].photo = evt.target.result;
-                        items[lastIndex].photoFile = file;
-                        renderItems();
-                    }
-                };
-                reader.readAsDataURL(file);
-            });
-            
-            // Clear input
+            await processPhotoForItem(files[0], items.length - 1);
             photoInput.value = '';
         });
+
+        function setPhotoChecking(isChecking) {
+            activePhotoChecks += isChecking ? 1 : -1;
+            activePhotoChecks = Math.max(0, activePhotoChecks);
+            const disabled = activePhotoChecks > 0;
+
+            uploadPhotoBtn.disabled = disabled;
+            addItemBtn.disabled = disabled;
+            setorForm.querySelector('button[type="submit"]').disabled = disabled;
+            if (disabled) {
+                formMsg.textContent = 'Memeriksa foto sampah...';
+            }
+        }
+
+        function readFileAsDataUrl(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = event => resolve(event.target.result);
+                reader.onerror = () => reject(new Error('Gagal membaca file gambar.'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function validateImageFile(file) {
+            if (!file.type.match('image.*')) {
+                return 'File ' + file.name + ' bukan gambar.';
+            }
+
+            if (file.size > 2 * 1024 * 1024) {
+                return 'Ukuran file ' + file.name + ' terlalu besar (maks 2MB).';
+            }
+
+            return null;
+        }
+
+        async function processPhotoForItem(file, itemIndex) {
+            const item = items[itemIndex];
+            if (!item) {
+                alert('Item sampah tidak ditemukan.');
+                return;
+            }
+
+            const fileError = validateImageFile(file);
+            if (fileError) {
+                alert(fileError);
+                return;
+            }
+
+            setPhotoChecking(true);
+
+            try {
+                const dataUrl = await readFileAsDataUrl(file);
+                const detection = await detectWastePhoto(dataUrl, item);
+
+                items[itemIndex].photo = dataUrl;
+                items[itemIndex].photoFile = file;
+                items[itemIndex].photoDetection = detection;
+                renderItems();
+                formMsg.textContent = detection.message || 'Foto sesuai.';
+            } catch (error) {
+                formMsg.textContent = 'Foto ditolak. Silakan upload foto yang sesuai.';
+                alert(error.message || 'Foto tidak lolos deteksi otomatis.');
+            } finally {
+                setPhotoChecking(false);
+            }
+        }
+
+        async function detectWastePhoto(dataUrl, item) {
+            const response = await fetch(detectPhotoUrl, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: JSON.stringify({
+                    id_jenis: item.id,
+                    photo: dataUrl
+                })
+            });
+
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok || !data.valid) {
+                throw new Error(data.message || 'Foto tidak sesuai dengan jenis sampah yang dipilih.');
+            }
+
+            return data;
+        }
 
         function renderItems() {
             itemsTableBody.innerHTML = '';
@@ -564,7 +644,7 @@
             items.forEach((it, idx) => {
                 const tr = document.createElement('tr');
                 const photoHtml = it.photo 
-                    ? `<div class="photo-badge">✓ Ada Foto</div>`
+                    ? `<div class="photo-badge">Foto sesuai</div>`
                     : `<button type="button" class="btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="addPhotoToItem(${idx})">Tambah Foto</button>`;
                 
                 tr.innerHTML = `
@@ -648,29 +728,14 @@
             });
         }
 
-        // Function to add photo to existing item
         window.addPhotoToItem = function(itemIndex) {
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.accept = 'image/jpeg,image/png,image/jpg';
-            fileInput.onchange = function(e) {
+            fileInput.onchange = async function(e) {
                 const file = e.target.files[0];
                 if (file) {
-                    if (!file.type.match('image.*')) {
-                        alert('File harus gambar');
-                        return;
-                    }
-                    if (file.size > 2 * 1024 * 1024) {
-                        alert('Ukuran file maksimal 2MB');
-                        return;
-                    }
-                    const reader = new FileReader();
-                    reader.onload = function(evt) {
-                        items[itemIndex].photo = evt.target.result;
-                        items[itemIndex].photoFile = file;
-                        renderItems();
-                    };
-                    reader.readAsDataURL(file);
+                    await processPhotoForItem(file, itemIndex);
                 }
             };
             fileInput.click();
@@ -708,7 +773,8 @@
                     harga: String(harga),
                     subtotal,
                     photo: null,
-                    photoFile: null
+                    photoFile: null,
+                    photoDetection: null
                 });
             }
 
@@ -719,6 +785,12 @@
         });
 
         setorForm.addEventListener('submit', function(e) {
+            if (activePhotoChecks > 0) {
+                e.preventDefault();
+                alert('Tunggu sampai pemeriksaan foto selesai.');
+                return;
+            }
+
             if (items.length === 0) {
                 e.preventDefault();
                 alert('Tambahkan minimal 1 item sebelum mengajukan setor');

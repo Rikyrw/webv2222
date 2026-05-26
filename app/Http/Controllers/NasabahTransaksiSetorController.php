@@ -167,6 +167,7 @@ class NasabahTransaksiSetorController extends Controller
                                         }
 
                                         if (!$error) {
+                                            session()->forget('validated_waste_photos');
                                             $success = 'Transaksi setor sampah berhasil diajukan! Status: Menunggu persetujuan admin.';
                                         }
                                     }
@@ -190,6 +191,69 @@ class NasabahTransaksiSetorController extends Controller
         ]);
     }
 
+    public function detectWastePhoto(Request $request)
+    {
+        $validated = $request->validate([
+            'id_jenis' => ['required', 'integer', 'min:1'],
+            'photo' => ['required', 'string'],
+        ]);
+
+        $idJenis = (int) $validated['id_jenis'];
+        $photo = trim((string) $validated['photo']);
+
+        if (!$this->isValidImageDataUrl($photo)) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'Foto harus berupa gambar JPG atau PNG yang valid.',
+            ], 422);
+        }
+
+        $selectedWasteType = $this->fetchWasteTypeById($idJenis);
+        if (!$selectedWasteType) {
+            return response()->json([
+                'valid' => false,
+                'message' => 'Jenis sampah tidak ditemukan atau tidak aktif.',
+            ], 422);
+        }
+
+        $wasteTypeNames = array_values(array_filter(array_map(function ($item) {
+            return $item['nama_jenis'] ?? null;
+        }, $this->fetchWasteTypes())));
+
+        try {
+            $detection = $this->detectWastePhotoWithGroq(
+                $photo,
+                (string) $selectedWasteType['nama_jenis'],
+                $wasteTypeNames
+            );
+        } catch (\Exception $e) {
+            \Log::warning('Waste photo detection failed: ' . $e->getMessage());
+
+            return response()->json([
+                'valid' => false,
+                'message' => 'Foto belum bisa diperiksa otomatis. Coba upload ulang beberapa saat lagi.',
+            ], 503);
+        }
+
+        if (!$detection['valid']) {
+            return response()->json([
+                'valid' => false,
+                'message' => $detection['message'],
+                'detected_type' => $detection['detected_type'],
+                'confidence' => $detection['confidence'],
+            ], 422);
+        }
+
+        $this->rememberValidatedWastePhoto($photo, $idJenis, (string) $selectedWasteType['nama_jenis']);
+
+        return response()->json([
+            'valid' => true,
+            'message' => 'Foto cocok dengan jenis sampah ' . $selectedWasteType['nama_jenis'] . '.',
+            'detected_type' => $detection['detected_type'],
+            'confidence' => $detection['confidence'],
+        ]);
+    }
+
     private function fetchWasteTypes(): array
     {
         $supabaseUrl = env('SUPABASE_URL');
@@ -202,7 +266,7 @@ class NasabahTransaksiSetorController extends Controller
             $resp = Http::withHeaders([
                 'apikey' => $supabaseKey,
                 'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . '/rest/v1/jenis_sampah?select=id_jenis_sampah,nama_jenis,harga_per_kg&order=nama_jenis.asc');
+            ])->get($supabaseUrl . '/rest/v1/jenis_sampah?select=id_jenis_sampah,nama_jenis,harga_per_kg,status&status=eq.aktif&order=nama_jenis.asc');
 
             $rows = $resp->json();
             if (!is_array($rows)) {
@@ -222,8 +286,216 @@ class NasabahTransaksiSetorController extends Controller
         }
     }
 
+    private function fetchWasteTypeById(int $idJenis): ?array
+    {
+        $supabaseUrl = env('SUPABASE_URL');
+        $supabaseKey = env('SUPABASE_KEY');
+        if (!$supabaseUrl || !$supabaseKey) {
+            return null;
+        }
+
+        try {
+            $resp = Http::withHeaders([
+                'apikey' => $supabaseKey,
+                'Authorization' => 'Bearer ' . $supabaseKey,
+            ])->get($supabaseUrl . '/rest/v1/jenis_sampah?select=id_jenis_sampah,nama_jenis,harga_per_kg,status&id_jenis_sampah=eq.' . $idJenis . '&status=eq.aktif&limit=1');
+
+            if (!$resp->successful()) {
+                return null;
+            }
+
+            $rows = $resp->json();
+            if (!is_array($rows) || count($rows) === 0) {
+                return null;
+            }
+
+            $row = $rows[0];
+
+            return [
+                'id_jenis' => $row['id_jenis_sampah'] ?? null,
+                'nama_jenis' => $row['nama_jenis'] ?? '-',
+                'harga_per_kg' => (int) round((float) ($row['harga_per_kg'] ?? 0)),
+            ];
+        } catch (\Exception $e) {
+            \Log::warning('Failed to fetch selected jenis sampah: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function isValidImageDataUrl(string $photo): bool
+    {
+        if (!preg_match('/^data:image\/(jpeg|jpg|png);base64,/i', $photo)) {
+            return false;
+        }
+
+        if (strlen($photo) > 3500000) {
+            return false;
+        }
+
+        $base64 = preg_replace('/^data:image\/(jpeg|jpg|png);base64,/i', '', $photo);
+        if (!is_string($base64) || $base64 === '') {
+            return false;
+        }
+
+        $binary = base64_decode($base64, true);
+        if ($binary === false || strlen($binary) > 2 * 1024 * 1024) {
+            return false;
+        }
+
+        return @getimagesizefromstring($binary) !== false;
+    }
+
+    private function detectWastePhotoWithGroq(string $photo, string $expectedWasteType, array $wasteTypeNames): array
+    {
+        $apiKey = trim((string) config('services.groq.key', ''));
+        if ($apiKey === '') {
+            throw new \RuntimeException('GROQ_API_KEY belum dikonfigurasi.');
+        }
+
+        $model = (string) config('services.groq.vision_model', 'meta-llama/llama-4-scout-17b-16e-instruct');
+        $endpoint = (string) config('services.groq.endpoint', 'https://api.groq.com/openai/v1/chat/completions');
+        $allowedTypes = implode(', ', $wasteTypeNames);
+
+        $payload = [
+            'model' => $model,
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => 'Kamu adalah validator foto setor sampah bank sampah. Jawab hanya JSON valid.',
+                ],
+                [
+                    'role' => 'user',
+                    'content' => [
+                        [
+                            'type' => 'text',
+                            'text' => "Periksa gambar ini.\n"
+                                . "Jenis sampah yang dipilih nasabah: {$expectedWasteType}\n"
+                                . "Daftar jenis sampah valid dari admin: {$allowedTypes}\n\n"
+                                . "Aturan:\n"
+                                . "1. Foto valid hanya jika objek utama adalah sampah atau material daur ulang nyata.\n"
+                                . "2. Jika foto bukan sampah, terlalu buram, tidak cukup jelas, atau objek utamanya bukan material sampah, is_waste=false dan matches_expected=false.\n"
+                                . "3. Jika foto berisi sampah tetapi jenisnya tidak cocok secara visual dengan jenis yang dipilih, matches_expected=false.\n"
+                                . "4. Pilih selected_type hanya dari daftar jenis sampah valid.\n"
+                                . "5. Jika ragu, tolak.\n\n"
+                                . "Kembalikan JSON dengan key: is_waste boolean, selected_type string atau null, matches_expected boolean, confidence number 0 sampai 1, reason string singkat bahasa Indonesia.",
+                        ],
+                        [
+                            'type' => 'image_url',
+                            'image_url' => [
+                                'url' => $photo,
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'temperature' => 0,
+            'max_tokens' => 350,
+            'response_format' => [
+                'type' => 'json_object',
+            ],
+        ];
+
+        $response = Http::acceptJson()
+            ->withToken($apiKey)
+            ->timeout(45)
+            ->post($endpoint, $payload);
+
+        if (!$response->successful() && in_array($response->status(), [400, 422], true)) {
+            unset($payload['response_format']);
+            $response = Http::acceptJson()
+                ->withToken($apiKey)
+                ->timeout(45)
+                ->post($endpoint, $payload);
+        }
+
+        if (!$response->successful()) {
+            throw new \RuntimeException('Groq vision error HTTP ' . $response->status() . ': ' . $response->body());
+        }
+
+        $content = trim((string) data_get($response->json(), 'choices.0.message.content', ''));
+        $json = $this->decodeJsonObject($content);
+
+        if (!$json) {
+            throw new \RuntimeException('Hasil deteksi foto tidak valid.');
+        }
+
+        $isWaste = filter_var($json['is_waste'] ?? false, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false;
+        $matchesExpected = filter_var($json['matches_expected'] ?? false, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? false;
+        $detectedType = isset($json['selected_type']) && is_string($json['selected_type']) ? trim($json['selected_type']) : null;
+        $confidence = isset($json['confidence']) && is_numeric($json['confidence']) ? (float) $json['confidence'] : ($matchesExpected ? 0.75 : 0);
+        $confidence = max(0, min(1, $confidence));
+        $reason = trim((string) ($json['reason'] ?? 'Foto tidak sesuai dengan jenis sampah yang dipilih.'));
+
+        $valid = $isWaste && $matchesExpected && $confidence >= 0.45;
+        $message = $valid
+            ? 'Foto valid.'
+            : $this->buildDetectionFailureMessage($isWaste, $matchesExpected, $expectedWasteType, $detectedType, $reason);
+
+        return [
+            'valid' => $valid,
+            'detected_type' => $detectedType,
+            'confidence' => $confidence,
+            'message' => $message,
+        ];
+    }
+
+    private function decodeJsonObject(string $content): ?array
+    {
+        $decoded = json_decode($content, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        if (preg_match('/\{.*\}/s', $content, $matches)) {
+            $decoded = json_decode($matches[0], true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return null;
+    }
+
+    private function buildDetectionFailureMessage(bool $isWaste, bool $matchesExpected, string $expectedWasteType, ?string $detectedType, string $reason): string
+    {
+        if (!$isWaste) {
+            return 'Foto yang diupload tidak terdeteksi sebagai sampah. Silakan upload foto sampah yang jelas.';
+        }
+
+        if (!$matchesExpected) {
+            $detected = $detectedType ? ' Terdeteksi: ' . $detectedType . '.' : '';
+            return 'Foto sampah tidak sesuai dengan jenis "' . $expectedWasteType . '".' . $detected;
+        }
+
+        return mb_substr($reason !== '' ? $reason : 'Foto tidak sesuai dengan jenis sampah yang dipilih.', 0, 180);
+    }
+
+    private function rememberValidatedWastePhoto(string $photo, int $idJenis, string $namaJenis): void
+    {
+        $approvedPhotos = $this->pruneValidatedWastePhotos(session('validated_waste_photos', []));
+        $approvedPhotos[hash('sha256', $photo)] = [
+            'id_jenis' => $idJenis,
+            'nama_jenis' => $namaJenis,
+            'checked_at' => time(),
+        ];
+
+        session(['validated_waste_photos' => $approvedPhotos]);
+    }
+
+    private function pruneValidatedWastePhotos(array $approvedPhotos): array
+    {
+        $validUntil = time() - (2 * 60 * 60);
+
+        return array_filter($approvedPhotos, function ($item) use ($validUntil) {
+            return is_array($item) && (int) ($item['checked_at'] ?? 0) >= $validUntil;
+        });
+    }
+
     private function validateWasteItems(array $wasteItems, array $wastePhotos): ?string
     {
+        $approvedPhotos = $this->pruneValidatedWastePhotos(session('validated_waste_photos', []));
+        session(['validated_waste_photos' => $approvedPhotos]);
+
         foreach ($wasteItems as $index => $item) {
             $idJenis = isset($item['id_jenis']) ? intval($item['id_jenis']) : 0;
             $berat = isset($item['berat']) ? (float) $item['berat'] : 0;
@@ -238,6 +510,12 @@ class NasabahTransaksiSetorController extends Controller
 
             if (!isset($wastePhotos[$index]) || trim((string) $wastePhotos[$index]) === '') {
                 return 'Setiap item wajib memiliki foto.';
+            }
+
+            $photoHash = hash('sha256', trim((string) $wastePhotos[$index]));
+            $approval = $approvedPhotos[$photoHash] ?? null;
+            if (!is_array($approval) || (int) ($approval['id_jenis'] ?? 0) !== $idJenis) {
+                return 'Foto item ke-' . ($index + 1) . ' belum lolos deteksi otomatis atau tidak sesuai dengan jenis sampah yang dipilih.';
             }
         }
 
@@ -262,7 +540,7 @@ class NasabahTransaksiSetorController extends Controller
         $resp = Http::withHeaders([
             'apikey' => $serviceKey,
             'Authorization' => 'Bearer ' . $serviceKey,
-        ])->get($supabaseUrl . '/rest/v1/jenis_sampah?select=id_jenis_sampah,harga_per_kg&id_jenis_sampah=in.(' . $idFilter . ')');
+        ])->get($supabaseUrl . '/rest/v1/jenis_sampah?select=id_jenis_sampah,harga_per_kg,status&id_jenis_sampah=in.(' . $idFilter . ')&status=eq.aktif');
 
         if (!$resp->successful()) {
             return ['error' => 'Gagal memuat harga jenis sampah.', 'total_nilai' => 0, 'detail_rows' => []];

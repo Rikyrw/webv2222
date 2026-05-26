@@ -116,6 +116,72 @@
             @endif
         </div>
     </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="gp-card-header">
+                <div>
+                    <h2 class="gp-title">Foto Sampah dari Nasabah</h2>
+                    <p class="gp-subtitle mb-0">Foto yang diunggah saat nasabah mengajukan setor.</p>
+                </div>
+            </div>
+
+            @if (count($fotoSetorItems) === 0)
+                <div class="gp-empty">Tidak ada foto sampah untuk transaksi ini.</div>
+            @else
+                <div class="table-responsive">
+                    <table class="table gp-table align-middle">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Jenis Sampah</th>
+                                <th>Foto</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($fotoSetorItems as $foto)
+                                @php
+                                    $photoElementId = 'waste-photo-' . $loop->iteration;
+                                @endphp
+                                <tr>
+                                    <td class="fw-semibold">{{ $foto['urutan'] }}</td>
+                                    <td>{{ $foto['nama_jenis'] }}</td>
+                                    <td>
+                                        <img
+                                            id="{{ $photoElementId }}"
+                                            src="{{ $foto['foto_url'] }}"
+                                            alt="Foto sampah {{ $foto['urutan'] }}"
+                                            class="gp-photo-thumb"
+                                        >
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-primary gp-photo-view" data-photo-target="{{ $photoElementId }}" data-bs-toggle="modal" data-bs-target="#wastePhotoModal">
+                                            <i class="bi bi-eye"></i>Lihat Foto
+                                        </button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="wastePhotoModal" tabindex="-1" aria-labelledby="wastePhotoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="wastePhotoModalLabel">Foto Sampah</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+            </div>
+            <div class="modal-body">
+                <img id="wastePhotoModalImage" src="" alt="Foto sampah ukuran besar" class="gp-photo-modal-img">
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -139,5 +205,43 @@
         color: #2f5f3e;
         font-size: 14px;
     }
+
+    .gp-photo-thumb {
+        width: 120px;
+        height: 90px;
+        object-fit: cover;
+        border: 1px solid #dfe7e1;
+        border-radius: 8px;
+        background: #f5f8f5;
+    }
+
+    .gp-photo-modal-img {
+        display: block;
+        width: 100%;
+        max-height: 72vh;
+        object-fit: contain;
+        border-radius: 8px;
+        background: #f5f8f5;
+    }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalImage = document.getElementById('wastePhotoModalImage');
+        const modalElement = document.getElementById('wastePhotoModal');
+
+        document.querySelectorAll('.gp-photo-view').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const sourceImage = document.getElementById(button.dataset.photoTarget);
+                modalImage.src = sourceImage ? sourceImage.src : '';
+            });
+        });
+
+        if (modalElement) {
+            modalElement.addEventListener('hidden.bs.modal', function () {
+                modalImage.src = '';
+            });
+        }
+    });
+</script>
 @endsection

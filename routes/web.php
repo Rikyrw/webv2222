@@ -113,6 +113,7 @@ Route::get('/nasabah/profil', [NasabahProfilController::class, 'index'])->name('
 Route::get('/nasabah/profil/ubah', [NasabahProfilController::class, 'edit'])->name('nasabah.profil.edit');
 Route::post('/nasabah/profil/update', [NasabahProfilController::class, 'update'])->name('nasabah.profil.update');
 Route::get('/nasabah/setor', [NasabahTransaksiSetorController::class, 'index'])->name('nasabah.setor');
+Route::post('/nasabah/setor/deteksi-foto', [NasabahTransaksiSetorController::class, 'detectWastePhoto'])->name('nasabah.setor.detect-photo');
 Route::post('/nasabah/setor', [NasabahTransaksiSetorController::class, 'index'])->name('nasabah.setor.post');
 Route::post('/nasabah/topup', [NasabahTopupController::class, 'create'])->name('nasabah.topup.create');
 Route::get('/nasabah/topup/status', [NasabahTopupController::class, 'checkStatus'])->name('nasabah.topup.status');
@@ -133,5 +134,4 @@ Route::post('/nasabah/pln', [NasabahPlnController::class, 'store'])->name('nasab
 // Nasabah register routes
 Route::get('/nasabah/register', [NasabahRegisterController::class, 'showRegister'])->name('nasabah.register');
 Route::post('/nasabah/register', [NasabahRegisterController::class, 'store'])->name('nasabah.store');
-
 

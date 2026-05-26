@@ -97,6 +97,7 @@ class TransaksiController extends Controller
         $databaseError = null;
         $transaksi = null;
         $detailItems = [];
+        $fotoSetorItems = [];
 
         try {
             $response = $this->supabaseRequest(
@@ -124,6 +125,7 @@ class TransaksiController extends Controller
             }
 
             $detailItems = $this->fetchDetailSetorItems($id);
+            $fotoSetorItems = $this->fetchFotoSetorItems($id, $detailItems);
         } catch (\Exception $e) {
             \Log::error('Transaksi setor detail error: ' . $e->getMessage());
             $databaseError = 'Tidak dapat mengambil detail transaksi. Periksa koneksi database.';
@@ -135,6 +137,7 @@ class TransaksiController extends Controller
             'flash',
             'transaksi',
             'detailItems',
+            'fotoSetorItems',
             'databaseError'
         ));
     }
@@ -941,7 +944,7 @@ class TransaksiController extends Controller
     {
         $response = $this->supabaseRequest(
             'get',
-            '/rest/v1/detail_setor?select=id_detail_setor,id_jenis,berat_kg,harga_kg,subtotal,status_item,catatan_admin,jenis_sampah(nama_jenis)&id_transaksi_setor=eq.' . $transaksiId,
+            '/rest/v1/detail_setor?select=id_detail_setor,id_jenis,berat_kg,harga_kg,subtotal,status_item,catatan_admin,jenis_sampah(nama_jenis)&id_transaksi_setor=eq.' . $transaksiId . '&order=id_detail_setor.asc',
             null,
             false
         );
@@ -949,7 +952,7 @@ class TransaksiController extends Controller
         if (!$response->successful()) {
             $response = $this->supabaseRequest(
                 'get',
-                '/rest/v1/detail_setor?select=id_detail_setor,id_jenis,berat_kg,harga_kg,subtotal,jenis_sampah(nama_jenis)&id_transaksi_setor=eq.' . $transaksiId,
+                '/rest/v1/detail_setor?select=id_detail_setor,id_jenis,berat_kg,harga_kg,subtotal,jenis_sampah(nama_jenis)&id_transaksi_setor=eq.' . $transaksiId . '&order=id_detail_setor.asc',
                 null,
                 false
             );
@@ -978,6 +981,57 @@ class TransaksiController extends Controller
                 'subtotal' => $subtotal,
                 'status_item' => $item['status_item'] ?? 'pending',
                 'catatan_admin' => $item['catatan_admin'] ?? '',
+            ];
+        }
+
+        return $mapped;
+    }
+
+    private function fetchFotoSetorItems(int $transaksiId, array $detailItems): array
+    {
+        $response = $this->supabaseRequest(
+            'get',
+            '/rest/v1/foto_setor?select=*&id_transaksi_setor=eq.' . $transaksiId,
+            null,
+            false
+        );
+
+        if (!$response->successful()) {
+            return [];
+        }
+
+        $items = $response->json();
+        if (!is_array($items)) {
+            return [];
+        }
+
+        usort($items, function ($a, $b) {
+            $aId = $a['id_foto_setor'] ?? $a['id_foto'] ?? $a['id'] ?? null;
+            $bId = $b['id_foto_setor'] ?? $b['id_foto'] ?? $b['id'] ?? null;
+
+            if (is_numeric($aId) && is_numeric($bId)) {
+                return (int) $aId <=> (int) $bId;
+            }
+
+            $aCreated = $a['created_at'] ?? '';
+            $bCreated = $b['created_at'] ?? '';
+
+            return strcmp((string) $aCreated, (string) $bCreated);
+        });
+
+        $mapped = [];
+        foreach ($items as $index => $item) {
+            $fotoUrl = trim((string) ($item['foto_url'] ?? ''));
+            if ($fotoUrl === '') {
+                continue;
+            }
+
+            $detailItem = $detailItems[$index] ?? null;
+
+            $mapped[] = [
+                'urutan' => count($mapped) + 1,
+                'foto_url' => $fotoUrl,
+                'nama_jenis' => is_array($detailItem) ? ($detailItem['nama_jenis'] ?? '-') : '-',
             ];
         }
 
