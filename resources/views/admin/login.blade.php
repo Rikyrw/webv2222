@@ -47,13 +47,38 @@
         }
 
         .login-brand-panel {
+            position: relative;
+            isolation: isolate;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             gap: 28px;
             padding: 34px;
             color: #ffffff;
+            overflow: hidden;
             background: linear-gradient(160deg, var(--gp-green) 0%, var(--gp-green-dark) 100%);
+        }
+
+        .login-brand-panel::before,
+        .login-brand-panel::after {
+            position: absolute;
+            inset: 0;
+            content: "";
+            pointer-events: none;
+        }
+
+        .login-brand-panel::before {
+            z-index: -2;
+            background: url("{{ asset('images/bg-gunung.png') }}") center bottom / cover no-repeat;
+            opacity: 0.62;
+            filter: saturate(1.08) contrast(1.14);
+        }
+
+        .login-brand-panel::after {
+            z-index: -1;
+            background:
+                radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0) 34%),
+                linear-gradient(160deg, rgba(47, 95, 62, 0.66) 0%, rgba(28, 72, 43, 0.58) 100%);
         }
 
         .brand-lockup {
@@ -109,13 +134,6 @@
             font-weight: 800;
             line-height: 1.08;
             letter-spacing: 0;
-        }
-
-        .brand-copy p {
-            margin: 0;
-            color: rgba(255, 255, 255, 0.76);
-            font-size: 14px;
-            line-height: 1.6;
         }
 
         .brand-links {
@@ -390,7 +408,6 @@
 
                 <div class="brand-copy">
                     <h2>Ruang kerja admin yang lebih tertata.</h2>
-                    <p>Kelola operasional GreenPoint melalui tampilan yang konsisten dengan dashboard.</p>
                 </div>
 
                 <div class="brand-links">
