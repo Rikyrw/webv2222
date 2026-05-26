@@ -188,7 +188,7 @@
         }
 
         /* Button styling */
-        button {
+        .btn-register {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -197,7 +197,7 @@
             min-height: 48px;
             margin-top: 24px;
             padding: 12px 24px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: #059669;
             color: white;
             border: none;
             border-radius: 14px;
@@ -205,20 +205,21 @@
             font-weight: 800;
             font-family: inherit;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 18px 40px rgba(16, 185, 129, 0.24);
             transform: none;
             position: static;
         }
 
-        button:hover {
-            filter: brightness(0.98);
-            transform: translateY(-1px);
-            box-shadow: 0 20px 40px rgba(16, 185, 129, 0.3);
+        .btn-register:hover {
+            background: linear-gradient(135deg, #1acc91 0%, #05a875 100%) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 20px 45px rgba(5, 150, 105, 0.3) !important;
         }
 
-        button:active {
-            transform: translateY(0);
+        .btn-register:active {
+            transform: translate(0, -50%) scale(0.98);
+            transition: all 0.1s ease;
         }
 
         /* Footer text */
@@ -360,7 +361,7 @@
                 ></textarea>
             </div>
 
-            <button type="submit" name="register">Daftar</button>
+            <button type="submit" class="btn-register">Daftar</button>
         </form>
 
         @include('nasabah.partials.google-sso', [

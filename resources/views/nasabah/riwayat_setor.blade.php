@@ -80,9 +80,13 @@
         }
 
         .filter-note {
-            margin-top: 12px;
-            color: #b91c1c;
-            font-size: 14px;
+            margin-top: 16px;
+            padding: 12px;
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #92400e;
         }
 
         .filter-note ul {
@@ -145,37 +149,59 @@
             gap: 8px;
         }
 
-        .filter-actions button,
-        .filter-actions a,
+        /* ========== CSS UNTUK SEMUA BUTTON (DISAMAKAN) ========== */
         .btn-secondary,
         .btn-outline,
         .btn-export {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
-            padding: 8px 16px;
-            background: white;
-            color: #059669;
-            font-weight: 600;
+            background: #059669;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
             font-size: 14px;
-            font-family: inherit;
-            text-decoration: none;
-            border: 1px solid #059669;
-            border-radius: 6px;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 18px 40px rgba(16, 185, 129, 0.24);
             transform: none;
-            margin-top: 0;
+            position: relative;
         }
 
-        .filter-actions button:hover,
-        .filter-actions a:hover,
+        .btn-secondary svg,
+        .btn-outline svg,
+        .btn-export svg {
+            width: 18px;
+            height: 18px;
+            stroke: white;
+            fill: none;
+            stroke-width: 2;
+        }
+
         .btn-secondary:hover,
         .btn-outline:hover,
         .btn-export:hover {
-            background: #059669;
+            background: linear-gradient(135deg, #1acc91 0%, #05a875 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 20px 45px rgba(5, 150, 105, 0.3);
             color: white;
-            border-color: #059669;
+        }
+
+        .btn-secondary:hover svg,
+        .btn-outline:hover svg,
+        .btn-export:hover svg {
+            stroke: white;
+        }
+
+        .btn-secondary:active,
+        .btn-outline:active,
+        .btn-export:active {
+            transform: scale(0.98);
+            transition: all 0.1s ease;
         }
 
         .table-actions {
@@ -186,6 +212,7 @@
             margin-bottom: 20px;
         }
 
+        /* ========== PERBAIKAN SEARCH CONTAINER ========== */
         .search-container {
             position: relative;
             flex: 1;
@@ -194,31 +221,51 @@
 
         .search-icon {
             position: absolute;
-            left: 12px;
+            right: 12px;  /* Diubah dari left ke right */
             top: 50%;
             transform: translateY(-50%);
-            color: #9ca3af;
+            cursor: pointer;  /* Tambahkan cursor pointer */
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;  /* Diubah dari none ke auto agar bisa diklik */
         }
 
         .search-icon svg {
             width: 18px;
             height: 18px;
+            stroke: #9ca3af;
+            stroke-width: 2;
+            fill: none;
+            transition: stroke 0.2s ease;
+        }
+
+        .search-icon:hover svg {
+            stroke: #10b981;  /* Efek hover */
         }
 
         .search-input {
             width: 100%;
-            padding: 10px 12px 10px 36px;
+            padding: 10px 40px 10px 12px;  /* Padding kanan 40px untuk ikon, kiri 12px */
             border: 1px solid #d1d5db;
             border-radius: 6px;
             font-size: 14px;
             font-family: inherit;
             background: white;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
         }
 
         .search-input:focus {
             outline: none;
             border-color: #10b981;
             box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: #9ca3af;
+            font-size: 14px;
         }
 
         table {
@@ -438,6 +485,50 @@
         }
     </style>
     @include('partials.greenpoint-theme')
+
+    <!-- CSS OVERRIDE SETELAH THEME UNTUK MEMAKSA WARNA BUTTON -->
+    <style>
+        /* Pemaksaan terakhir agar semua button memiliki gaya yang sama */
+        .btn-secondary,
+        .btn-outline,
+        .btn-export {
+            background: #059669 !important;
+            background-color: #059669 !important;
+            color: white !important;
+            border: none !important;
+            box-shadow: 0 18px 40px rgba(16, 185, 129, 0.24) !important;
+        }
+        
+        .btn-secondary svg,
+        .btn-outline svg,
+        .btn-export svg {
+            stroke: white !important;
+            color: white !important;
+        }
+        
+        .btn-secondary:hover,
+        .btn-outline:hover,
+        .btn-export:hover {
+            background: linear-gradient(135deg, #1acc91 0%, #05a875 100%) !important;
+            background-color: transparent !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 20px 45px rgba(5, 150, 105, 0.3) !important;
+            color: white !important;
+        }
+        
+        .btn-secondary:hover svg,
+        .btn-outline:hover svg,
+        .btn-export:hover svg {
+            stroke: white !important;
+            color: white !important;
+        }
+        
+        .btn-secondary:active,
+        .btn-outline:active,
+        .btn-export:active {
+            transform: scale(0.98) !important;
+        }
+    </style>
 </head>
 
 <body>
@@ -515,21 +606,21 @@
 
                 <div class="table-actions">
                     <div class="search-container">
+                        <input type="text" class="search-input" placeholder="Cari transaksi..." id="searchInput" aria-label="Cari riwayat">
                         <div class="search-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="11" cy="11" r="8"></circle>
                                 <path d="m21 21-4.35-4.35"></path>
                             </svg>
                         </div>
-                        <input type="text" class="search-input" placeholder="Search..." id="searchInput" aria-label="Cari riwayat">
                     </div>
 
                     <button class="btn-export" aria-label="Export data" onclick="exportData()">
                         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="7 10 12 15 17 10"></polyline>
-                                <line x1="12" y1="15" x2="12" y2="3"></line>
-                            </svg>
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
                         Export
                     </button>
                 </div>
@@ -630,7 +721,9 @@
         let filteredRows = [...allRows];
 
         // Initialize
-        paginationText.textContent = `${totalRows} dari ${totalRows} transaksi`;
+        if (paginationText) {
+            paginationText.textContent = `${totalRows} dari ${totalRows} transaksi`;
+        }
 
         function formatDate(value) {
             const year = value.getFullYear();
@@ -646,10 +739,14 @@
             minDateObj.setDate(minDateObj.getDate() - 30);
             const minDate = formatDate(minDateObj);
 
-            tanggalMulaiInput.min = minDate;
-            tanggalMulaiInput.max = maxDate;
-            tanggalAkhirInput.min = minDate;
-            tanggalAkhirInput.max = maxDate;
+            if (tanggalMulaiInput) {
+                tanggalMulaiInput.min = minDate;
+                tanggalMulaiInput.max = maxDate;
+            }
+            if (tanggalAkhirInput) {
+                tanggalAkhirInput.min = minDate;
+                tanggalAkhirInput.max = maxDate;
+            }
         }
 
         function getDateDiffDays(startValue, endValue) {
@@ -662,8 +759,8 @@
         if (filterForm) {
             setDateConstraints();
             filterForm.addEventListener('submit', function(e) {
-                const startValue = tanggalMulaiInput.value;
-                const endValue = tanggalAkhirInput.value;
+                const startValue = tanggalMulaiInput ? tanggalMulaiInput.value : '';
+                const endValue = tanggalAkhirInput ? tanggalAkhirInput.value : '';
                 if (!startValue || !endValue) {
                     e.preventDefault();
                     alert('Pilih tanggal mulai dan tanggal akhir terlebih dahulu.');
@@ -685,16 +782,18 @@
         }
 
         // Search functionality
-        searchInput.addEventListener('input', function() {
-            const searchTerm = this.value.trim().toLowerCase();
-            filteredRows = allRows.filter(row => {
-                const rowText = row.textContent.toLowerCase();
-                return searchTerm === '' || rowText.includes(searchTerm);
-            });
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.trim().toLowerCase();
+                filteredRows = allRows.filter(row => {
+                    const rowText = row.textContent.toLowerCase();
+                    return searchTerm === '' || rowText.includes(searchTerm);
+                });
 
-            currentPage = 1;
-            updatePaginationDisplay();
-        });
+                currentPage = 1;
+                updatePaginationDisplay();
+            });
+        }
 
         // Export functionality
         function exportData() {
@@ -736,13 +835,20 @@
             const visibleCount = filteredRows.length;
             const totalPages = Math.ceil(visibleCount / rowsPerPage);
             
-            pageIndicator.textContent = `${currentPage}/${totalPages}`;
-            prevBtn.disabled = currentPage === 1 || totalPages === 0;
-            nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+            if (pageIndicator) {
+                pageIndicator.textContent = `${currentPage}/${totalPages === 0 ? 1 : totalPages}`;
+            }
+            if (prevBtn) {
+                prevBtn.disabled = currentPage === 1 || totalPages === 0;
+            }
+            if (nextBtn) {
+                nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+            }
             
-            const startRow = (currentPage - 1) * rowsPerPage + 1;
             const endRow = Math.min(currentPage * rowsPerPage, visibleCount);
-            paginationText.textContent = `${endRow} dari ${totalRows} transaksi`;
+            if (paginationText) {
+                paginationText.textContent = `${endRow} dari ${totalRows} transaksi`;
+            }
 
             // Show/hide rows
             allRows.forEach((row, index) => {

@@ -164,7 +164,7 @@
         }
 
         .btn-primary:active {
-            transform: translate(0, -50%) scale(0.98);
+            transform: scale(0.98);
             transition: all 0.1s ease;
         }
 
@@ -200,7 +200,7 @@
         }
 
         .btn-secondary:active {
-            transform: translate(0, -50%) scale(0.98);
+            transform: scale(0.98);
             transition: all 0.1s ease;
         }
 

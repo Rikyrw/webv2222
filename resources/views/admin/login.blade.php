@@ -320,11 +320,11 @@
             min-height: 43px;
             margin-top: 4px;
             padding: 10px 14px;
-            color: #ffffff;
-            background: var(--gp-green);
-            border: 1px solid var(--gp-green);
+            background: transparent;
+            color: white;
+            border: none;
             border-radius: 7px;
-            box-shadow: 0 10px 22px rgba(47, 95, 62, 0.2);
+            box-shadow: 0 10px 22px rgba(16, 185, 129, 0.2);
             font: inherit;
             font-size: 13px;
             font-weight: 800;
@@ -335,11 +335,10 @@
 
         .btn-login:hover,
         .btn-login:focus {
-            background: var(--gp-green-dark);
-            border-color: var(--gp-green-dark);
-            box-shadow: 0 12px 26px rgba(47, 95, 62, 0.24);
+            background: linear-gradient(135deg, #1acc91 0%, #05a875 100%) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 20px 45px rgba(5, 150, 105, 0.3) !important;
             outline: none;
-            transform: translateY(-1px);
         }
 
         .login-footer {

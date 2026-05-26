@@ -5,204 +5,336 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login Nasabah - GreenPoint</title>
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/lucide-static@0.469.0/font/lucide.css" rel="stylesheet">
+    @include('partials.greenpoint-theme')
     <style>
         * {
-            margin: 0;
-            padding: 0;
             box-sizing: border-box;
         }
 
+        html,
         body {
+            min-height: 100%;
+        }
+
+        body.nasabah-login {
             min-height: 100vh;
             display: grid;
             place-items: center;
-            padding: 20px;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            color: #0f172a;
-            background: radial-gradient(circle at top, rgba(16, 185, 129, 0.16), transparent 28%),
-                        linear-gradient(180deg, #f8fdf9 0%, #eef7f1 100%);
+            margin: 0;
+            padding: 32px;
+            color: var(--gp-text);
+            background:
+                linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0 34%, rgba(16, 185, 129, 0) 34%),
+                linear-gradient(180deg, #f8fdf9 0%, #eef7f1 100%) !important;
         }
 
-        /* Container utama */
-        .login-container {
-            width: 100%;
-            max-width: 448px;
-            animation: fadeUp 0.3s ease-out;
+        .nasabah-login-shell {
+            width: min(100%, 980px);
         }
 
-        /* Gaya untuk card */
-        .login-container {
-            background: rgba(255, 255, 255, 0.92);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(229, 231, 235, 0.9);
-            border-radius: 24px;
-            padding: 0;
-            box-shadow: 0 24px 80px rgba(15, 23, 42, 0.08);
+        .login-layout {
+            display: grid;
+            grid-template-columns: minmax(280px, 0.86fr) minmax(360px, 1fr);
+            min-height: 558px;
             overflow: hidden;
+            background: #ffffff;
+            border: 1px solid var(--gp-border);
+            border-radius: var(--gp-radius);
+            box-shadow: 0 20px 52px rgba(15, 23, 42, 0.12);
         }
 
-        @keyframes fadeUp {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .login-brand-panel {
+            position: relative;
+            isolation: isolate;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 28px;
+            padding: 34px;
+            color: #ffffff;
+            overflow: hidden;
+            background: linear-gradient(160deg, #10b981 0%, #059669 100%);
         }
 
-        /* Header card */
-        h2 {
-            font-size: 28px;
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            text-align: center;
-            color: #0f172a;
-            margin-bottom: 8px;
+        .login-brand-panel::before,
+        .login-brand-panel::after {
+            position: absolute;
+            inset: 0;
+            content: "";
+            pointer-events: none;
         }
 
-        /* Tambahkan subtitle */
-        h2::after {
-            content: "Masuk ke akun nasabah Anda";
-            display: block;
-            font-size: 14px;
-            font-weight: 400;
-            color: #64748b;
-            margin-top: 8px;
+        .login-brand-panel::before {
+            z-index: -2;
+            background: url("{{ asset('images/bg-gunung.png') }}") center bottom / cover no-repeat;
+            opacity: 0.62;
+            filter: saturate(1.08) contrast(1.14);
         }
 
-        /* Area atas card (seperti brand mark di admin) */
-        .login-container::before {
-            content: "🌱";
+        .login-brand-panel::after {
+            z-index: -1;
+            background:
+                radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0) 34%),
+                linear-gradient(160deg, rgba(16, 185, 129, 0.66) 0%, rgba(5, 150, 105, 0.58) 100%);
+        }
+
+        .brand-lockup {
             display: flex;
             align-items: center;
-            justify-content: center;
-            width: 64px;
-            height: 64px;
-            margin: 28px auto 18px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            border-radius: 20px;
-            font-size: 32px;
-            box-shadow: 0 18px 40px rgba(16, 185, 129, 0.28);
+            gap: 12px;
         }
 
-        .login-container {
-            background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(255,255,255,0) 100%);
-        }
-        .login-container {
-            padding: 0 28px 28px;
+        .brand-logo {
+            display: grid;
+            place-items: center;
+            width: 46px;
+            height: 46px;
+            flex: 0 0 46px;
+            border-radius: 10px;
+            background: #ffffff;
+            box-shadow: 0 12px 26px rgba(0, 0, 0, 0.16);
         }
 
-        form {
-            margin-top: 0;
+        .brand-logo img {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
         }
 
-        .error-message {
-            padding: 12px 14px;
-            border-radius: 14px;
-            margin-bottom: 20px;
-            font-size: 14px;
+        .brand-title {
+            margin: 0;
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: 0;
+        }
+
+        .brand-subtitle {
+            margin: 5px 0 0;
+            color: rgba(255, 255, 255, 0.74);
+            font-size: 12px;
             font-weight: 600;
-            background: #fef2f2;
-            color: #991b1b;
-            border: 1px solid #fecaca;
-            text-align: left;
+            line-height: 1.3;
         }
 
-        /* Form group */
-        .form-group {
-            margin-bottom: 20px;
+        .brand-copy {
+            display: grid;
+            gap: 14px;
+            max-width: 300px;
         }
 
-        /* Input fields */
-        input[type="text"],
-        input[type="password"],
-        input[type="email"] {
+        .brand-copy h2 {
+            margin: 0;
+            color: #ffffff;
+            font-size: 31px;
+            font-weight: 800;
+            line-height: 1.08;
+            letter-spacing: 0;
+        }
+
+        .brand-features {
+            display: grid;
+            gap: 9px;
+        }
+
+        .brand-feature {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 39px;
+            padding: 10px 12px;
+            color: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .brand-feature i {
+            font-size: 16px;
+        }
+
+        .login-form-panel {
+            display: flex;
+            align-items: center;
+            padding: 40px;
+            background: #ffffff;
+        }
+
+        .login-form-wrap {
             width: 100%;
-            min-height: 48px;
-            padding: 12px 14px;
-            border: 1px solid #dbe3ea;
-            border-radius: 14px;
-            background: white;
-            font-family: inherit;
-            font-size: 14px;
-            color: #0f172a;
-            outline: none;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            max-width: 430px;
+            margin: 0 auto;
         }
 
-        input[type="text"]:focus,
-        input[type="password"]:focus,
-        input[type="email"]:focus {
+        .mobile-brand {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 22px;
+        }
+
+        .mobile-brand img {
+            width: 34px;
+            height: 34px;
+            object-fit: contain;
+        }
+
+        .mobile-brand .brand-title {
+            color: #10b981;
+        }
+
+        .mobile-brand .brand-subtitle {
+            color: var(--gp-muted);
+        }
+
+        .login-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            min-height: 29px;
+            padding: 6px 10px;
+            margin-bottom: 16px;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.24);
+            border-radius: 7px;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .login-title {
+            margin: 0 0 8px;
+            color: #10b981;
+            font-size: 28px;
+            font-weight: 800;
+            line-height: 1.12;
+            letter-spacing: 0;
+        }
+
+        .login-description {
+            margin: 0 0 26px;
+            color: var(--gp-muted);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .nasabah-login .gp-toast {
+            max-width: 100%;
+            margin-bottom: 16px;
+        }
+
+        .login-form {
+            display: grid;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: grid;
+            gap: 8px;
+        }
+
+        .field-label {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            color: #35473c;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .field-label i {
+            color: #10b981;
+            font-size: 15px;
+        }
+
+        .nasabah-login .input {
+            width: 100%;
+            min-height: 42px;
+            padding: 9px 12px !important;
+            border-radius: 7px !important;
+            font-size: 13px !important;
+        }
+
+        .password-field {
+            position: relative;
+        }
+
+        .nasabah-login .password-field .input {
+            padding-right: 48px !important;
+        }
+
+        .toggle-pass {
+            position: absolute;
+            top: 50%;
+            right: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            color: #516156;
+            background: #f4f6f4;
+            border: 1px solid #d8e1da;
+            border-radius: 7px;
+            cursor: pointer;
+            transform: translateY(-50%);
+            transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+        }
+
+        .toggle-pass:hover,
+        .toggle-pass:focus {
+            color: #ffffff;
+            background: #10b981;
             border-color: #10b981;
-            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.12);
+            outline: none;
         }
 
-        input[type="text"]::placeholder,
-        input[type="password"]::placeholder,
-        input[type="email"]::placeholder {
-            color: #9ca3af;
+        .toggle-pass:focus {
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
         }
 
-        button[name="login"] {
+        .btn-login {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
             width: 100%;
-            min-height: 48px;
-            margin-top: 8px;
-            padding: 12px 24px;
-            background: #059669;
+            min-height: 43px;
+            margin-top: 4px;
+            padding: 10px 14px;
+            background: transparent;
             color: white;
             border: none;
-            border-radius: 14px;
-            font-size: 14px;
+            border-radius: 7px;
+            box-shadow: 0 10px 22px rgba(16, 185, 129, 0.2);
+            font: inherit;
+            font-size: 13px;
             font-weight: 800;
-            font-family: inherit;
+            line-height: 1.2;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 18px 40px rgba(5, 150, 105, 0.2);
-            transform: none;
-            position: static;
+            transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
         }
 
-        button[name="login"]:hover {
+        .btn-login:hover,
+        .btn-login:focus {
             background: linear-gradient(135deg, #1acc91 0%, #05a875 100%) !important;
             transform: translateY(-2px);
             box-shadow: 0 20px 45px rgba(5, 150, 105, 0.3) !important;
-        }
-
-        button[name="login"]:active {
-            transform: translateY(0);
-            transition: all 0.1s ease;
-        }
-
-        /* Footer text */
-        .footer-text {
-            margin-top: 20px;
-            text-align: center;
-            color: #64748b;
-            font-size: 13px;
-            padding-bottom: 16px;
-        }
-
-        .footer-text a {
-            color: #10b981;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .footer-text a:hover {
-            text-decoration: underline;
-            color: #059669;
+            outline: none;
         }
 
         .forgot-password {
-            margin-top: -8px;
-            margin-bottom: 18px;
-            text-align: right;
+            margin-top: 12px;
             font-size: 13px;
         }
 
@@ -214,74 +346,187 @@
 
         .forgot-password a:hover {
             text-decoration: underline;
+            color: #059669;
         }
 
-        /* Responsive */
-        @media (max-width: 480px) {
-            body {
+        .login-footer {
+            margin-top: 18px;
+            color: var(--gp-muted);
+            font-size: 12px;
+            line-height: 1.5;
+            text-align: center;
+        }
+
+        .login-footer a {
+            color: #10b981;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .login-footer a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 860px) {
+            body.nasabah-login {
+                padding: 22px;
+            }
+
+            .login-layout {
+                grid-template-columns: 1fr;
+                min-height: auto;
+            }
+
+            .login-brand-panel {
+                display: none;
+            }
+
+            .login-form-panel {
+                padding: 30px;
+            }
+
+            .mobile-brand {
+                display: flex;
+            }
+        }
+
+        @media (max-width: 520px) {
+            body.nasabah-login {
+                align-items: start;
                 padding: 16px;
             }
-            
-            .login-container {
-                padding: 0 20px 24px;
+
+            .login-form-panel {
+                padding: 22px;
+            }
+
+            .login-title {
+                font-size: 24px;
+            }
+
+            .login-description {
+                margin-bottom: 22px;
             }
         }
     </style>
-    @include('partials.greenpoint-theme')
 </head>
-<body>
-    <div class="login-container">
-        <h2>Login Nasabah</h2>
+<body class="nasabah-login">
+    <main class="nasabah-login-shell">
+        <section class="login-layout" aria-label="Login nasabah GreenPoint">
+            <aside class="login-brand-panel" aria-hidden="true">
+                <div class="brand-lockup">
+                    <div class="brand-logo">
+                        <img src="{{ asset('images/logo.png') }}" alt="">
+                    </div>
+                    <div>
+                        <p class="brand-title">GreenPoint</p>
+                        <p class="brand-subtitle">Nasabah Dashboard</p>
+                    </div>
+                </div>
 
-        @if (session('error'))
-            @include('partials.toast', ['type' => 'danger', 'message' => session('error')])
-        @endif
+                <div class="brand-copy">
+                    <h2>Kelola saldo dan transaksi Anda.</h2>
+                </div>
 
-        @if ($errors->any())
-            @include('partials.toast', ['type' => 'danger', 'messages' => $errors->all()])
-        @endif
+                <div class="brand-features">
+                    <div class="brand-feature"><i class="icon-wallet"></i> Top Up & Tarik Saldo</div>
+                    <div class="brand-feature"><i class="icon-send"></i> Transfer & Pembayaran</div>
+                    <div class="brand-feature"><i class="icon-history"></i> Riwayat Transaksi</div>
+                </div>
+            </aside>
 
-        <form method="POST" action="{{ route('nasabah.authenticate') }}">
-            @csrf
+            <div class="login-form-panel">
+                <div class="login-form-wrap">
+                    <div class="mobile-brand">
+                        <img src="{{ asset('images/logo.png') }}" alt="GreenPoint Logo">
+                        <div>
+                            <p class="brand-title">GreenPoint</p>
+                            <p class="brand-subtitle">Nasabah Dashboard</p>
+                        </div>
+                    </div>
 
-            <div class="form-group">
-                <input 
-                    type="text" 
-                    name="username" 
-                    placeholder="Username atau Email" 
-                    required
-                    autocomplete="username"
-                    autocapitalize="none"
-                    spellcheck="false"
-                    value="{{ old('username') }}"
-                >
+                    <div class="login-eyebrow"><i class="icon-user"></i> Akses Nasabah</div>
+                    <h1 class="login-title">Login Nasabah</h1>
+                    <p class="login-description">Masuk menggunakan akun nasabah yang sudah terdaftar di sistem GreenPoint.</p>
+
+                    @if(session('error'))
+                        @include('partials.toast', ['type' => 'danger', 'message' => session('error')])
+                    @endif
+                    @if($errors->any())
+                        @include('partials.toast', ['type' => 'danger', 'messages' => $errors->all()])
+                    @endif
+
+                    <form class="login-form" method="POST" action="{{ route('nasabah.authenticate') }}">
+                        @csrf
+
+                        <div class="form-group">
+                            <label class="field-label" for="username"><i class="icon-user"></i> Username atau Email</label>
+                            <input 
+                                class="input" 
+                                type="text" 
+                                id="username" 
+                                name="username" 
+                                required
+                                autocomplete="username"
+                                autocapitalize="none"
+                                spellcheck="false"
+                                value="{{ old('username') }}"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label class="field-label" for="password"><i class="icon-key-round"></i> Password</label>
+                            <div class="password-field">
+                                <input 
+                                    class="input" 
+                                    type="password" 
+                                    id="password" 
+                                    name="password" 
+                                    required
+                                    autocomplete="current-password"
+                                >
+                                <button type="button" id="togglePassword" class="toggle-pass" aria-label="Tampilkan password" aria-pressed="false">
+                                    <i id="togglePasswordIcon" class="icon-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <p class="forgot-password">
+                            <a href="{{ route('nasabah.password.request') }}">Lupa password?</a>
+                        </p>
+
+                        <button type="submit" class="btn-login">
+                            <i class="icon-log-in"></i> Login ke Dashboard
+                        </button>
+                    </form>
+
+                    @include('nasabah.partials.google-sso', [
+                        'buttonId' => 'google-login-button',
+                        'errorId' => 'google-login-error',
+                        'buttonText' => 'signin_with',
+                    ])
+
+                    <p class="login-footer">
+                        Belum punya akun? <a href="{{ route('nasabah.register') }}">Daftar di sini</a>
+                    </p>
+                </div>
             </div>
+        </section>
+    </main>
 
-            <div class="form-group">
-                <input 
-                    type="password" 
-                    name="password" 
-                    placeholder="Password" 
-                    required
-                >
-            </div>
+    <script>
+        const passwordInput = document.getElementById('password');
+        const toggleButton = document.getElementById('togglePassword');
+        const toggleIcon = document.getElementById('togglePasswordIcon');
 
-            <p class="forgot-password">
-                <a href="{{ route('nasabah.password.request') }}">Lupa password?</a>
-            </p>
+        toggleButton.addEventListener('click', function () {
+            const shouldShow = passwordInput.getAttribute('type') === 'password';
 
-            <button type="submit" name="login">Login ke Dashboard</button>
-        </form>
-
-        @include('nasabah.partials.google-sso', [
-            'buttonId' => 'google-login-button',
-            'errorId' => 'google-login-error',
-            'buttonText' => 'signin_with',
-        ])
-
-        <p class="footer-text">
-            Belum punya akun? <a href="{{ route('nasabah.register') }}">Daftar di sini</a>
-        </p>
-    </div>
+            passwordInput.setAttribute('type', shouldShow ? 'text' : 'password');
+            toggleButton.setAttribute('aria-pressed', shouldShow ? 'true' : 'false');
+            toggleButton.setAttribute('aria-label', shouldShow ? 'Sembunyikan password' : 'Tampilkan password');
+            toggleIcon.className = shouldShow ? 'icon-eye-off' : 'icon-eye';
+        });
+    </script>
 </body>
 </html>

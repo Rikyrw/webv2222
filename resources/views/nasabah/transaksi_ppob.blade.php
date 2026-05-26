@@ -166,8 +166,8 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: #059669;
-            color: white;
+            background: #059669 !important;
+            color: white !important;
             border: none;
             padding: 10px 16px;
             border-radius: 8px;
@@ -195,21 +195,23 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: transparent;
-            color: #6b7280;
-            border: 1px solid #d1d5db;
+            background: #059669 !important;
+            color: white !important;
+            border: none;
             padding: 10px 16px;
             border-radius: 8px;
             font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 18px 40px rgba(16, 185, 129, 0.24);
+            transform: none;
         }
 
         .reset-btn:hover {
-            background: #818181 !important;
-            color: white;
-            transform: scale(1.02);
+            background: linear-gradient(135deg, #1acc91 0%, #05a875 100%) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 20px 45px rgba(5, 150, 105, 0.3) !important;
         }
 
         .reset-btn:active {
@@ -217,31 +219,73 @@
             transition: all 0.1s ease;
         }
 
-        .btn-export {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: transparent;
-            color: #059669;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        /* ========== PERBAIKAN BUTTON EXPORT (PAKSA DENGAN !important) ========== */
+        .table-actions .btn-export,
+        .btn-export,
+        button.btn-export,
+        .btn-export.btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            background: #059669 !important;
+            background-color: #059669 !important;
+            color: white !important;
+            border: none !important;
+            padding: 10px 16px !important;
+            border-radius: 8px !important;
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            text-decoration: none !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            box-shadow: 0 18px 40px rgba(16, 185, 129, 0.24) !important;
+            transform: none !important;
+            position: relative !important;
+            opacity: 1 !important;
+            filter: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            appearance: none !important;
         }
 
-        .btn-export:hover {
+        /* Icon SVG dalam button Export */
+        .table-actions .btn-export svg,
+        .btn-export svg,
+        button.btn-export svg {
+            width: 18px !important;
+            height: 18px !important;
+            stroke: white !important;
+            stroke-width: 2 !important;
+            fill: none !important;
+            color: white !important;
+        }
+
+        /* Hover effect - hanya background yang berubah gradasi, teks tetap putih */
+        .table-actions .btn-export:hover,
+        .btn-export:hover,
+        button.btn-export:hover {
             background: linear-gradient(135deg, #1acc91 0%, #05a875 100%) !important;
-            transform: translateY(-2px);
+            background-color: transparent !important;
+            transform: translateY(-2px) !important;
             box-shadow: 0 20px 45px rgba(5, 150, 105, 0.3) !important;
+            color: white !important;
         }
 
-        .btn-export:active {
-            transform: translateY(0);
-            transition: all 0.1s ease;
+        /* Hover effect untuk icon - tetap putih */
+        .table-actions .btn-export:hover svg,
+        .btn-export:hover svg,
+        button.btn-export:hover svg {
+            stroke: white !important;
+            color: white !important;
+        }
+
+        /* Active effect */
+        .table-actions .btn-export:active,
+        .btn-export:active,
+        button.btn-export:active {
+            transform: scale(0.98) !important;
+            transition: all 0.1s ease !important;
         }
 
         .table-container {
@@ -446,11 +490,6 @@
                 width: 100%;
             }
 
-            .btn-export {
-                flex: 1;
-                justify-content: center;
-            }
-
             .pagination-info {
                 flex-direction: column;
                 align-items: flex-start;
@@ -464,6 +503,40 @@
         }
     </style>
     @include('partials.greenpoint-theme')
+    
+    <!-- TAMBAHKAN CSS INI SETELAH greenpoint-theme UNTUK MEMAKSA OVERRIDE -->
+    <style>
+        /* Pemaksaan terakhir - setelah semua CSS termasuk theme */
+        button.btn-export,
+        .btn-export,
+        .table-actions .btn-export {
+            background: #059669 !important;
+            background-color: #059669 !important;
+            color: white !important;
+            border: none !important;
+        }
+        
+        button.btn-export svg,
+        .btn-export svg,
+        .table-actions .btn-export svg {
+            stroke: white !important;
+            color: white !important;
+        }
+        
+        button.btn-export:hover,
+        .btn-export:hover,
+        .table-actions .btn-export:hover {
+            background: linear-gradient(135deg, #1acc91 0%, #05a875 100%) !important;
+            color: white !important;
+        }
+        
+        button.btn-export:hover svg,
+        .btn-export:hover svg,
+        .table-actions .btn-export:hover svg {
+            stroke: white !important;
+            color: white !important;
+        }
+    </style>
 </head>
 <body>
     <div class="app">
@@ -600,7 +673,7 @@
                                                 @if (!empty($item['deskripsi']))
                                                     <div style="display:block; color:#6b7280; font-size:13px; margin-top:6px;">{{ htmlspecialchars($item['deskripsi']) }}</div>
                                                 @endif
-                            </div>
+                                            </div>
                                         </td>
                                         <td class="amount" data-amount="{{ $item['amount'] ?? 0 }}">{{ $amount }}</td>
                                         <td>
@@ -668,10 +741,14 @@
             minDateObj.setDate(minDateObj.getDate() - 30);
             const minDate = formatDate(minDateObj);
 
-            tanggalMulaiInput.min = minDate;
-            tanggalMulaiInput.max = maxDate;
-            tanggalAkhirInput.min = minDate;
-            tanggalAkhirInput.max = maxDate;
+            if (tanggalMulaiInput) {
+                tanggalMulaiInput.min = minDate;
+                tanggalMulaiInput.max = maxDate;
+            }
+            if (tanggalAkhirInput) {
+                tanggalAkhirInput.min = minDate;
+                tanggalAkhirInput.max = maxDate;
+            }
         }
 
         function getDateDiffDays(startValue, endValue) {
@@ -688,8 +765,8 @@
         if (filterForm) {
             setDateConstraints();
             filterForm.addEventListener('submit', function(e) {
-                const startValue = tanggalMulaiInput.value;
-                const endValue = tanggalAkhirInput.value;
+                const startValue = tanggalMulaiInput ? tanggalMulaiInput.value : '';
+                const endValue = tanggalAkhirInput ? tanggalAkhirInput.value : '';
                 if (!startValue || !endValue) {
                     e.preventDefault();
                     alert('Pilih tanggal mulai dan tanggal akhir terlebih dahulu.');
@@ -730,16 +807,17 @@
             const nextBtn = document.getElementById('nextBtn');
             const paginationText = document.getElementById('paginationText');
             
-            pageIndicator.textContent = currentPage + '/' + totalPages;
-            prevBtn.disabled = currentPage === 1;
-            nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+            if (pageIndicator) pageIndicator.textContent = currentPage + '/' + totalPages;
+            if (prevBtn) prevBtn.disabled = currentPage === 1;
+            if (nextBtn) nextBtn.disabled = currentPage === totalPages || totalPages === 0;
             
-            if (totalRows > 0) {
-                const startRow = (currentPage - 1) * rowsPerPage + 1;
-                const endRow = Math.min(currentPage * rowsPerPage, totalRows);
-                paginationText.textContent = endRow + ' of ' + totalRows;
-            } else {
-                paginationText.textContent = '0 of 0';
+            if (paginationText) {
+                if (totalRows > 0) {
+                    const endRow = Math.min(currentPage * rowsPerPage, totalRows);
+                    paginationText.textContent = endRow + ' of ' + totalRows;
+                } else {
+                    paginationText.textContent = '0 of 0';
+                }
             }
             
             updateTableDisplay();
@@ -747,10 +825,12 @@
 
         function updateRowsPerPage() {
             const select = document.getElementById('rows-per-page');
-            rowsPerPage = parseInt(select.value);
-            totalPages = Math.ceil(totalRows / rowsPerPage);
-            currentPage = 1;
-            updatePaginationDisplay();
+            if (select) {
+                rowsPerPage = parseInt(select.value);
+                totalPages = Math.ceil(totalRows / rowsPerPage);
+                currentPage = 1;
+                updatePaginationDisplay();
+            }
         }
 
         function goToPreviousPage() {

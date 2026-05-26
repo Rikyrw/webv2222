@@ -174,8 +174,8 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: transparent;
-            color: #6b7280;
+            background: #6b7280;
+            color: white;
             border: 1px solid #d1d5db;
             padding: 10px 16px;
             border-radius: 8px;
@@ -186,9 +186,14 @@
         }
 
         .btn-secondary:hover {
-            background: #818181 !important;
-            color: white;
+            background: linear-gradient(135deg, #c1cec9 0%, #75817d 100%) !important;
+            color: white !important;
             transform: scale(1.02);
+        }
+
+        .btn-secondary:active {
+            transform: scale(0.98);
+            transition: all 0.1s ease;
         }
 
         .btn-danger {
