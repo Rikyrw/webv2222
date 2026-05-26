@@ -187,22 +187,22 @@
             padding: 12px 24px;
             background: transparent;
             color: #059669;
-            border: 1px solid #059669;
+            border: none;
             border-radius: 14px;
             font-size: 14px;
             font-weight: 800;
             font-family: inherit;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: 0 18px 40px rgba(16, 185, 129, 0.24);
+            transform: none;
+            position: static;
         }
 
         .btn-primary:hover {
-            background: linear-gradient(135deg, #059669, #10b981);
-            color: white;
-            border-color: #059669;
-            transform: translate(0, -5%) scale(1.05);
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+            background: linear-gradient(135deg, #1acc91 0%, #05a875 100%) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 20px 45px rgba(5, 150, 105, 0.3) !important;
         }
         
         .btn-primary:active {

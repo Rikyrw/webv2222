@@ -87,22 +87,17 @@
             box-shadow: 0 18px 40px rgba(16, 185, 129, 0.28);
         }
 
-        /* Head section gradient */
         .login-container {
             background: linear-gradient(180deg, rgba(16, 185, 129, 0.08) 0%, rgba(255,255,255,0) 100%);
         }
-
-        /* Card body padding */
         .login-container {
             padding: 0 28px 28px;
         }
 
-        /* Style untuk form di dalam */
         form {
             margin-top: 0;
         }
 
-        /* Error message styling */
         .error-message {
             padding: 12px 14px;
             border-radius: 14px;
@@ -150,7 +145,6 @@
             color: #9ca3af;
         }
 
-        /* Button styling */
         button[name="login"] {
             display: inline-flex;
             align-items: center;
@@ -160,7 +154,7 @@
             min-height: 48px;
             margin-top: 8px;
             padding: 12px 24px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            background: #059669;
             color: white;
             border: none;
             border-radius: 14px;
@@ -168,20 +162,21 @@
             font-weight: 800;
             font-family: inherit;
             cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 18px 40px rgba(16, 185, 129, 0.24);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 18px 40px rgba(5, 150, 105, 0.2);
             transform: none;
             position: static;
         }
 
         button[name="login"]:hover {
-            filter: brightness(0.98);
-            transform: translateY(-1px);
-            box-shadow: 0 20px 40px rgba(16, 185, 129, 0.3);
+            background: linear-gradient(135deg, #1acc91 0%, #05a875 100%) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 20px 45px rgba(5, 150, 105, 0.3) !important;
         }
 
         button[name="login"]:active {
             transform: translateY(0);
+            transition: all 0.1s ease;
         }
 
         /* Footer text */

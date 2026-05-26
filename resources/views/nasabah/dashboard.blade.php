@@ -170,14 +170,13 @@
             object-fit: contain;
             background: transparent;
             border-radius: 12px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            filter: brightness(0) saturate(100%) invert(38%) sepia(79%) saturate(398%) hue-rotate(126deg) brightness(100%) contrast(87%);
+            transition: filter 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            filter: invert(0.25) sepia(0.4) hue-rotate(126deg) saturate(1.2) brightness(1);
         }
 
         .ppob-card:hover img {
             transform: translateY(-2px);
-            color: white;
-            filter: brightness(0) saturate(100%) invert(100%) sepia(100%) saturate(10000%) hue-rotate(0deg) brightness(110%) contrast(101%);
+            filter: invert(1) brightness(1.4) saturate(0%) grayscale(0%);
         }
 
         .ppob-card:active img {
