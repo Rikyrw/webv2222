@@ -268,26 +268,25 @@
             min-height: 43px;
             margin-top: 4px;
             padding: 10px 14px;
-            color: #ffffff;
-            background: var(--gp-green) !important;
-            border: 1px solid var(--gp-green);
-            border-radius: 10px;
-            box-shadow: 0 10px 22px rgba(47, 95, 62, 0.2) !important;
+            background: #059669;
+            color: white;
+            border: none;
+            border-radius: 7px;
+            box-shadow: 0 10px 22px rgba(47, 95, 62, 0.2);
             font: inherit;
             font-size: 13px;
             font-weight: 800;
             line-height: 1.2;
             cursor: pointer;
-            transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .btn-register:hover,
         .btn-register:focus {
-            background: var(--gp-green-dark) !important;
-            border-color: var(--gp-green-dark) !important;
-            box-shadow: 0 12px 26px rgba(47, 95, 62, 0.24) !important;
+            background: linear-gradient(135deg, #1acc91 0%, #05a875 100%) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 20px 45px rgba(5, 150, 105, 0.3) !important;
             outline: none;
-            transform: translateY(-1px);
         }
 
         .btn-register:active {

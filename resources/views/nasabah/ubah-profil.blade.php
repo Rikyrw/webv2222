@@ -195,6 +195,7 @@
 
         .btn-secondary:hover {
             background: linear-gradient(135deg, #dc2626, #ef4444) !important;
+            color: white !important;
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2) !important;
         }
