@@ -151,45 +151,6 @@
             color: #059669;
         }
 
-        .btn-transaksi {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transform: translate(0, -50%);
-            background: transparent;
-            color: #059669;
-            border: 1px solid #059669;
-            padding: 12px 24px;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 16px;
-            cursor: pointer;
-            margin-top: 28px;
-            text-decoration: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .btn-transaksi:hover {
-            background: linear-gradient(135deg, #059669, #10b981);
-            color: white;
-            border-color: #059669;
-            transform: translate(0, -50%) scale(1.05);
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
-        }
-
-        .btn-transaksi:active {
-            transform: translate(0, -50%) scale(0.98);
-            transition: all 0.1s ease;
-        }
-
-        .btn-transaksi svg {
-            width: 20px;
-            height: 20px;
-            stroke: currentColor;
-            fill: none;
-            stroke-width: 2;
-        }
-
         .topup-box {
             margin-top: 16px;
             padding: 16px;
@@ -252,7 +213,7 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            background: linear-gradient(135deg, #059669, #10b981);
+            background: #059669;
             color: white;
             border: none;
             padding: 10px 16px;
@@ -260,12 +221,29 @@
             font-weight: 600;
             font-size: 14px;
             cursor: pointer;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform: none;
+            position: static;
+            opacity: 1;
         }
 
         .btn-topup:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 14px rgba(5, 150, 105, 0.25);
+            background: linear-gradient(135deg, #1acc91 0%, #05a875 100%) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 20px 45px rgba(5, 150, 105, 0.3) !important;
+        }
+
+        .btn-topup:active{
+            transform: scale(0.98);
+            transition: all 0.1s ease;
+        }
+
+        .btn-topup svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
         }
 
         .topup-hint {
@@ -336,10 +314,9 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            transform: translate(0, -50%);
-            background: transparent;
-            color: #059669;
-            border: 1px solid #059669;
+            background: #059669 !important;
+            color: white !important;
+            border: none;
             padding: 12px 24px;
             border-radius: 10px;
             font-weight: 600;
@@ -348,18 +325,19 @@
             margin-top: 28px;
             text-decoration: none;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 18px 40px rgba(16, 185, 129, 0.24) !important;
+            transform: none;
+            position: static;
         }
 
         .btn-primary:hover {
-            background: linear-gradient(135deg, #059669, #10b981);
-            color: white;
-            border-color: #059669;
-            transform: translate(0, -50%) scale(1.05);
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
+            background: linear-gradient(135deg, #1acc91 0%, #05a875 100%) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 20px 45px rgba(5, 150, 105, 0.3) !important;
         }
 
         .btn-primary:active{
-            transform: translate(0, -50%) scale(0.98);
+            transform: scale(0.98);
             transition: all 0.1s ease;
         }
 
@@ -426,14 +404,7 @@
                         <span>Saldo</span>
                         <span id="saldo-amount" data-live-saldo>Rp {{ number_format((float)($user['saldo'] ?? 0), 0, ',', '.') }}</span>
                     </div>
-                    <a href="{{ route('nasabah.setor') }}" class="btn-transaksi">
-                        <svg viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 8 12 16"></polyline>
-                            <polyline points="8 12 16 12"></polyline>
-                        </svg>
-                        Transaksi Setor
-                    </a>
+                    
                     <div class="topup-box" role="region" aria-label="Top up saldo">
                         <div class="topup-title">Top Up Saldo</div>
                         <form id="topup-form" class="topup-form" method="post" action="{{ route('nasabah.topup.create') }}">
@@ -441,9 +412,14 @@
                             <label class="topup-label" for="topup-amount">Nominal</label>
                             <div class="topup-input-wrap">
                                 <span class="topup-prefix">Rp</span>
-                                <input class="topup-input" type="number" id="topup-amount" name="nominal" min="10000" step="1000" placeholder="10000" required />
+                                <input class="topup-input" type="number" id="topup-amount" name="nominal" min="10000" step="1000" placeholder="" required />
                             </div>
-                            <button type="submit" class="btn-topup">Top Up Saldo</button>
+                            <button type="submit" class="btn-topup">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M12 5v14m7-7h-14"></path>
+                                </svg>
+                                Top Up Saldo
+                            </button>
                             <div id="topup-status" class="topup-status" aria-live="polite"></div>
                         </form>
                         <div class="topup-hint">Minimal Rp 10.000</div>

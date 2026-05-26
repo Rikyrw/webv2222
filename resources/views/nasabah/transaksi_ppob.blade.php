@@ -116,9 +116,13 @@
         }
 
         .filter-note {
-            margin-top: 12px;
-            color: #b91c1c;
-            font-size: 14px;
+            margin-top: 16px;
+            padding: 12px;
+            background: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #92400e;
         }
 
         .filter-note ul {
@@ -158,46 +162,86 @@
             gap: 8px;
         }
 
-        .btn-export {
-            transform: translate(0, -50%);
-            background: transparent;
-            color: #059669;
-            font-weight: 700;
-            padding: 8px 12px;
-            border-radius: 8px;
-            text-decoration: none;
+        .filter-action-btn {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            border: 1px solid #059669;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            margin-top: 24px;
-        }
-
-        .btn-export:hover {
-            background: linear-gradient(135deg, #059669, #10b981);
+            background: #059669;
             color: white;
-            border-color: #059669;
-            transform: translate(0, -50%) scale(1.05);
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2);
-        }
-
-        .btn-export:active {
-            transform: translate(0, -50%) scale(0.98);
-            transition: all 0.1s ease;
-        }
-
-        .filter-action-btn {
-            margin-top: 0 !important;
-            transform: none !important;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 18px 40px rgba(16, 185, 129, 0.24);
+            transform: none;
         }
 
         .filter-action-btn:hover {
-            transform: none !important;
+            background: linear-gradient(135deg, #1acc91 0%, #05a875 100%) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 20px 45px rgba(5, 150, 105, 0.3) !important;
         }
 
         .filter-action-btn:active {
-            transform: none !important;
+            transform: translateY(0);
+            transition: all 0.1s ease;
+        }
+
+        .reset-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: transparent;
+            color: #6b7280;
+            border: 1px solid #d1d5db;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .reset-btn:hover {
+            background: #818181 !important;
+            color: white;
+            transform: scale(1.02);
+        }
+
+        .reset-btn:active {
+            transform: scale(0.98);
+            transition: all 0.1s ease;
+        }
+
+        .btn-export {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: transparent;
+            color: #059669;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-export:hover {
+            background: linear-gradient(135deg, #1acc91 0%, #05a875 100%) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 20px 45px rgba(5, 150, 105, 0.3) !important;
+        }
+
+        .btn-export:active {
+            transform: translateY(0);
+            transition: all 0.1s ease;
         }
 
         .table-container {
@@ -464,13 +508,13 @@
                         </div>
 
                         <div class="filter-actions">
-                            <button type="submit" class="btn-export filter-action-btn">
+                            <button type="submit" class="filter-action-btn" id="applyFilterBtn">
                                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                                     <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                                 </svg>
                                 Terapkan Filter
                             </button>
-                            <button type="button" class="btn-export filter-action-btn" onclick="resetFilter()">
+                            <button type="button" class="reset-btn" id="resetFilterBtn">
                                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="23 4 23 10 17 10"></polyline>
                                     <path d="M20.49 15a9 9 0 1 1-2-8.83"></path>
