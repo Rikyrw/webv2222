@@ -28,8 +28,8 @@
             padding: 32px;
             color: var(--gp-text);
             background:
-                linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0 34%, rgba(16, 185, 129, 0) 34%),
-                linear-gradient(180deg, #f8fdf9 0%, #eef7f1 100%) !important;
+                linear-gradient(135deg, rgba(47, 95, 62, 0.08) 0 34%, rgba(47, 95, 62, 0) 34%),
+                linear-gradient(180deg, #f8faf8 0%, var(--gp-bg) 100%) !important;
         }
 
         .nasabah-login-shell {
@@ -57,11 +57,10 @@
             padding: 34px;
             color: #ffffff;
             overflow: hidden;
-            background: linear-gradient(160deg, #10b981 0%, #059669 100%);
+            background: #1f3f2a;
         }
 
-        .login-brand-panel::before,
-        .login-brand-panel::after {
+        .login-brand-panel::before {
             position: absolute;
             inset: 0;
             content: "";
@@ -69,17 +68,10 @@
         }
 
         .login-brand-panel::before {
-            z-index: -2;
-            background: url("{{ asset('images/bg-gunung.png') }}") center bottom / cover no-repeat;
-            opacity: 0.62;
-            filter: saturate(1.08) contrast(1.14);
-        }
-
-        .login-brand-panel::after {
+            inset: -34px 0;
             z-index: -1;
-            background:
-                radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0) 34%),
-                linear-gradient(160deg, rgba(16, 185, 129, 0.66) 0%, rgba(5, 150, 105, 0.58) 100%);
+            background: url("{{ asset('images/bg-gunung.png') }}") center center / cover no-repeat;
+            filter: saturate(1.14) contrast(1.18) brightness(0.86);
         }
 
         .brand-lockup {
@@ -116,10 +108,18 @@
 
         .brand-subtitle {
             margin: 5px 0 0;
-            color: rgba(255, 255, 255, 0.74);
+            color: rgba(255, 255, 255, 0.86);
             font-size: 12px;
             font-weight: 600;
             line-height: 1.3;
+        }
+
+        .login-brand-panel .brand-title {
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+        }
+
+        .login-brand-panel .brand-subtitle {
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
         }
 
         .brand-copy {
@@ -135,6 +135,7 @@
             font-weight: 800;
             line-height: 1.08;
             letter-spacing: 0;
+            text-shadow: 0 3px 14px rgba(0, 0, 0, 0.38);
         }
 
         .brand-features {
@@ -188,7 +189,7 @@
         }
 
         .mobile-brand .brand-title {
-            color: #10b981;
+            color: var(--gp-green);
         }
 
         .mobile-brand .brand-subtitle {
@@ -202,9 +203,9 @@
             min-height: 29px;
             padding: 6px 10px;
             margin-bottom: 16px;
-            color: #10b981;
-            background: rgba(16, 185, 129, 0.12);
-            border: 1px solid rgba(16, 185, 129, 0.24);
+            color: var(--gp-green);
+            background: var(--gp-green-soft);
+            border: 1px solid #d7e8dc;
             border-radius: 7px;
             font-size: 12px;
             font-weight: 800;
@@ -213,7 +214,7 @@
 
         .login-title {
             margin: 0 0 8px;
-            color: #10b981;
+            color: var(--gp-green);
             font-size: 28px;
             font-weight: 800;
             line-height: 1.12;
@@ -253,7 +254,7 @@
         }
 
         .field-label i {
-            color: #10b981;
+            color: var(--gp-green);
             font-size: 15px;
         }
 
@@ -294,13 +295,13 @@
         .toggle-pass:hover,
         .toggle-pass:focus {
             color: #ffffff;
-            background: #10b981;
-            border-color: #10b981;
+            background: var(--gp-green);
+            border-color: var(--gp-green);
             outline: none;
         }
 
         .toggle-pass:focus {
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+            box-shadow: 0 0 0 3px rgba(47, 95, 62, 0.12);
         }
 
         .btn-login {
@@ -312,11 +313,11 @@
             min-height: 43px;
             margin-top: 4px;
             padding: 10px 14px;
-            background: transparent;
-            color: white;
-            border: none;
+            color: #ffffff;
+            background: var(--gp-green);
+            border: 1px solid var(--gp-green);
             border-radius: 7px;
-            box-shadow: 0 10px 22px rgba(16, 185, 129, 0.2);
+            box-shadow: 0 10px 22px rgba(47, 95, 62, 0.2);
             font: inherit;
             font-size: 13px;
             font-weight: 800;
@@ -327,10 +328,11 @@
 
         .btn-login:hover,
         .btn-login:focus {
-            background: linear-gradient(135deg, #1acc91 0%, #05a875 100%) !important;
-            transform: translateY(-2px);
-            box-shadow: 0 20px 45px rgba(5, 150, 105, 0.3) !important;
+            background: var(--gp-green-dark) !important;
+            border-color: var(--gp-green-dark) !important;
+            box-shadow: 0 12px 26px rgba(47, 95, 62, 0.24) !important;
             outline: none;
+            transform: translateY(-1px);
         }
 
         .forgot-password {
@@ -339,14 +341,14 @@
         }
 
         .forgot-password a {
-            color: #10b981;
+            color: var(--gp-green);
             text-decoration: none;
             font-weight: 700;
         }
 
         .forgot-password a:hover {
             text-decoration: underline;
-            color: #059669;
+            color: var(--gp-green-dark);
         }
 
         .login-footer {
@@ -358,13 +360,28 @@
         }
 
         .login-footer a {
-            color: #10b981;
+            color: var(--gp-green);
             text-decoration: none;
             font-weight: 700;
         }
 
         .login-footer a:hover {
             text-decoration: underline;
+        }
+
+        .nasabah-login .social-divider {
+            color: #9aa09d;
+            letter-spacing: 0.05em;
+        }
+
+        .nasabah-login .social-divider::before,
+        .nasabah-login .social-divider::after {
+            background: #e2e8e3;
+        }
+
+        .nasabah-login .google-auth-error,
+        .nasabah-login .google-auth-disabled {
+            border-radius: 8px;
         }
 
         @media (max-width: 860px) {
@@ -496,7 +513,7 @@
                         </p>
 
                         <button type="submit" class="btn-login">
-                            <i class="icon-log-in"></i> Login ke Dashboard
+                            <i class="icon-log-in"></i> Masuk ke Dashboard
                         </button>
                     </form>
 
