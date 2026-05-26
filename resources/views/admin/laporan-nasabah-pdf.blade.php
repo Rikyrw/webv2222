@@ -1,3 +1,17 @@
+@php
+    $totalBerat = array_sum(array_column($topNasabah, 'berat'));
+    $jumlahNasabah = count($topNasabah);
+    $rataRataBerat = $jumlahNasabah > 0 ? $totalBerat / $jumlahNasabah : 0;
+    $topNama = 'Tidak ada data';
+    $topBerat = 0;
+
+    foreach ($topNasabah as $nasabah) {
+        if ($nasabah['berat'] > $topBerat) {
+            $topNama = $nasabah['nama'];
+            $topBerat = $nasabah['berat'];
+        }
+    }
+@endphp
 <!DOCTYPE html>
 <html>
 <head>
@@ -5,220 +19,312 @@
     <title>Laporan Data Nasabah</title>
     <style>
         @page {
-            margin: 24px;
+            margin: 28px;
         }
 
         body {
-            font-family: Arial, Helvetica, sans-serif;
             margin: 0;
-            color: #1f2937;
-            font-size: 12px;
-            line-height: 1.5;
+            background: #ffffff;
+            color: #253128;
+            font-family: DejaVu Sans, Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            line-height: 1.45;
         }
 
-        .header {
-            margin-bottom: 18px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #d1d5db;
-        }
-
-        .header h1 {
+        h1,
+        h2,
+        p {
             margin: 0;
-            color: #111827;
-            font-size: 18px;
-            font-weight: 700;
         }
 
-        .header p {
-            margin: 3px 0 0;
-            color: #64748b;
-            font-size: 12px;
-        }
-
-        .section {
-            margin-bottom: 18px;
-        }
-
-        .section-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: #111827;
-            margin-bottom: 10px;
-        }
-
-        table {
+        .header-table,
+        .meta-table,
+        .kpi-table,
+        .data-table,
+        .footer-table {
             width: 100%;
             border-collapse: collapse;
         }
 
-        th {
-            background: #f8fafc;
-            padding: 10px 12px;
-            text-align: left;
-            border: 1px solid #e5e7eb;
+        .header-table {
+            margin-bottom: 16px;
+        }
+
+        .header-main {
+            width: 62%;
+            padding: 18px 20px;
+            background: #2f5f3e;
+            color: #ffffff;
+            vertical-align: top;
+        }
+
+        .header-main h1 {
+            font-size: 23px;
+            line-height: 1.15;
             font-weight: 700;
-            color: #0f172a;
+        }
+
+        .header-main p {
+            margin-top: 7px;
+            color: #dcebe0;
             font-size: 12px;
         }
 
-        td {
-            padding: 10px 12px;
-            border: 1px solid #e5e7eb;
-            font-size: 13px;
-            color: #1f2937;
+        .header-meta {
+            width: 38%;
+            padding: 14px 16px;
+            background: #eef7f0;
+            border: 1px solid #cfe0d3;
+            vertical-align: top;
         }
 
-        tr:nth-child(even) {
-            background: #fcfcfd;
+        .meta-table td {
+            padding: 5px 0;
+            border-bottom: 1px solid #d9e7dc;
+            color: #53645a;
+            font-size: 10px;
+        }
+
+        .meta-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .meta-table .meta-value {
+            color: #1f3526;
+            font-weight: 700;
+            text-align: right;
+        }
+
+        .section {
+            margin-bottom: 14px;
+            page-break-inside: avoid;
+        }
+
+        .section-title {
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            background: #f3f7f4;
+            border-left: 4px solid #2f5f3e;
+            color: #18351f;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .kpi-table {
+            margin-bottom: 4px;
+        }
+
+        .kpi-table td {
+            width: 33.33%;
+            padding: 11px 12px;
+            border: 1px solid #dfe8e1;
+            vertical-align: top;
+        }
+
+        .kpi-label {
+            color: #637266;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .kpi-value {
+            margin-top: 5px;
+            color: #16251a;
+            font-size: 17px;
+            font-weight: 700;
+        }
+
+        .kpi-note {
+            margin-top: 4px;
+            color: #6d7d70;
+            font-size: 10px;
+        }
+
+        .kpi-green {
+            background: #f1f8f3;
+        }
+
+        .kpi-blue {
+            background: #f0f7fb;
+        }
+
+        .kpi-amber {
+            background: #fff8eb;
+        }
+
+        .data-table th {
+            padding: 9px 10px;
+            background: #2f5f3e;
+            border: 1px solid #2f5f3e;
+            color: #ffffff;
+            font-size: 10px;
+            text-align: left;
+            text-transform: uppercase;
+        }
+
+        .data-table td {
+            padding: 9px 10px;
+            border: 1px solid #dfe8e1;
+            color: #2b372e;
+            vertical-align: top;
+        }
+
+        .data-table tr:nth-child(even) td {
+            background: #fbfdfb;
+        }
+
+        .data-table .number {
+            color: #142418;
+            font-weight: 700;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .data-table .total td {
+            background: #eaf4ed;
+            color: #18351f;
+            font-weight: 700;
         }
 
         .rank {
             display: inline-block;
-            min-width: 24px;
-            padding: 3px 8px;
-            border-radius: 999px;
-            background: #e2e8f0;
-            color: #0f172a;
+            width: 24px;
+            padding: 3px 0;
+            background: #eaf4ed;
+            color: #275636;
+            font-size: 10px;
+            font-weight: 700;
             text-align: center;
-            font-weight: 700;
-            font-size: 12px;
         }
 
-        .info-box {
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 12px 14px;
+        .empty {
+            padding: 18px 10px;
+            color: #768579;
+            text-align: center;
         }
 
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 10px;
+        .footer-table {
+            margin-top: 16px;
+            border-top: 1px solid #dfe8e1;
         }
 
-        .info-label {
-            color: #64748b;
-            font-weight: 600;
-            font-size: 13px;
+        .footer-table td {
+            padding-top: 9px;
+            color: #768579;
+            font-size: 10px;
         }
 
-        .info-value {
-            color: #0f172a;
-            font-weight: 700;
-            font-size: 13px;
+        .footer-table .right {
             text-align: right;
-        }
-
-        .footer {
-            margin-top: 18px;
-            padding-top: 10px;
-            border-top: 1px solid #e5e7eb;
-            font-size: 11px;
-            color: #64748b;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Laporan Data Nasabah</h1>
-        <p>Top penabung dan data kontribusi nasabah</p>
-        <p>Periode: {{ $periodLabel }} ({{ $start }} hingga {{ $end }})</p>
-        <p>Dibuat pada {{ $currentDate }}</p>
+    <table class="header-table">
+        <tr>
+            <td class="header-main">
+                <h1>Laporan Data Nasabah</h1>
+                <p>Peringkat nasabah berdasarkan kontribusi berat sampah pada periode laporan.</p>
+            </td>
+            <td class="header-meta">
+                <table class="meta-table">
+                    <tr>
+                        <td>Periode</td>
+                        <td class="meta-value">{{ $periodLabel }}</td>
+                    </tr>
+                    <tr>
+                        <td>Rentang</td>
+                        <td class="meta-value">{{ $start }} - {{ $end }}</td>
+                    </tr>
+                    <tr>
+                        <td>Dibuat</td>
+                        <td class="meta-value">{{ $currentDate }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <div class="section">
+        <div class="section-title">Ringkasan Kontribusi</div>
+        <table class="kpi-table">
+            <tr>
+                <td class="kpi-green">
+                    <div class="kpi-label">Total Kontribusi</div>
+                    <div class="kpi-value">{{ number_format($totalBerat, 1, ',', '.') }} kg</div>
+                    <div class="kpi-note">Akumulasi kontribusi top nasabah</div>
+                </td>
+                <td class="kpi-blue">
+                    <div class="kpi-label">Jumlah Nasabah</div>
+                    <div class="kpi-value">{{ $jumlahNasabah }} orang</div>
+                    <div class="kpi-note">Nasabah dalam daftar peringkat</div>
+                </td>
+                <td class="kpi-amber">
+                    <div class="kpi-label">Rata-rata</div>
+                    <div class="kpi-value">{{ number_format($rataRataBerat, 1, ',', '.') }} kg</div>
+                    <div class="kpi-note">Rata-rata kontribusi per nasabah</div>
+                </td>
+            </tr>
+        </table>
     </div>
 
     <div class="section">
-        <div class="section-title">Top 5 Penabung</div>
-
-        <table>
+        <div class="section-title">Top Penabung</div>
+        <table class="data-table">
             <thead>
                 <tr>
-                    <th style="width: 50px;">Rank</th>
+                    <th style="width: 54px;">Rank</th>
                     <th>Nama Nasabah</th>
-                    <th style="text-align: right; width: 150px;">Berat Sampah (kg)</th>
+                    <th style="width: 130px; text-align: right;">Berat Sampah</th>
+                    <th style="width: 110px; text-align: right;">Kontribusi</th>
                 </tr>
             </thead>
             <tbody>
-                @php
-                    $totalBerat = 0;
-                @endphp
                 @forelse($topNasabah as $index => $nasabah)
-                    @php
-                        $totalBerat += $nasabah['berat'];
-                    @endphp
                     <tr>
                         <td><span class="rank">{{ $index + 1 }}</span></td>
                         <td>{{ $nasabah['nama'] }}</td>
-                        <td style="text-align: right; font-weight: 600;">{{ number_format($nasabah['berat'], 1, ',', '.') }}</td>
+                        <td class="number">{{ number_format($nasabah['berat'], 1, ',', '.') }} kg</td>
+                        <td class="number">{{ $totalBerat > 0 ? number_format(($nasabah['berat'] / $totalBerat) * 100, 2, ',', '.') : '0,00' }}%</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="3" style="text-align: center; color: #64748b;">Tidak ada data</td>
+                        <td colspan="4" class="empty">Tidak ada data nasabah pada periode ini.</td>
                     </tr>
                 @endforelse
-                @if($topNasabah)
-                    <tr style="background: #f8fafc; font-weight: 700;">
-                        <td colspan="2">Total Kontribusi Top Nasabah</td>
-                        <td style="text-align: right;">{{ number_format($totalBerat, 1, ',', '.') }} kg</td>
-                    </tr>
-                @endif
+                <tr class="total">
+                    <td colspan="2">Total Kontribusi</td>
+                    <td class="number">{{ number_format($totalBerat, 1, ',', '.') }} kg</td>
+                    <td class="number">{{ $totalBerat > 0 ? '100,00' : '0,00' }}%</td>
+                </tr>
             </tbody>
         </table>
     </div>
 
     <div class="section">
-        <div class="section-title">Statistik Kontribusi</div>
-
-        <div class="info-box">
-            <div class="info-row">
-                <span class="info-label">Jumlah Nasabah (Top 5)</span>
-                <span class="info-value">{{ count($topNasabah) }} nasabah</span>
-            </div>
-
-            <div class="info-row">
-                <span class="info-label">Total Kontribusi</span>
-                <span class="info-value">{{ number_format($totalBerat, 1, ',', '.') }} kg</span>
-            </div>
-
-            <div class="info-row">
-                <span class="info-label">Rata-rata Kontribusi</span>
-                <span class="info-value">{{ number_format($totalBerat / (count($topNasabah) > 0 ? count($topNasabah) : 1), 1, ',', '.') }} kg</span>
-            </div>
-
-            @if($topNasabah)
-                @php
-                    $maxBerat = max(array_column($topNasabah, 'berat'));
-                    $topNama = '';
-                    foreach($topNasabah as $nasabah) {
-                        if($nasabah['berat'] == $maxBerat) {
-                            $topNama = $nasabah['nama'];
-                            break;
-                        }
-                    }
-                @endphp
-                <div class="info-row">
-                    <span class="info-label">Kontribusi Tertinggi</span>
-                    <span class="info-value">{{ $topNama }} ({{ number_format($maxBerat, 1, ',', '.') }} kg)</span>
-                </div>
-            @endif
-        </div>
+        <div class="section-title">Catatan Statistik</div>
+        <table class="data-table">
+            <tbody>
+                <tr>
+                    <td style="width: 42%;">Kontribusi tertinggi</td>
+                    <td>{{ $topNama }}</td>
+                    <td class="number">{{ number_format($topBerat, 1, ',', '.') }} kg</td>
+                </tr>
+                <tr>
+                    <td>Rata-rata kontribusi</td>
+                    <td colspan="2" class="number">{{ number_format($rataRataBerat, 1, ',', '.') }} kg</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
-    <div class="section">
-        <div class="section-title">Detail Persentase Kontribusi</div>
-
-        <div class="info-box">
-            @foreach($topNasabah as $index => $nasabah)
-                <div class="info-row">
-                    <span class="info-label">{{ $index + 1 }}. {{ $nasabah['nama'] }}</span>
-                    <span class="info-value">{{ $totalBerat > 0 ? round(($nasabah['berat'] / $totalBerat) * 100, 2) : 0 }}% ({{ number_format($nasabah['berat'], 1, ',', '.') }} kg)</span>
-                </div>
-            @endforeach
-        </div>
-    </div>
-
-    <div class="footer">
-        <p>Dokumen ini dibuat otomatis pada {{ date('d-m-Y H:i:s') }}.</p>
-    </div>
+    <table class="footer-table">
+        <tr>
+            <td>Dokumen dibuat otomatis oleh sistem Bank Sampah.</td>
+            <td class="right">{{ date('d-m-Y H:i:s') }}</td>
+        </tr>
+    </table>
 </body>
 </html>

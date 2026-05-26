@@ -9,6 +9,7 @@ use App\Models\DetailSetor;
 use App\Models\Nasabah;
 use Illuminate\Support\Facades\DB;
 use DateTime;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class LaporanController extends Controller
 {
@@ -230,7 +231,7 @@ class LaporanController extends Controller
 
             $saldoAkhir = Nasabah::where('status', 'aktif')->sum('saldo') ?? 0;
             
-            $html = view('admin.laporan-keuangan-pdf', [
+            $data = [
                 'periodLabel' => $periodLabel,
                 'start' => $start,
                 'end' => $end,
@@ -239,12 +240,11 @@ class LaporanController extends Controller
                 'totalPenarikan' => $totalPenarikan,
                 'saldoAkhir' => $saldoAkhir,
                 'currentDate' => now()->format('d F Y H:i')
-            ])->render();
-            
-            return response($html, 200, [
-                'Content-Type' => 'text/html; charset=utf-8',
-                'Content-Disposition' => 'inline; filename=laporan_keuangan_' . now()->format('Y-m-d') . '.html',
-            ]);
+            ];
+
+            return Pdf::loadView('admin.laporan-keuangan-pdf', $data)
+                ->setPaper('a4', 'portrait')
+                ->stream('laporan_keuangan_' . now()->format('Y-m-d') . '.pdf');
         } catch (\Exception $e) {
             \Log::error('Export PDF Keuangan Error: ' . $e->getMessage());
             return response()->json(['error' => 'Gagal membuat file. ' . $e->getMessage()], 500);
@@ -355,13 +355,17 @@ class LaporanController extends Controller
                 $composition[$item->nama_jenis] = (float) $item->total_berat;
             }
 
-            return view('admin.laporan-sampah-pdf', [
+            $data = [
                 'periodLabel' => $periodLabel,
                 'start' => $start,
                 'end' => $end,
                 'composition' => $composition,
                 'currentDate' => now()->format('d F Y H:i')
-            ]);
+            ];
+
+            return Pdf::loadView('admin.laporan-sampah-pdf', $data)
+                ->setPaper('a4', 'portrait')
+                ->stream('laporan_sampah_' . now()->format('Y-m-d') . '.pdf');
         } catch (\Exception $e) {
             \Log::error('Export PDF Sampah Error: ' . $e->getMessage());
             return response()->json(['error' => 'Gagal membuat file. ' . $e->getMessage()], 500);
@@ -478,13 +482,17 @@ class LaporanController extends Controller
                 ];
             })->toArray();
 
-            return view('admin.laporan-nasabah-pdf', [
+            $data = [
                 'periodLabel' => $periodLabel,
                 'start' => $start,
                 'end' => $end,
                 'topNasabah' => $topNasabah,
                 'currentDate' => now()->format('d F Y H:i')
-            ]);
+            ];
+
+            return Pdf::loadView('admin.laporan-nasabah-pdf', $data)
+                ->setPaper('a4', 'portrait')
+                ->stream('laporan_nasabah_' . now()->format('Y-m-d') . '.pdf');
         } catch (\Exception $e) {
             \Log::error('Export PDF Nasabah Error: ' . $e->getMessage());
             return response()->json(['error' => 'Gagal membuat file. ' . $e->getMessage()], 500);

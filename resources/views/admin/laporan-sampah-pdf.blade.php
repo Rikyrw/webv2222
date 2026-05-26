@@ -1,3 +1,17 @@
+@php
+    $totalBerat = array_sum($composition);
+    $jumlahJenis = count($composition);
+    $rataRataBerat = $jumlahJenis > 0 ? $totalBerat / $jumlahJenis : 0;
+    $jenisMax = 'Tidak ada data';
+    $beratMax = 0;
+
+    foreach ($composition as $jenis => $berat) {
+        if ($berat > $beratMax) {
+            $jenisMax = $jenis;
+            $beratMax = $berat;
+        }
+    }
+@endphp
 <!DOCTYPE html>
 <html>
 <head>
@@ -5,187 +19,312 @@
     <title>Laporan Sampah Masuk</title>
     <style>
         @page {
-            margin: 24px;
+            margin: 28px;
         }
 
         body {
-            font-family: Arial, Helvetica, sans-serif;
             margin: 0;
-            color: #1f2937;
-            font-size: 12px;
-            line-height: 1.5;
+            background: #ffffff;
+            color: #253128;
+            font-family: DejaVu Sans, Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            line-height: 1.45;
         }
 
-        .header {
-            margin-bottom: 18px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #d1d5db;
+        h1,
+        h2,
+        p {
+            margin: 0;
         }
 
-        .header h1 {
-            margin: 0;
-            color: #111827;
-            font-size: 18px;
+        .header-table,
+        .meta-table,
+        .kpi-table,
+        .data-table,
+        .footer-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .header-table {
+            margin-bottom: 16px;
+        }
+
+        .header-main {
+            width: 62%;
+            padding: 18px 20px;
+            background: #2f5f3e;
+            color: #ffffff;
+            vertical-align: top;
+        }
+
+        .header-main h1 {
+            font-size: 23px;
+            line-height: 1.15;
             font-weight: 700;
         }
 
-        .header p {
-            margin: 3px 0 0;
-            color: #64748b;
+        .header-main p {
+            margin-top: 7px;
+            color: #dcebe0;
             font-size: 12px;
         }
 
-        .section {
-            margin-bottom: 18px;
+        .header-meta {
+            width: 38%;
+            padding: 14px 16px;
+            background: #eef7f0;
+            border: 1px solid #cfe0d3;
+            vertical-align: top;
         }
 
-        .section-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: #111827;
-            margin-bottom: 10px;
+        .meta-table td {
+            padding: 5px 0;
+            border-bottom: 1px solid #d9e7dc;
+            color: #53645a;
+            font-size: 10px;
         }
 
-        .composition-box,
-        .info-box {
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .composition-row,
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 16px;
-            align-items: center;
-            padding: 11px 14px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .composition-row:last-child,
-        .info-row:last-child {
+        .meta-table tr:last-child td {
             border-bottom: none;
         }
 
-        .composition-row:nth-child(even),
-        .info-row:nth-child(even) {
-            background: #fcfcfd;
-        }
-
-        .composition-label,
-        .info-label {
-            font-weight: 600;
-            color: #1f2937;
-            font-size: 13px;
-        }
-
-        .composition-value,
-        .info-value {
+        .meta-table .meta-value {
+            color: #1f3526;
             font-weight: 700;
-            color: #0f172a;
-            font-size: 13px;
             text-align: right;
-            flex-shrink: 0;
         }
 
-        .total-row {
-            background: #f8fafc;
+        .section {
+            margin-bottom: 14px;
+            page-break-inside: avoid;
+        }
+
+        .section-title {
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            background: #f3f7f4;
+            border-left: 4px solid #2f5f3e;
+            color: #18351f;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .kpi-table {
+            margin-bottom: 4px;
+        }
+
+        .kpi-table td {
+            width: 33.33%;
+            padding: 11px 12px;
+            border: 1px solid #dfe8e1;
+            vertical-align: top;
+        }
+
+        .kpi-label {
+            color: #637266;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .kpi-value {
+            margin-top: 5px;
+            color: #16251a;
+            font-size: 17px;
             font-weight: 700;
         }
 
-        .footer {
-            margin-top: 18px;
-            padding-top: 10px;
-            border-top: 1px solid #e5e7eb;
-            font-size: 11px;
-            color: #64748b;
+        .kpi-note {
+            margin-top: 4px;
+            color: #6d7d70;
+            font-size: 10px;
+        }
+
+        .kpi-green {
+            background: #f1f8f3;
+        }
+
+        .kpi-blue {
+            background: #f0f7fb;
+        }
+
+        .kpi-amber {
+            background: #fff8eb;
+        }
+
+        .data-table th {
+            padding: 9px 10px;
+            background: #2f5f3e;
+            border: 1px solid #2f5f3e;
+            color: #ffffff;
+            font-size: 10px;
+            text-align: left;
+            text-transform: uppercase;
+        }
+
+        .data-table td {
+            padding: 9px 10px;
+            border: 1px solid #dfe8e1;
+            color: #2b372e;
+            vertical-align: top;
+        }
+
+        .data-table tr:nth-child(even) td {
+            background: #fbfdfb;
+        }
+
+        .data-table .number {
+            color: #142418;
+            font-weight: 700;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .data-table .total td {
+            background: #eaf4ed;
+            color: #18351f;
+            font-weight: 700;
+        }
+
+        .rank {
+            display: inline-block;
+            width: 24px;
+            padding: 3px 0;
+            background: #eaf4ed;
+            color: #275636;
+            font-size: 10px;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .empty {
+            padding: 18px 10px;
+            color: #768579;
+            text-align: center;
+        }
+
+        .footer-table {
+            margin-top: 16px;
+            border-top: 1px solid #dfe8e1;
+        }
+
+        .footer-table td {
+            padding-top: 9px;
+            color: #768579;
+            font-size: 10px;
+        }
+
+        .footer-table .right {
+            text-align: right;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Laporan Sampah Masuk</h1>
-        <p>Detail jenis dan berat sampah yang masuk</p>
-        <p>Periode: {{ $periodLabel }} ({{ $start }} hingga {{ $end }})</p>
-        <p>Dibuat pada {{ $currentDate }}</p>
+    <table class="header-table">
+        <tr>
+            <td class="header-main">
+                <h1>Laporan Sampah Masuk</h1>
+                <p>Komposisi jenis sampah dan berat yang diterima pada periode laporan.</p>
+            </td>
+            <td class="header-meta">
+                <table class="meta-table">
+                    <tr>
+                        <td>Periode</td>
+                        <td class="meta-value">{{ $periodLabel }}</td>
+                    </tr>
+                    <tr>
+                        <td>Rentang</td>
+                        <td class="meta-value">{{ $start }} - {{ $end }}</td>
+                    </tr>
+                    <tr>
+                        <td>Dibuat</td>
+                        <td class="meta-value">{{ $currentDate }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <div class="section">
+        <div class="section-title">Ringkasan Sampah</div>
+        <table class="kpi-table">
+            <tr>
+                <td class="kpi-green">
+                    <div class="kpi-label">Total Berat</div>
+                    <div class="kpi-value">{{ number_format($totalBerat, 1, ',', '.') }} kg</div>
+                    <div class="kpi-note">Akumulasi seluruh jenis sampah</div>
+                </td>
+                <td class="kpi-blue">
+                    <div class="kpi-label">Jumlah Jenis</div>
+                    <div class="kpi-value">{{ $jumlahJenis }} jenis</div>
+                    <div class="kpi-note">Kategori sampah yang tercatat</div>
+                </td>
+                <td class="kpi-amber">
+                    <div class="kpi-label">Rata-rata per Jenis</div>
+                    <div class="kpi-value">{{ number_format($rataRataBerat, 1, ',', '.') }} kg</div>
+                    <div class="kpi-note">Rata-rata dari total berat</div>
+                </td>
+            </tr>
+        </table>
     </div>
 
     <div class="section">
         <div class="section-title">Komposisi Sampah</div>
-
-        <div class="composition-box">
-            @php
-                $totalBerat = array_sum($composition);
-                $jenisMax = '';
-                $beratMax = 0;
-                if (!empty($composition)) {
-                    $jenisMax = array_key_first($composition);
-                    $beratMax = max($composition);
-                    foreach($composition as $jenis => $berat) {
-                        if ($berat == $beratMax) {
-                            $jenisMax = $jenis;
-                            break;
-                        }
-                    }
-                }
-            @endphp
-
-            @foreach($composition as $jenis => $berat)
-                <div class="composition-row">
-                    <span class="composition-label">{{ $jenis }}</span>
-                    <span class="composition-value">{{ number_format($berat, 1, ',', '.') }} kg</span>
-                </div>
-            @endforeach
-
-            <div class="composition-row total-row">
-                <span class="composition-label">Total Berat Sampah</span>
-                <span class="composition-value">{{ number_format($totalBerat, 1, ',', '.') }} kg</span>
-            </div>
-        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 46px;">No</th>
+                    <th>Jenis Sampah</th>
+                    <th style="width: 130px; text-align: right;">Total Berat</th>
+                    <th style="width: 110px; text-align: right;">Persentase</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($composition as $jenis => $berat)
+                    <tr>
+                        <td><span class="rank">{{ $loop->iteration }}</span></td>
+                        <td>{{ $jenis }}</td>
+                        <td class="number">{{ number_format($berat, 1, ',', '.') }} kg</td>
+                        <td class="number">{{ $totalBerat > 0 ? number_format(($berat / $totalBerat) * 100, 2, ',', '.') : '0,00' }}%</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="4" class="empty">Tidak ada data sampah pada periode ini.</td>
+                    </tr>
+                @endforelse
+                <tr class="total">
+                    <td colspan="2">Total Berat Sampah</td>
+                    <td class="number">{{ number_format($totalBerat, 1, ',', '.') }} kg</td>
+                    <td class="number">{{ $totalBerat > 0 ? '100,00' : '0,00' }}%</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
     <div class="section">
-        <div class="section-title">Statistik Sampah</div>
-
-        <div class="info-box">
-            <div class="info-row">
-                <span class="info-label">Jenis Sampah</span>
-                <span class="info-value">{{ count($composition) }} jenis</span>
-            </div>
-
-            <div class="info-row">
-                <span class="info-label">Total Berat</span>
-                <span class="info-value">{{ number_format($totalBerat, 1, ',', '.') }} kg</span>
-            </div>
-
-            <div class="info-row">
-                <span class="info-label">Rata-rata Berat per Jenis</span>
-                <span class="info-value">{{ number_format($totalBerat / (count($composition) > 0 ? count($composition) : 1), 1, ',', '.') }} kg</span>
-            </div>
-
-            <div class="info-row">
-                <span class="info-label">Sampah Tertinggi</span>
-                <span class="info-value">{{ $jenisMax ? $jenisMax . ' (' . number_format($beratMax, 1, ',', '.') . ' kg)' : 'Tidak ada data' }}</span>
-            </div>
-        </div>
+        <div class="section-title">Catatan Statistik</div>
+        <table class="data-table">
+            <tbody>
+                <tr>
+                    <td style="width: 42%;">Jenis sampah tertinggi</td>
+                    <td class="number">{{ $jenisMax }}</td>
+                    <td class="number">{{ number_format($beratMax, 1, ',', '.') }} kg</td>
+                </tr>
+                <tr>
+                    <td>Rata-rata berat per jenis</td>
+                    <td colspan="2" class="number">{{ number_format($rataRataBerat, 1, ',', '.') }} kg</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 
-    <div class="section">
-        <div class="section-title">Persentase Komposisi</div>
-
-        <div class="info-box">
-            @foreach($composition as $jenis => $berat)
-                <div class="info-row">
-                    <span class="info-label">{{ $jenis }}</span>
-                    <span class="info-value">{{ $totalBerat > 0 ? round(($berat / $totalBerat) * 100, 2) : 0 }}%</span>
-                </div>
-            @endforeach
-        </div>
-    </div>
-
-    <div class="footer">
-        <p>Dokumen ini dibuat otomatis pada {{ date('d-m-Y H:i:s') }}.</p>
-    </div>
+    <table class="footer-table">
+        <tr>
+            <td>Dokumen dibuat otomatis oleh sistem Bank Sampah.</td>
+            <td class="right">{{ date('d-m-Y H:i:s') }}</td>
+        </tr>
+    </table>
 </body>
 </html>

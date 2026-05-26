@@ -1,85 +1,189 @@
+@php
+    $totalBerat = array_sum($composition);
+    $jumlahJenis = count($composition);
+    $rataRataBerat = $jumlahJenis > 0 ? $totalBerat / $jumlahJenis : 0;
+    $jenisMax = 'Tidak ada data';
+    $beratMax = 0;
+
+    foreach ($composition as $jenis => $berat) {
+        if ($berat > $beratMax) {
+            $jenisMax = $jenis;
+            $beratMax = $berat;
+        }
+    }
+@endphp
 <!DOCTYPE html>
-<html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
 <head>
-    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="ProgId" content="Excel.Sheet">
     <title>Laporan Sampah Masuk</title>
     <style>
         body {
-            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            font-family: Calibri, Arial, Helvetica, sans-serif;
             font-size: 12px;
-            color: #1f2937;
+            color: #253128;
         }
-        .title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #0f172a;
-            margin-bottom: 4px;
-        }
-        .subtitle {
-            color: #64748b;
-            margin-bottom: 10px;
-        }
-        table {
-            border-collapse: collapse;
+
+        table.sheet {
             width: 100%;
+            border-collapse: collapse;
         }
-        th, td {
-            border: 1px solid #d1d5db;
+
+        .sheet th,
+        .sheet td {
+            border: 1px solid #d9e7dc;
             padding: 8px 10px;
+            vertical-align: middle;
         }
-        th {
-            background: #e2e8f0;
-            text-align: left;
+
+        .title {
+            background: #2f5f3e;
+            color: #ffffff;
+            font-size: 20px;
             font-weight: 700;
+            height: 34px;
         }
-        .value {
+
+        .subtitle {
+            background: #eef7f0;
+            color: #405246;
+            font-weight: 600;
+        }
+
+        .section {
+            background: #dcefe2;
+            color: #18351f;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .head {
+            background: #2f5f3e;
+            color: #ffffff;
+            font-weight: 700;
+            text-align: left;
+        }
+
+        .label {
+            font-weight: 600;
+        }
+
+        .rank {
+            background: #eaf4ed;
+            color: #275636;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        .number {
             text-align: right;
             font-weight: 700;
+            mso-number-format: "\@";
         }
-        .section-header {
-            background: #f1f5f9;
-            font-weight: 700;
-            color: #0f172a;
-        }
+
         .muted {
-            color: #64748b;
+            color: #647267;
+        }
+
+        .total td,
+        .total {
+            background: #eaf4ed;
+            color: #18351f;
+            font-weight: 700;
+        }
+
+        .blank td {
+            border: none;
+            height: 8px;
         }
     </style>
 </head>
 <body>
-    <div class="title">Laporan Sampah Masuk</div>
-    <div class="subtitle">Periode: {{ $periodLabel }} ({{ $start }} hingga {{ $end }})</div>
-    <div class="subtitle muted">Dibuat pada {{ $currentDate }}</div>
-
-    <table>
-        <tr class="section-header">
-            <td colspan="3">Komposisi Sampah</td>
+    <table class="sheet">
+        <colgroup>
+            <col style="width: 8%;">
+            <col style="width: 44%;">
+            <col style="width: 24%;">
+            <col style="width: 24%;">
+        </colgroup>
+        <tr>
+            <td colspan="4" class="title">Laporan Sampah Masuk</td>
         </tr>
         <tr>
-            <th>Jenis Sampah</th>
-            <th>Total Berat (kg)</th>
-            <th>Persentase</th>
+            <td colspan="4" class="subtitle">Periode: {{ $periodLabel }} | Rentang: {{ $start }} - {{ $end }} | Dibuat: {{ $currentDate }}</td>
         </tr>
-        @php
-            $totalBerat = array_sum($composition);
-        @endphp
+        <tr class="blank">
+            <td colspan="4"></td>
+        </tr>
+
+        <tr>
+            <td colspan="4" class="section">Ringkasan Sampah</td>
+        </tr>
+        <tr>
+            <th class="head">Indikator</th>
+            <th class="head" colspan="2">Keterangan</th>
+            <th class="head" style="text-align: right;">Nilai</th>
+        </tr>
+        <tr>
+            <td class="label" colspan="2">Total Berat</td>
+            <td class="muted">Akumulasi semua jenis</td>
+            <td class="number">{{ number_format($totalBerat, 1, ',', '.') }} kg</td>
+        </tr>
+        <tr>
+            <td class="label" colspan="2">Jumlah Jenis Sampah</td>
+            <td class="muted">Kategori tercatat</td>
+            <td class="number">{{ $jumlahJenis }} jenis</td>
+        </tr>
+        <tr>
+            <td class="label" colspan="2">Rata-rata per Jenis</td>
+            <td class="muted">Total berat dibagi jumlah jenis</td>
+            <td class="number">{{ number_format($rataRataBerat, 1, ',', '.') }} kg</td>
+        </tr>
+        <tr class="total">
+            <td colspan="2">Jenis Sampah Tertinggi</td>
+            <td>{{ $jenisMax }}</td>
+            <td class="number">{{ number_format($beratMax, 1, ',', '.') }} kg</td>
+        </tr>
+
+        <tr class="blank">
+            <td colspan="4"></td>
+        </tr>
+        <tr>
+            <td colspan="4" class="section">Komposisi Sampah</td>
+        </tr>
+        <tr>
+            <th class="head" style="text-align: center;">No</th>
+            <th class="head">Jenis Sampah</th>
+            <th class="head" style="text-align: right;">Total Berat (kg)</th>
+            <th class="head" style="text-align: right;">Persentase</th>
+        </tr>
         @forelse($composition as $jenis => $berat)
             <tr>
+                <td class="rank">{{ $loop->iteration }}</td>
                 <td>{{ $jenis }}</td>
-                <td class="value">{{ number_format($berat, 1, ',', '.') }}</td>
-                <td class="value">
-                    {{ $totalBerat > 0 ? round(($berat / $totalBerat) * 100, 2) : 0 }}%
-                </td>
+                <td class="number">{{ number_format($berat, 1, ',', '.') }}</td>
+                <td class="number">{{ $totalBerat > 0 ? number_format(($berat / $totalBerat) * 100, 2, ',', '.') : '0,00' }}%</td>
             </tr>
         @empty
             <tr>
-                <td colspan="3" class="muted">Tidak ada data</td>
+                <td colspan="4" class="muted">Tidak ada data sampah pada periode ini.</td>
             </tr>
         @endforelse
-        <tr class="section-header">
-            <td>Total Berat</td>
-            <td class="value">{{ number_format($totalBerat, 1, ',', '.') }}</td>
-            <td class="value">100%</td>
+        <tr class="total">
+            <td colspan="2">Total Berat Sampah</td>
+            <td class="number">{{ number_format($totalBerat, 1, ',', '.') }}</td>
+            <td class="number">{{ $totalBerat > 0 ? '100,00' : '0,00' }}%</td>
+        </tr>
+
+        <tr class="blank">
+            <td colspan="4"></td>
+        </tr>
+        <tr>
+            <td class="label">Dicetak</td>
+            <td colspan="3">{{ date('d-m-Y H:i:s') }}</td>
         </tr>
     </table>
 </body>
