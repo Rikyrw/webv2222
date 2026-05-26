@@ -2,16 +2,23 @@
 
 @section('content')
 <div class="gp-page">
-    <div class="card">
+    @if($databaseError)
+        <div class="alert alert-danger report-alert" role="alert">
+            <i class="bi bi-exclamation-triangle"></i>
+            <span>{{ $databaseError }}</span>
+        </div>
+    @endif
+
+    <div class="card report-filter-card">
         <div class="card-body">
-            <div class="gp-card-header">
+            <div class="gp-card-header report-filter-header">
                 <div>
                     <h2 class="gp-title">Filter Laporan</h2>
                     <p class="gp-subtitle mb-0">Pilih periode sebelum mengunduh laporan.</p>
                 </div>
-                <div class="d-flex align-items-center gap-2">
+                <div class="report-period-control">
                     <label for="periode" class="form-label mb-0"><i class="bi bi-calendar3"></i> Periode</label>
-                    <select id="periode" name="periode" class="form-select form-select-sm" style="min-width: 170px;">
+                    <select id="periode" name="periode" class="form-select form-select-sm report-period-select">
                         <option value="today" {{ ($period == 'today') ? 'selected' : '' }}>Hari Ini</option>
                         <option value="week" {{ ($period == 'week') ? 'selected' : '' }}>Minggu Ini</option>
                         <option value="month" {{ ($period == 'month') ? 'selected' : '' }}>Bulan Ini</option>
@@ -91,9 +98,9 @@
                 <div class="report-list">
                     @forelse($topNasabah as $index => $nasabah)
                         <div class="report-list-item">
-                            <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                            <div class="report-rank-row">
                                 <span class="rank-dot">{{ $index + 1 }}</span>
-                                <span class="report-list-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ $nasabah['nama'] }}</span>
+                                <span class="report-list-name report-list-name-truncate">{{ $nasabah['nama'] }}</span>
                             </div>
                             <span class="report-list-value">{{ number_format($nasabah['berat'], 1, ',', '.') }} kg</span>
                         </div>
@@ -112,26 +119,68 @@
 </div>
 
 <style>
+    .report-alert {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+    }
+
+    .report-filter-card .card-body {
+        padding: 20px 22px !important;
+    }
+
+    .report-filter-header {
+        align-items: center;
+        margin-bottom: 0;
+    }
+
+    .report-period-control {
+        display: grid;
+        grid-template-columns: auto minmax(170px, 184px);
+        align-items: center;
+        gap: 10px;
+    }
+
+    .report-period-control label {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        white-space: nowrap;
+    }
+
+    .report-period-select {
+        min-width: 170px;
+    }
+
     .report-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 20px;
+        align-items: stretch;
     }
 
     .report-card {
+        display: flex;
+        flex-direction: column;
         padding: 20px;
+        min-height: 410px;
     }
 
     .report-card-header {
         margin-bottom: 16px;
+        min-height: 47px;
     }
 
     .report-panel {
+        display: flex;
+        flex-direction: column;
         background: #fbfcfb;
         border: 1px solid #dfe7e1;
         border-radius: 8px;
         padding: 16px;
         margin-bottom: 16px;
+        min-height: 264px;
     }
 
     .report-panel-label,
@@ -167,6 +216,7 @@
     .report-list {
         display: grid;
         gap: 6px;
+        flex: 1;
     }
 
     .report-list-item {
@@ -179,9 +229,16 @@
     }
 
     .report-list-name {
+        min-width: 0;
         color: #17231b;
         font-size: 13px;
         font-weight: 700;
+    }
+
+    .report-list-name-truncate {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .report-actions {
@@ -202,11 +259,62 @@
         font-weight: 800;
         flex-shrink: 0;
     }
+
+    .report-rank-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .report-panel .gp-empty {
+        display: grid;
+        min-height: 160px;
+        place-items: center;
+        color: #6d7a71;
+        font-size: 13px;
+    }
+
+    @media (max-width: 768px) {
+        .report-filter-header {
+            align-items: flex-start;
+        }
+
+        .report-filter-header,
+        .report-period-control {
+            width: 100%;
+        }
+
+        .report-period-control {
+            grid-template-columns: 1fr;
+            gap: 8px;
+        }
+
+        .report-card {
+            min-height: 0;
+        }
+
+        .report-card-header {
+            min-height: 0;
+        }
+
+        .report-panel {
+            min-height: 0;
+        }
+
+        .report-panel .gp-empty {
+            min-height: 92px;
+        }
+    }
 </style>
 
 <script>
-    document.getElementById('periode').addEventListener('change', function() {
-        window.location.href = '{{ url("/admin/laporan") }}?periode=' + this.value;
-    });
+    const periodSelect = document.getElementById('periode');
+
+    if (periodSelect) {
+        periodSelect.addEventListener('change', function() {
+            window.location.href = '{{ url("/admin/laporan") }}?periode=' + encodeURIComponent(this.value);
+        });
+    }
 </script>
 @endsection
