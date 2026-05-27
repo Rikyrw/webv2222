@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AdminUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Http;
 
 class PengaturanAdminController extends Controller
 {
@@ -63,14 +63,7 @@ class PengaturanAdminController extends Controller
                 'alamat' => $validated['alamat'] ?? null,
             ];
 
-            $response = $this->supabaseRequest('post', '/rest/v1/admin', $payload, true);
-
-            if (!$response->successful()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Gagal menambahkan admin'
-                ], 500);
-            }
+            AdminUser::create($payload);
             
             return response()->json([
                 'status' => 'success',
@@ -112,19 +105,7 @@ class PengaturanAdminController extends Controller
                 $payload['password'] = Hash::make($validated['password']);
             }
 
-            $response = $this->supabaseRequest(
-                'patch',
-                '/rest/v1/admin?id_admin=eq.' . $validated['id_admin'],
-                $payload,
-                true
-            );
-
-            if (!$response->successful()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Gagal mengupdate admin'
-                ], 500);
-            }
+            AdminUser::where('id_admin', $validated['id_admin'])->update($payload);
             
             return response()->json([
                 'status' => 'success',
@@ -142,19 +123,7 @@ class PengaturanAdminController extends Controller
                 ], 404);
             }
 
-            $response = $this->supabaseRequest(
-                'delete',
-                '/rest/v1/admin?id_admin=eq.' . $id,
-                null,
-                true
-            );
-
-            if (!$response->successful()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Gagal menghapus admin'
-                ], 500);
-            }
+            AdminUser::where('id_admin', $id)->delete();
             
             return response()->json([
                 'status' => 'success',
@@ -170,53 +139,25 @@ class PengaturanAdminController extends Controller
 
     private function fetchAdmins(): array
     {
-        $response = $this->supabaseRequest(
-            'get',
-            '/rest/v1/admin?select=id_admin,nama_lengkap,email,role,user_name,username:user_name,status,no_hp,alamat',
-            null,
-            false
-        );
+        return AdminUser::orderBy('id_admin')
+            ->get(['id_admin', 'nama_lengkap', 'email', 'role', 'user_name', 'status', 'no_hp', 'alamat'])
+            ->map(function (AdminUser $admin): array {
+                $row = $admin->toArray();
+                $row['username'] = $row['user_name'] ?? null;
 
-        if (!$response->successful()) {
-            return [];
-        }
-
-        $admins = $response->json();
-        return is_array($admins) ? $admins : [];
+                return $row;
+            })
+            ->all();
     }
 
     private function adminExistsByEmail(string $email): bool
     {
-        $response = $this->supabaseRequest(
-            'get',
-            '/rest/v1/admin?select=id_admin&email=eq.' . urlencode($email) . '&limit=1',
-            null,
-            false
-        );
-
-        if (!$response->successful()) {
-            return false;
-        }
-
-        $admins = $response->json();
-        return is_array($admins) && count($admins) > 0;
+        return AdminUser::where('email', $email)->exists();
     }
 
     private function adminExistsByUsername(string $username): bool
     {
-        $response = $this->supabaseRequest(
-            'get',
-            '/rest/v1/admin?select=id_admin&user_name=eq.' . urlencode($username) . '&limit=1',
-            null,
-            false
-        );
-
-        if (!$response->successful()) {
-            return false;
-        }
-
-        $admins = $response->json();
-        return is_array($admins) && count($admins) > 0;
+        return AdminUser::where('user_name', $username)->exists();
     }
 
     private function adminExistsById($id): bool
@@ -225,55 +166,6 @@ class PengaturanAdminController extends Controller
             return false;
         }
 
-        $response = $this->supabaseRequest(
-            'get',
-            '/rest/v1/admin?select=id_admin&id_admin=eq.' . $id . '&limit=1',
-            null,
-            false
-        );
-
-        if (!$response->successful()) {
-            return false;
-        }
-
-        $admins = $response->json();
-        return is_array($admins) && count($admins) > 0;
-    }
-
-    private function supabaseRequest(string $method, string $path, ?array $payload, bool $returnRepresentation)
-    {
-        $supabaseUrl = env('SUPABASE_URL');
-        $supabaseKey = env('SUPABASE_KEY');
-
-        $request = Http::withHeaders([
-            'apikey' => $supabaseKey,
-            'Authorization' => 'Bearer ' . $supabaseKey,
-        ]);
-
-        if ($returnRepresentation) {
-            $request = $request->withHeaders([
-                'Prefer' => 'return=representation',
-            ]);
-        }
-
-        $url = $supabaseUrl . $path;
-
-        if ($method === 'get') {
-            return $request->get($url);
-        }
-
-        if ($method === 'post') {
-            return $request->post($url, $payload ?? []);
-        }
-
-        if ($method === 'patch') {
-            return $request->patch($url, $payload ?? []);
-        }
-
-        if ($method === 'delete') {
-            return $request->delete($url);
-        }
-
-        return $request->get($url);
+        return AdminUser::where('id_admin', $id)->exists();
     }
 }

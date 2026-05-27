@@ -3,16 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Mail\NasabahVerificationLinkMail;
-use Illuminate\Http\Client\PendingRequest;
+use App\Models\Nasabah;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
-use RuntimeException;
 
 class NasabahEmailVerificationController extends Controller
 {
@@ -60,25 +58,11 @@ class NasabahEmailVerificationController extends Controller
                     ->with('error', 'Link verifikasi tidak valid atau sudah kedaluwarsa.');
             }
 
-            $response = $this->supabaseRequest(true)
-                ->withHeaders(['Prefer' => 'return=minimal'])
-                ->patch($this->supabaseUrl().'/rest/v1/nasabah?id_nasabah=eq.'.$id, [
-                    'email_verified_at' => now()->toIso8601String(),
-                    'email_verification_token_hash' => null,
-                    'email_verification_expires_at' => null,
-                ]);
-
-            if (! $response->successful()) {
-                Log::warning('Gagal menandai email nasabah sebagai verified.', [
-                    'id_nasabah' => $id,
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
-
-                return redirect()
-                    ->route('nasabah.login')
-                    ->with('error', 'Email belum dapat diverifikasi. Coba link terbaru atau kirim ulang email verifikasi.');
-            }
+            Nasabah::where('id_nasabah', $id)->update([
+                'email_verified_at' => now(),
+                'email_verification_token_hash' => null,
+                'email_verification_expires_at' => null,
+            ]);
 
             $request->session()->forget(self::SESSION_KEY);
 
@@ -122,24 +106,13 @@ class NasabahEmailVerificationController extends Controller
                 $token = $this->generateVerificationToken();
                 $expiresAt = now()->addMinutes(self::VERIFICATION_LINK_TTL_MINUTES);
 
-                $response = $this->supabaseRequest(true)
-                    ->withHeaders(['Prefer' => 'return=representation'])
-                    ->patch($this->supabaseUrl().'/rest/v1/nasabah?id_nasabah=eq.'.(int) $user['id_nasabah'], [
-                        'email_verification_token_hash' => $this->tokenHash($token),
-                        'email_verification_expires_at' => $expiresAt->toIso8601String(),
-                        'email_verification_sent_at' => now()->toIso8601String(),
-                    ]);
+                Nasabah::where('id_nasabah', (int) $user['id_nasabah'])->update([
+                    'email_verification_token_hash' => $this->tokenHash($token),
+                    'email_verification_expires_at' => $expiresAt,
+                    'email_verification_sent_at' => now(),
+                ]);
 
-                if ($response->successful()) {
-                    $updatedUser = $this->firstRow($response->json()) ?? $user;
-                    $this->sendVerificationLink($updatedUser, $token, $expiresAt);
-                } else {
-                    Log::warning('Gagal memperbarui token verifikasi email nasabah.', [
-                        'id_nasabah' => $user['id_nasabah'] ?? null,
-                        'status' => $response->status(),
-                        'body' => $response->body(),
-                    ]);
-                }
+                $this->sendVerificationLink($user, $token, $expiresAt);
             }
         } catch (\Throwable $exception) {
             Log::warning('Gagal mengirim ulang email verifikasi nasabah.', [
@@ -231,64 +204,11 @@ class NasabahEmailVerificationController extends Controller
 
     private function findNasabahById(int $id): ?array
     {
-        $response = $this->supabaseRequest()->get($this->supabaseUrl().'/rest/v1/nasabah', [
-            'select' => '*',
-            'id_nasabah' => 'eq.'.$id,
-            'limit' => 1,
-        ]);
-
-        if (! $response->successful()) {
-            throw new RuntimeException('Gagal membaca akun nasabah dari Supabase.');
-        }
-
-        return $this->firstRow($response->json());
+        return Nasabah::where('id_nasabah', $id)->first()?->getAttributes();
     }
 
     private function findNasabahByEmail(string $email): ?array
     {
-        $response = $this->supabaseRequest()->get($this->supabaseUrl().'/rest/v1/nasabah', [
-            'select' => '*',
-            'email' => 'eq.'.$email,
-            'limit' => 1,
-        ]);
-
-        if (! $response->successful()) {
-            throw new RuntimeException('Gagal membaca akun nasabah dari Supabase.');
-        }
-
-        return $this->firstRow($response->json());
-    }
-
-    private function supabaseRequest(bool $useServiceRole = false): PendingRequest
-    {
-        $key = $useServiceRole
-            ? (env('SUPABASE_SERVICE_ROLE_KEY') ?: env('SUPABASE_KEY'))
-            : env('SUPABASE_KEY');
-
-        if (! $this->supabaseUrl() || ! $key) {
-            throw new RuntimeException('Konfigurasi Supabase belum lengkap.');
-        }
-
-        return Http::acceptJson()->withHeaders([
-            'apikey' => $key,
-            'Authorization' => 'Bearer '.$key,
-            'Content-Type' => 'application/json',
-        ]);
-    }
-
-    private function supabaseUrl(): string
-    {
-        $url = rtrim((string) env('SUPABASE_URL'), '/');
-
-        if ($url === '') {
-            throw new RuntimeException('SUPABASE_URL belum diatur.');
-        }
-
-        return $url;
-    }
-
-    private function firstRow(mixed $rows): ?array
-    {
-        return is_array($rows) && isset($rows[0]) && is_array($rows[0]) ? $rows[0] : null;
+        return Nasabah::where('email', $email)->first()?->getAttributes();
     }
 }

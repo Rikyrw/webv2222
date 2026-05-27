@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Nasabah;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 
 class NasabahProfilController extends Controller
 {
@@ -20,28 +20,9 @@ class NasabahProfilController extends Controller
         }
 
         try {
-            $supabaseUrl = env('SUPABASE_URL');
-            $supabaseKey = env('SUPABASE_KEY');
-
-            // Build query: prefer id_nasabah, fallback to username
-            $query = '/rest/v1/nasabah?select=*';
-            if ($id) {
-                $query .= '&id_nasabah=eq.' . intval($id);
-            } else {
-                $username = session('username');
-                if ($username) {
-                    $query .= '&user_name=eq.' . urlencode($username);
-                }
-            }
-
-            $response = Http::withHeaders([
-                'apikey' => $supabaseKey,
-                'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . $query);
-
-            $data = $response->json();
-            if (is_array($data) && count($data) > 0) {
-                $row = $data[0];
+            $model = Nasabah::find($id);
+            if ($model) {
+                $row = $model->getAttributes();
                 $user = [
                     'id_nasabah' => $row['id_nasabah'] ?? null,
                     'nama_nasabah' => $row['nama_lengkap'] ?? ($row['nama_nasabah'] ?? ''),
@@ -68,7 +49,7 @@ class NasabahProfilController extends Controller
             \Log::error('Profile fetch error: ' . $e->getMessage());
         }
 
-        // Fallback to session or defaults if Supabase fetch failed
+        // Fallback to session or defaults if the database fetch failed.
         if (!$user) {
             $user = [
                 'id_nasabah' => session('id_nasabah') ?? null,
@@ -97,17 +78,9 @@ class NasabahProfilController extends Controller
         }
 
         try {
-            $supabaseUrl = env('SUPABASE_URL');
-            $supabaseKey = env('SUPABASE_KEY');
-
-            $response = Http::withHeaders([
-                'apikey' => $supabaseKey,
-                'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . '/rest/v1/nasabah?select=*&id_nasabah=eq.' . $id);
-
-            $data = $response->json();
-            if (is_array($data) && count($data) > 0) {
-                $row = $data[0];
+            $model = Nasabah::find($id);
+            if ($model) {
+                $row = $model->getAttributes();
                 $user = [
                     'id_nasabah' => $row['id_nasabah'] ?? null,
                     'nama_nasabah' => $row['nama_lengkap'] ?? ($row['nama_nasabah'] ?? ''),
@@ -155,29 +128,13 @@ class NasabahProfilController extends Controller
         }
 
         try {
-            $supabaseUrl = env('SUPABASE_URL');
-            $supabaseKey = env('SUPABASE_KEY');
-            $serviceKey = env('SUPABASE_SERVICE_ROLE_KEY') ?: $supabaseKey;
-
-            // Normalize username
             $username = trim($validated['username']);
 
-            // Check uniqueness of username (exclude current user)
-            try {
-                $checkResp = Http::withHeaders([
-                    'apikey' => $supabaseKey,
-                    'Authorization' => 'Bearer ' . $supabaseKey,
-                ])->get($supabaseUrl . '/rest/v1/nasabah?select=id_nasabah&user_name=eq.' . urlencode($username));
-
-                $checkData = $checkResp->json();
-                if (is_array($checkData) && count($checkData) > 0) {
-                    $foundId = $checkData[0]['id_nasabah'] ?? null;
-                    if ($foundId && intval($foundId) !== intval($id)) {
-                        return back()->withInput()->withErrors(['username' => 'Username sudah digunakan oleh pengguna lain']);
-                    }
-                }
-            } catch (\Exception $e) {
-                \Log::warning('Username uniqueness check failed: ' . $e->getMessage());
+            $exists = Nasabah::where('user_name', $username)
+                ->where('id_nasabah', '!=', $id)
+                ->exists();
+            if ($exists) {
+                return back()->withInput()->withErrors(['username' => 'Username sudah digunakan oleh pengguna lain']);
             }
 
             $payload = [
@@ -188,22 +145,9 @@ class NasabahProfilController extends Controller
                 'alamat' => $validated['alamat'] ?? '',
             ];
 
-            $response = Http::withHeaders([
-                'apikey' => $serviceKey,
-                'Authorization' => 'Bearer ' . $serviceKey,
-                'Content-Type' => 'application/json',
-                'Prefer' => 'return=representation',
-            ])->patch($supabaseUrl . '/rest/v1/nasabah?id_nasabah=eq.' . $id, $payload);
-
-            $status = $response->status();
-            $body = $response->body();
-            \Log::info('Supabase update nasabah status: ' . $status . ' body: ' . $body);
-
-            $result = null;
-            try { $result = $response->json(); } catch (\Exception $e) { }
-
-            if ($response->successful() && is_array($result) && count($result) > 0) {
-                $row = $result[0];
+            $model = Nasabah::findOrFail($id);
+            $model->update($payload);
+            $row = $model->fresh()->getAttributes();
                 // Update session with new values
                 session([
                     'nama_nasabah' => $row['nama_lengkap'] ?? $validated['nama_nasabah'],
@@ -214,16 +158,6 @@ class NasabahProfilController extends Controller
                 ]);
 
                 return redirect()->route('nasabah.profil')->with('success', 'Profil berhasil diperbarui');
-            }
-
-            $errorMsg = 'Gagal memperbarui profil.';
-            if (!empty($result) && is_array($result)) {
-                $errorMsg = isset($result['message']) ? $result['message'] : json_encode($result);
-            } else {
-                $errorMsg = 'Gagal memperbarui profil (HTTP ' . $status . '). ' . substr($body, 0, 300);
-            }
-
-            return back()->withInput()->withErrors(['email' => $errorMsg]);
         } catch (\Exception $e) {
             \Log::error('Profile update error: ' . $e->getMessage());
             return back()->withInput()->withErrors(['email' => 'Terjadi kesalahan: ' . $e->getMessage()]);

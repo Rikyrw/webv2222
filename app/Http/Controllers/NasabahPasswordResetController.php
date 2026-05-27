@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Mail\NasabahPasswordResetLinkMail;
+use App\Models\Nasabah;
 use App\Services\FirebasePasswordResetLinkGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -127,27 +128,7 @@ class NasabahPasswordResetController extends Controller
 
     private function findNasabahByEmail(string $email): ?array
     {
-        $response = Http::acceptJson()->withHeaders([
-            'apikey' => env('SUPABASE_KEY'),
-            'Authorization' => 'Bearer '.env('SUPABASE_KEY'),
-        ])->get(rtrim((string) env('SUPABASE_URL'), '/').'/rest/v1/nasabah', [
-            'select' => '*',
-            'email' => 'eq.'.$email,
-            'limit' => 1,
-        ]);
-
-        if (! $response->successful()) {
-            Log::warning('Failed to fetch nasabah for password reset.', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-
-            return null;
-        }
-
-        $rows = $response->json();
-
-        return is_array($rows) && isset($rows[0]) && is_array($rows[0]) ? $rows[0] : null;
+        return Nasabah::where('email', $email)->first()?->getAttributes();
     }
 
     private function isManualAccount(array $user): bool
@@ -166,25 +147,10 @@ class NasabahPasswordResetController extends Controller
             return;
         }
 
-        $serviceKey = env('SUPABASE_SERVICE_ROLE_KEY') ?: env('SUPABASE_KEY');
-
         try {
-            $response = Http::acceptJson()->withHeaders([
-                'apikey' => $serviceKey,
-                'Authorization' => 'Bearer '.$serviceKey,
-                'Content-Type' => 'application/json',
-                'Prefer' => 'return=minimal',
-            ])->patch(rtrim((string) env('SUPABASE_URL'), '/').'/rest/v1/nasabah?id_nasabah=eq.'.$idNasabah, [
+            Nasabah::where('id_nasabah', $idNasabah)->update([
                 'password' => 'firebase-auth-pending',
             ]);
-
-            if (! $response->successful()) {
-                Log::warning('Failed to mark nasabah as Firebase pending after reset.', [
-                    'id_nasabah' => $idNasabah,
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
-            }
         } catch (\Throwable $exception) {
             Log::warning('Failed to mark nasabah as Firebase pending unexpectedly.', [
                 'id_nasabah' => $idNasabah,

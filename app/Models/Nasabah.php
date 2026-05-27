@@ -28,6 +28,10 @@ class Nasabah extends Model
         'saldo',
         'alamat',
         'created_at',
+        'google_sub',
+        'google_id',
+        'photo_url',
+        'provider',
         'email_verified_at',
         'email_verification_token_hash',
         'email_verification_expires_at',
@@ -54,5 +58,10 @@ class Nasabah extends Model
     public function transaksiPenarikan(): HasMany
     {
         return $this->hasMany(TransaksiPenarikan::class, 'id_nasabah', 'id_nasabah');
+    }
+
+    public function topups(): HasMany
+    {
+        return $this->hasMany(TopupSaldo::class, 'id_nasabah', 'id_nasabah');
     }
 }

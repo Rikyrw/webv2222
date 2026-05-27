@@ -403,7 +403,7 @@
                         <ul class="transaction-list">
                             @foreach ($recent_setor as $rs)
                                 @php
-                                    // Ensure $rs is an array (Supabase responses may sometimes be JSON strings)
+                                    // Ensure $rs is an array for legacy session/view compatibility.
                                     if (!is_array($rs)) {
                                         $decoded = json_decode($rs, true);
                                         if (is_array($decoded)) {

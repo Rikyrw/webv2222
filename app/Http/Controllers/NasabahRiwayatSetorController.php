@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\TransaksiSetor;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 
 class NasabahRiwayatSetorController extends Controller
 {
@@ -33,7 +33,7 @@ class NasabahRiwayatSetorController extends Controller
             }
 
             if (!$filterError) {
-                $transactions = $this->fetchTransactionsFromSupabase(
+                $transactions = $this->fetchTransactions(
                     $id_nasabah,
                     $hasDateFilter ? $startDate : null,
                     $hasDateFilter ? $endDate : null,
@@ -72,50 +72,24 @@ class NasabahRiwayatSetorController extends Controller
         }
     }
 
-    private function fetchTransactionsFromSupabase(int $idNasabah, ?string $startDate, ?string $endDate, bool $hasDateFilter): array
+    private function fetchTransactions(int $idNasabah, ?string $startDate, ?string $endDate, bool $hasDateFilter): array
     {
-        $supabaseUrl = env('SUPABASE_URL');
-        $supabaseKey = env('SUPABASE_SERVICE_ROLE_KEY') ?: env('SUPABASE_KEY');
-        if (!$supabaseUrl || !$supabaseKey) {
-            return [];
-        }
-
-        $query = '/rest/v1/transaksi_setor?select=' . urlencode(
-            'id_transaksi_setor,id_nasabah,total_nilai,tanggal_setor,status,' .
-            'detail_setor(id_detail_setor,berat_kg,subtotal,harga_kg,status_item,catatan_admin,jenis_sampah(nama_jenis,harga_per_kg))'
-        );
-
-        $filters = [];
-        $filters[] = 'id_nasabah=eq.' . intval($idNasabah);
+        $query = TransaksiSetor::with('detailSetor.sampah')
+            ->where('id_nasabah', $idNasabah)
+            ->orderByDesc('tanggal_setor');
 
         if ($hasDateFilter && $startDate && $endDate) {
-            $filters[] = 'tanggal_setor=gte.' . $startDate;
-            $filters[] = 'tanggal_setor=lte.' . $endDate;
+            $query->whereBetween('tanggal_setor', [$startDate, $endDate]);
         } else {
-            $filters[] = 'or=(status.is.null,status.eq.menunggu,status.eq.pending)';
-        }
-
-        $filters[] = 'order=tanggal_setor.desc';
-        $url = $supabaseUrl . $query . '&' . implode('&', $filters);
-
-        $resp = Http::withHeaders([
-            'apikey' => $supabaseKey,
-            'Authorization' => 'Bearer ' . $supabaseKey,
-        ])->get($url);
-
-        if (!$resp->successful()) {
-            return [];
-        }
-
-        $rows = $resp->json();
-        if (!is_array($rows)) {
-            return [];
+            $query->where(function ($builder) {
+                $builder->whereNull('status')
+                    ->orWhereIn('status', ['menunggu', 'pending']);
+            });
         }
 
         $transactions = [];
-        foreach ($rows as $row) {
-            $detailSetor = $row['detail_setor'] ?? [];
-            if (!is_array($detailSetor) || count($detailSetor) === 0) {
+        foreach ($query->get() as $row) {
+            if ($row->detailSetor->isEmpty()) {
                 continue;
             }
 
@@ -124,21 +98,20 @@ class NasabahRiwayatSetorController extends Controller
             $totalNilai = 0;
             $rejectedNotes = [];
 
-            foreach ($detailSetor as $detail) {
-                $jenis = $detail['jenis_sampah'] ?? null;
-                $namaJenis = is_array($jenis) ? ($jenis['nama_jenis'] ?? 'N/A') : 'N/A';
+            foreach ($row->detailSetor as $detail) {
+                $namaJenis = $detail->sampah?->nama_jenis ?? 'N/A';
                 if (!in_array($namaJenis, $jenisList, true)) {
                     $jenisList[] = $namaJenis;
                 }
 
-                $berat = (float) ($detail['berat_kg'] ?? 0);
-                $subtotal = (float) ($detail['subtotal'] ?? 0);
+                $berat = (float) $detail->berat_kg;
+                $subtotal = (float) $detail->subtotal;
                 $totalBerat += $berat;
                 $totalNilai += $subtotal;
 
-                $statusItem = strtolower(trim((string) ($detail['status_item'] ?? '')));
+                $statusItem = strtolower(trim((string) $detail->status_item));
                 if (in_array($statusItem, ['rejected', 'ditolak'], true)) {
-                    $catatan = trim((string) ($detail['catatan_admin'] ?? ''));
+                    $catatan = trim((string) $detail->catatan_admin);
                     $label = $namaJenis;
                     if ($catatan !== '') {
                         $label .= ' (' . $catatan . ')';
@@ -148,12 +121,12 @@ class NasabahRiwayatSetorController extends Controller
             }
 
             $transactions[] = [
-                'id_transaksi' => $row['id_transaksi_setor'] ?? null,
+                'id_transaksi' => $row->id_transaksi_setor,
                 'nama_jenis' => implode(', ', $jenisList),
                 'berat_kg' => $totalBerat,
                 'subtotal' => $totalNilai,
-                'tanggal_setor' => $row['tanggal_setor'] ?? null,
-                'status' => $row['status'] ?? 'menunggu',
+                'tanggal_setor' => $row->tanggal_setor?->toDateString(),
+                'status' => $row->status ?? 'menunggu',
                 'rejected_notes' => implode('; ', $rejectedNotes),
             ];
         }

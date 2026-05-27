@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Sampah;
-use Illuminate\Support\Facades\Http;
 
 class SampahController extends Controller
 {
@@ -85,11 +84,7 @@ class SampahController extends Controller
                 'id_admin' => session('admin_id'),
             ];
 
-            $response = $this->supabaseRequest('post', '/rest/v1/jenis_sampah', $payload, true);
-
-            if (!$response->successful()) {
-                throw new \RuntimeException('Supabase insert gagal');
-            }
+            Sampah::create($payload);
 
             return redirect()->route('admin.sampah.daftar')->with('flash_message', 'Jenis sampah berhasil ditambahkan')->with('flash_type', 'success');
         } catch (\Exception $e) {
@@ -127,16 +122,7 @@ class SampahController extends Controller
                 'status' => $request->status,
             ];
 
-            $response = $this->supabaseRequest(
-                'patch',
-                '/rest/v1/jenis_sampah?id_jenis_sampah=eq.' . $id,
-                $payload,
-                true
-            );
-
-            if (!$response->successful()) {
-                throw new \RuntimeException('Supabase update gagal');
-            }
+            Sampah::where('id_jenis_sampah', $id)->update($payload);
 
             return redirect()->route('admin.sampah.daftar')->with('flash_message', 'Jenis sampah berhasil diperbarui')->with('flash_type', 'success');
         } catch (\Exception $e) {
@@ -147,94 +133,29 @@ class SampahController extends Controller
 
     private function fetchSampahList(): array
     {
-        $response = $this->supabaseRequest(
-            'get',
-            '/rest/v1/jenis_sampah?select=id_jenis_sampah,nama_jenis,harga_per_kg,stok,status&status=eq.aktif',
-            null,
-            false
-        );
-
-        if (!$response->successful()) {
-            return [];
-        }
-
-        $items = $response->json();
-        if (!is_array($items)) {
-            return [];
-        }
-
-        $mapped = [];
-        foreach ($items as $item) {
-            $mapped[] = [
-                'id_jenis' => $item['id_jenis_sampah'] ?? null,
-                'nama_jenis' => $item['nama_jenis'] ?? null,
-                'harga_per_kg' => (int) round((float) ($item['harga_per_kg'] ?? 0)),
-                'stok_kg' => $item['stok'] ?? null,
-                'status' => $item['status'] ?? null,
-            ];
-        }
-
-        return $mapped;
+        return Sampah::where('status', 'aktif')
+            ->orderBy('nama_jenis')
+            ->get(['id_jenis_sampah', 'nama_jenis', 'harga_per_kg', 'stok', 'status'])
+            ->map(fn (Sampah $item): array => [
+                'id_jenis' => $item->id_jenis_sampah,
+                'nama_jenis' => $item->nama_jenis,
+                'harga_per_kg' => (int) round((float) $item->harga_per_kg),
+                'stok_kg' => $item->stok,
+                'status' => $item->status,
+            ])
+            ->all();
     }
 
     private function fetchSampahById($id): ?array
     {
-        $response = $this->supabaseRequest(
-            'get',
-            '/rest/v1/jenis_sampah?select=*&id_jenis_sampah=eq.' . $id . '&limit=1',
-            null,
-            false
-        );
-
-        if (!$response->successful()) {
+        $item = Sampah::find($id);
+        if (!$item) {
             return null;
         }
 
-        $items = $response->json();
-        if (!is_array($items) || count($items) === 0) {
-            return null;
-        }
+        $data = $item->toArray();
+        $data['harga_per_kg'] = (int) round((float) ($data['harga_per_kg'] ?? 0));
 
-        $item = $items[0];
-        $item['harga_per_kg'] = (int) round((float) ($item['harga_per_kg'] ?? 0));
-
-        return $item;
-    }
-
-    private function supabaseRequest(string $method, string $path, ?array $payload, bool $returnRepresentation)
-    {
-        $supabaseUrl = env('SUPABASE_URL');
-        $supabaseKey = env('SUPABASE_KEY');
-
-        $request = Http::withHeaders([
-            'apikey' => $supabaseKey,
-            'Authorization' => 'Bearer ' . $supabaseKey,
-        ]);
-
-        if ($returnRepresentation) {
-            $request = $request->withHeaders([
-                'Prefer' => 'return=representation',
-            ]);
-        }
-
-        $url = $supabaseUrl . $path;
-
-        if ($method === 'get') {
-            return $request->get($url);
-        }
-
-        if ($method === 'post') {
-            return $request->post($url, $payload ?? []);
-        }
-
-        if ($method === 'patch') {
-            return $request->patch($url, $payload ?? []);
-        }
-
-        if ($method === 'delete') {
-            return $request->delete($url);
-        }
-
-        return $request->get($url);
+        return $data;
     }
 }

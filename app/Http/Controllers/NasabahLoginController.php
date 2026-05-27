@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Nasabah;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -94,8 +95,13 @@ class NasabahLoginController extends Controller
             } else {
                 return back()->withInput()->with('error', 'Username/email atau password salah!');
             }
-        } catch (\Exception $e) {
-            return back()->withInput()->with('error', 'Terjadi kesalahan sistem: '.$e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error('Nasabah login failed unexpectedly.', [
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
+
+            return back()->withInput()->with('error', $this->loginSystemErrorMessage($e));
         }
     }
 
@@ -146,23 +152,31 @@ class NasabahLoginController extends Controller
 
     private function findActiveNasabahForLogin(string $username): ?array
     {
-        $supabaseUrl = rtrim((string) env('SUPABASE_URL'), '/');
-        $supabaseKey = env('SUPABASE_KEY');
+        return Nasabah::where('status', 'aktif')
+            ->where(function ($query) use ($username) {
+                $query->where('user_name', $username)
+                    ->orWhere('email', $username);
+            })
+            ->orderByDesc('id_nasabah')
+            ->first()
+            ?->getAttributes();
+    }
 
-        $response = Http::acceptJson()->withHeaders([
-            'apikey' => $supabaseKey,
-            'Authorization' => 'Bearer '.$supabaseKey,
-        ])->get($supabaseUrl.'/rest/v1/nasabah', [
-            'select' => '*',
-            'or' => '(user_name.eq.'.$username.',email.eq.'.$username.')',
-            'status' => 'eq.aktif',
-            'order' => 'id_nasabah.desc',
-            'limit' => 1,
-        ]);
+    private function loginSystemErrorMessage(\Throwable $e): string
+    {
+        $message = $e->getMessage();
 
-        $users = $response->json();
+        if (
+            str_contains($message, 'SQLSTATE[08006]')
+            || str_contains($message, 'could not translate host name')
+            || str_contains($message, 'No such host is known')
+            || str_contains($message, 'Network is unreachable')
+            || str_contains($message, 'Connection refused')
+        ) {
+            return 'Database belum bisa dijangkau. Periksa koneksi database/pooler Supabase, lalu coba lagi.';
+        }
 
-        return is_array($users) && isset($users[0]) && is_array($users[0]) ? $users[0] : null;
+        return 'Terjadi kesalahan sistem. Silakan coba beberapa saat lagi.';
     }
 
     private function redirectToVerificationNotice(array $user)
@@ -219,25 +233,10 @@ class NasabahLoginController extends Controller
 
     private function migrateToFirebaseBackedPassword(int $idNasabah, string $firebaseUid): void
     {
-        $serviceKey = env('SUPABASE_SERVICE_ROLE_KEY') ?: env('SUPABASE_KEY');
-
         try {
-            $response = Http::acceptJson()->withHeaders([
-                'apikey' => $serviceKey,
-                'Authorization' => 'Bearer '.$serviceKey,
-                'Content-Type' => 'application/json',
-                'Prefer' => 'return=minimal',
-            ])->patch(rtrim((string) env('SUPABASE_URL'), '/').'/rest/v1/nasabah?id_nasabah=eq.'.$idNasabah, [
+            Nasabah::where('id_nasabah', $idNasabah)->update([
                 'password' => 'firebase-auth:'.$firebaseUid,
             ]);
-
-            if (! $response->successful()) {
-                Log::warning('Failed to migrate nasabah password marker to Firebase.', [
-                    'id_nasabah' => $idNasabah,
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
-            }
         } catch (\Throwable $exception) {
             Log::warning('Failed to migrate nasabah password marker to Firebase unexpectedly.', [
                 'id_nasabah' => $idNasabah,

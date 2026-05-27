@@ -2,8 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DetailSetor;
+use App\Models\FotoSetor;
+use App\Models\Nasabah;
+use App\Models\Sampah;
+use App\Models\TransaksiSetor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 
 class NasabahTransaksiSetorController extends Controller
 {
@@ -14,20 +20,11 @@ class NasabahTransaksiSetorController extends Controller
         $user = null;
         $id = session('id_nasabah');
 
-        // Try to load real user profile from Supabase when logged in
         if ($id) {
             try {
-                $supabaseUrl = env('SUPABASE_URL');
-                $supabaseKey = env('SUPABASE_KEY');
-
-                $resp = Http::withHeaders([
-                    'apikey' => $supabaseKey,
-                    'Authorization' => 'Bearer ' . $supabaseKey,
-                ])->get($supabaseUrl . '/rest/v1/nasabah?select=*&id_nasabah=eq.' . intval($id));
-
-                $data = $resp->json();
-                if (is_array($data) && count($data) > 0) {
-                    $row = $data[0];
+                $model = Nasabah::find($id);
+                if ($model) {
+                    $row = $model->getAttributes();
                     $user = [
                         'id_nasabah' => $row['id_nasabah'] ?? $id,
                         'nama_nasabah' => $row['nama_lengkap'] ?? ($row['nama_nasabah'] ?? session('nama_nasabah')),
@@ -50,7 +47,7 @@ class NasabahTransaksiSetorController extends Controller
                     ]);
                 }
             } catch (\Exception $e) {
-                \Log::warning('Failed to fetch nasabah for setor: ' . $e->getMessage());
+                \Log::warning('Failed to fetch nasabah for setor: '.$e->getMessage());
             }
         }
 
@@ -92,87 +89,42 @@ class NasabahTransaksiSetorController extends Controller
                     $error = $validationError;
                 } else {
                     try {
-                        $serviceKey = env('SUPABASE_SERVICE_ROLE_KEY') ?: env('SUPABASE_KEY');
-                        $supabaseUrl = env('SUPABASE_URL');
-
-                        $calcResult = $this->calculateTotalsFromSupabase($waste_items, $serviceKey, $supabaseUrl);
+                        $calcResult = $this->calculateTotalsFromDatabase($waste_items);
                         if ($calcResult['error']) {
                             $error = $calcResult['error'];
                         } else {
                             $totalNilai = $calcResult['total_nilai'];
                             $detailRows = $calcResult['detail_rows'];
 
-                            $transaksiPayload = [
-                                'id_nasabah' => intval($user['id_nasabah']),
-                                'total_nilai' => $totalNilai,
-                                'tanggal_setor' => date('Y-m-d'),
-                                'status' => 'menunggu',
-                            ];
+                            DB::transaction(function () use ($user, $totalNilai, $detailRows, $waste_items, $waste_photos): void {
+                                $transaksi = TransaksiSetor::create([
+                                    'id_nasabah' => intval($user['id_nasabah']),
+                                    'total_nilai' => $totalNilai,
+                                    'tanggal_setor' => date('Y-m-d'),
+                                    'status' => 'menunggu',
+                                ]);
 
-                            $transaksiResp = Http::withHeaders([
-                                'apikey' => $serviceKey,
-                                'Authorization' => 'Bearer ' . $serviceKey,
-                                'Content-Type' => 'application/json',
-                                'Prefer' => 'return=representation',
-                            ])->post($supabaseUrl . '/rest/v1/transaksi_setor', $transaksiPayload);
+                                foreach ($detailRows as $index => $row) {
+                                    $detail = DetailSetor::create([
+                                        ...$row,
+                                        'id_transaksi_setor' => $transaksi->id_transaksi_setor,
+                                    ]);
 
-                            if (!$transaksiResp->successful()) {
-                                $error = 'Gagal mengajukan transaksi setor (HTTP ' . $transaksiResp->status() . ').';
-                            } else {
-                                $transaksiData = $transaksiResp->json();
-                                $transaksiId = is_array($transaksiData) && count($transaksiData) > 0
-                                    ? ($transaksiData[0]['id_transaksi_setor'] ?? null)
-                                    : null;
-
-                                if (!$transaksiId) {
-                                    $error = 'Transaksi dibuat tetapi ID tidak ditemukan.';
-                                } else {
-                                    foreach ($detailRows as &$row) {
-                                        $row['id_transaksi_setor'] = intval($transaksiId);
-                                    }
-                                    unset($row);
-
-                                    $detailResp = Http::withHeaders([
-                                        'apikey' => $serviceKey,
-                                        'Authorization' => 'Bearer ' . $serviceKey,
-                                        'Content-Type' => 'application/json',
-                                        'Prefer' => 'return=representation',
-                                    ])->post($supabaseUrl . '/rest/v1/detail_setor', $detailRows);
-
-                                    if (!$detailResp->successful()) {
-                                        $error = 'Transaksi dibuat, tetapi detail setor gagal disimpan.';
-                                    } else {
-                                        $fotoRows = [];
-                                        foreach ($waste_items as $index => $item) {
-                                            $foto = $waste_photos[$index] ?? null;
-                                            if ($foto) {
-                                                $fotoRows[] = [
-                                                    'id_transaksi_setor' => intval($transaksiId),
-                                                    'foto_url' => $foto,
-                                                ];
-                                            }
-                                        }
-
-                                        if (count($fotoRows) > 0) {
-                                            $fotoResp = Http::withHeaders([
-                                                'apikey' => $serviceKey,
-                                                'Authorization' => 'Bearer ' . $serviceKey,
-                                                'Content-Type' => 'application/json',
-                                                'Prefer' => 'return=representation',
-                                            ])->post($supabaseUrl . '/rest/v1/foto_setor', $fotoRows);
-
-                                            if (!$fotoResp->successful()) {
-                                                $error = 'Transaksi dibuat, tetapi foto gagal disimpan.';
-                                            }
-                                        }
-
-                                        if (!$error) {
-                                            session()->forget('validated_waste_photos');
-                                            $success = 'Transaksi setor sampah berhasil diajukan! Status: Menunggu persetujuan admin.';
-                                        }
+                                    $foto = $waste_photos[$index] ?? null;
+                                    if ($foto) {
+                                        FotoSetor::create([
+                                            'id_transaksi_setor' => $transaksi->id_transaksi_setor,
+                                            'id_detail_setor' => $detail->id_detail_setor,
+                                            'id_jenis' => (int) ($waste_items[$index]['id_jenis'] ?? 0),
+                                            'foto_url' => $foto,
+                                            'created_at' => now(),
+                                        ]);
                                     }
                                 }
-                            }
+                            });
+
+                            session()->forget('validated_waste_photos');
+                            $success = 'Transaksi setor sampah berhasil diajukan! Status: Menunggu persetujuan admin.';
                         }
                     } catch (\Exception $e) {
                         \Log::error('Setor transaksi error: ' . $e->getMessage());
@@ -256,30 +208,17 @@ class NasabahTransaksiSetorController extends Controller
 
     private function fetchWasteTypes(): array
     {
-        $supabaseUrl = env('SUPABASE_URL');
-        $supabaseKey = env('SUPABASE_KEY');
-        if (!$supabaseUrl || !$supabaseKey) {
-            return [];
-        }
-
         try {
-            $resp = Http::withHeaders([
-                'apikey' => $supabaseKey,
-                'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . '/rest/v1/jenis_sampah?select=id_jenis_sampah,nama_jenis,harga_per_kg,status&status=eq.aktif&order=nama_jenis.asc');
-
-            $rows = $resp->json();
-            if (!is_array($rows)) {
-                return [];
-            }
-
-            return array_map(function ($row) {
+            return Sampah::where('status', 'aktif')
+                ->orderBy('nama_jenis')
+                ->get(['id_jenis_sampah', 'nama_jenis', 'harga_per_kg'])
+                ->map(function (Sampah $row) {
                 return [
-                    'id_jenis' => $row['id_jenis_sampah'] ?? null,
-                    'nama_jenis' => $row['nama_jenis'] ?? '-',
-                    'harga_per_kg' => (int) round((float) ($row['harga_per_kg'] ?? 0)),
+                    'id_jenis' => $row->id_jenis_sampah,
+                    'nama_jenis' => $row->nama_jenis ?? '-',
+                    'harga_per_kg' => (int) round((float) ($row->harga_per_kg ?? 0)),
                 ];
-            }, $rows);
+            })->all();
         } catch (\Exception $e) {
             \Log::warning('Failed to fetch jenis sampah: ' . $e->getMessage());
             return [];
@@ -288,33 +227,18 @@ class NasabahTransaksiSetorController extends Controller
 
     private function fetchWasteTypeById(int $idJenis): ?array
     {
-        $supabaseUrl = env('SUPABASE_URL');
-        $supabaseKey = env('SUPABASE_KEY');
-        if (!$supabaseUrl || !$supabaseKey) {
-            return null;
-        }
-
         try {
-            $resp = Http::withHeaders([
-                'apikey' => $supabaseKey,
-                'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . '/rest/v1/jenis_sampah?select=id_jenis_sampah,nama_jenis,harga_per_kg,status&id_jenis_sampah=eq.' . $idJenis . '&status=eq.aktif&limit=1');
-
-            if (!$resp->successful()) {
+            $row = Sampah::where('id_jenis_sampah', $idJenis)
+                ->where('status', 'aktif')
+                ->first();
+            if (!$row) {
                 return null;
             }
-
-            $rows = $resp->json();
-            if (!is_array($rows) || count($rows) === 0) {
-                return null;
-            }
-
-            $row = $rows[0];
 
             return [
-                'id_jenis' => $row['id_jenis_sampah'] ?? null,
-                'nama_jenis' => $row['nama_jenis'] ?? '-',
-                'harga_per_kg' => (int) round((float) ($row['harga_per_kg'] ?? 0)),
+                'id_jenis' => $row->id_jenis_sampah,
+                'nama_jenis' => $row->nama_jenis ?? '-',
+                'harga_per_kg' => (int) round((float) ($row->harga_per_kg ?? 0)),
             ];
         } catch (\Exception $e) {
             \Log::warning('Failed to fetch selected jenis sampah: ' . $e->getMessage());
@@ -522,7 +446,7 @@ class NasabahTransaksiSetorController extends Controller
         return null;
     }
 
-    private function calculateTotalsFromSupabase(array $wasteItems, string $serviceKey, string $supabaseUrl): array
+    private function calculateTotalsFromDatabase(array $wasteItems): array
     {
         $ids = array_values(array_unique(array_map(function ($item) {
             return intval($item['id_jenis'] ?? 0);
@@ -536,27 +460,9 @@ class NasabahTransaksiSetorController extends Controller
             return ['error' => 'Jenis sampah tidak ditemukan.', 'total_nilai' => 0, 'detail_rows' => []];
         }
 
-        $idFilter = implode(',', $ids);
-        $resp = Http::withHeaders([
-            'apikey' => $serviceKey,
-            'Authorization' => 'Bearer ' . $serviceKey,
-        ])->get($supabaseUrl . '/rest/v1/jenis_sampah?select=id_jenis_sampah,harga_per_kg,status&id_jenis_sampah=in.(' . $idFilter . ')&status=eq.aktif');
-
-        if (!$resp->successful()) {
-            return ['error' => 'Gagal memuat harga jenis sampah.', 'total_nilai' => 0, 'detail_rows' => []];
-        }
-
-        $rows = $resp->json();
-        if (!is_array($rows)) {
-            return ['error' => 'Data jenis sampah tidak valid.', 'total_nilai' => 0, 'detail_rows' => []];
-        }
-
         $priceMap = [];
-        foreach ($rows as $row) {
-            $id = $row['id_jenis_sampah'] ?? null;
-            if ($id !== null) {
-                $priceMap[intval($id)] = (int) round((float) ($row['harga_per_kg'] ?? 0));
-            }
+        foreach (Sampah::whereIn('id_jenis_sampah', $ids)->where('status', 'aktif')->get() as $row) {
+            $priceMap[(int) $row->id_jenis_sampah] = (int) round((float) ($row->harga_per_kg ?? 0));
         }
 
         $totalNilai = 0;

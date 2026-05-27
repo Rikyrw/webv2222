@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AdminUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class AdminAuthController extends Controller
 {
@@ -23,23 +24,13 @@ class AdminAuthController extends Controller
             'role' => 'required|in:admin,superadmin',
         ]);
         try {
-            $supabaseUrl = env('SUPABASE_URL');
-            $supabaseKey = env('SUPABASE_KEY');
+            $adminModel = AdminUser::where('email', $data['email'])->first();
 
-            $query = 'admin?select=*&email=eq.' . urlencode($data['email']);
-
-            $response = Http::withHeaders([
-                'apikey' => $supabaseKey,
-                'Authorization' => 'Bearer ' . $supabaseKey,
-            ])->get($supabaseUrl . '/rest/v1/' . $query);
-
-            $admins = $response->json();
-
-            if (!is_array($admins) || count($admins) === 0) {
+            if (!$adminModel) {
                 return redirect()->back()->withInput()->with('error', 'Email atau password salah.');
             }
 
-            $admin = $admins[0];
+            $admin = $adminModel->getAttributes();
             $loginSuccess = $this->verifyPasswordLikeAndroid(
                 $data['password'],
                 $admin['password'] ?? null,
@@ -68,8 +59,13 @@ class AdminAuthController extends Controller
             session()->put('admin_id', $admin['id_admin'] ?? null);
 
             return redirect()->route('admin.dashboard')->with('success', 'Login berhasil.');
-        } catch (\Exception $e) {
-            return redirect()->back()->withInput()->with('error', 'Terjadi kesalahan sistem: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            Log::error('Admin login failed unexpectedly.', [
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
+
+            return redirect()->back()->withInput()->with('error', $this->loginSystemErrorMessage($e));
         }
     }
 
@@ -99,5 +95,22 @@ class AdminAuthController extends Controller
         } catch (\Exception $e) {
             return false;
         }
+    }
+
+    private function loginSystemErrorMessage(\Throwable $e): string
+    {
+        $message = $e->getMessage();
+
+        if (
+            str_contains($message, 'SQLSTATE[08006]')
+            || str_contains($message, 'could not translate host name')
+            || str_contains($message, 'No such host is known')
+            || str_contains($message, 'Network is unreachable')
+            || str_contains($message, 'Connection refused')
+        ) {
+            return 'Database belum bisa dijangkau. Periksa koneksi database/pooler Supabase, lalu coba lagi.';
+        }
+
+        return 'Terjadi kesalahan sistem. Silakan coba beberapa saat lagi.';
     }
 }

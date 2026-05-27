@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Mail\NasabahPasswordResetLinkMail;
 use App\Mail\NasabahVerificationLinkMail;
+use App\Models\Nasabah;
 use App\Services\FirebasePasswordResetLinkGenerator;
-use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
-use RuntimeException;
 
 class MobileNasabahAuthController extends Controller
 {
@@ -53,9 +52,7 @@ class MobileNasabahAuthController extends Controller
 
             $token = $this->generateVerificationToken();
             $expiresAt = now()->addMinutes(self::VERIFICATION_LINK_TTL_MINUTES);
-            $response = $this->supabaseRequest(true)
-                ->withHeaders(['Prefer' => 'return=representation'])
-                ->post($this->supabaseUrl().'/rest/v1/nasabah', [
+            $user = Nasabah::create([
                     'nama_lengkap' => $validated['nama'],
                     'user_name' => $username,
                     'email' => $email,
@@ -69,20 +66,7 @@ class MobileNasabahAuthController extends Controller
                     'email_verification_token_hash' => $this->tokenHash($token),
                     'email_verification_expires_at' => $expiresAt->toIso8601String(),
                     'email_verification_sent_at' => now()->toIso8601String(),
-                ]);
-
-            $user = $this->firstRow($response->json());
-
-            if (! $response->successful() || ! $user) {
-                Log::warning('Mobile nasabah registration insert failed.', [
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
-
-                return response()->json([
-                    'message' => 'Pendaftaran belum dapat diproses. Coba lagi beberapa saat.',
-                ], 422);
-            }
+                ])->getAttributes();
 
             $this->sendVerificationLink($user, $token, $expiresAt);
 
@@ -124,23 +108,13 @@ class MobileNasabahAuthController extends Controller
                 $token = $this->generateVerificationToken();
                 $expiresAt = now()->addMinutes(self::VERIFICATION_LINK_TTL_MINUTES);
 
-                $response = $this->supabaseRequest(true)
-                    ->withHeaders(['Prefer' => 'return=representation'])
-                    ->patch($this->supabaseUrl().'/rest/v1/nasabah?id_nasabah=eq.'.(int) $user['id_nasabah'], [
+                Nasabah::where('id_nasabah', (int) $user['id_nasabah'])->update([
                         'email_verification_token_hash' => $this->tokenHash($token),
                         'email_verification_expires_at' => $expiresAt->toIso8601String(),
                         'email_verification_sent_at' => now()->toIso8601String(),
                     ]);
 
-                if ($response->successful()) {
-                    $this->sendVerificationLink($this->firstRow($response->json()) ?? $user, $token, $expiresAt);
-                } else {
-                    Log::warning('Mobile verification resend token update failed.', [
-                        'id_nasabah' => $user['id_nasabah'] ?? null,
-                        'status' => $response->status(),
-                        'body' => $response->body(),
-                    ]);
-                }
+                $this->sendVerificationLink($user, $token, $expiresAt);
             }
         } catch (\Throwable $exception) {
             Log::warning('Mobile verification resend failed.', [
@@ -311,32 +285,12 @@ class MobileNasabahAuthController extends Controller
 
     private function findNasabahByEmail(string $email): ?array
     {
-        $response = $this->supabaseRequest()->get($this->supabaseUrl().'/rest/v1/nasabah', [
-            'select' => '*',
-            'email' => 'eq.'.$email,
-            'limit' => 1,
-        ]);
-
-        if (! $response->successful()) {
-            throw new RuntimeException('Gagal membaca akun nasabah dari Supabase.');
-        }
-
-        return $this->firstRow($response->json());
+        return Nasabah::where('email', $email)->first()?->getAttributes();
     }
 
     private function findNasabahByUsername(string $username): ?array
     {
-        $response = $this->supabaseRequest()->get($this->supabaseUrl().'/rest/v1/nasabah', [
-            'select' => '*',
-            'user_name' => 'eq.'.$username,
-            'limit' => 1,
-        ]);
-
-        if (! $response->successful()) {
-            throw new RuntimeException('Gagal membaca akun nasabah dari Supabase.');
-        }
-
-        return $this->firstRow($response->json());
+        return Nasabah::where('user_name', $username)->first()?->getAttributes();
     }
 
     private function emailNeedsVerification(array $user): bool
@@ -415,19 +369,9 @@ class MobileNasabahAuthController extends Controller
         }
 
         try {
-            $response = $this->supabaseRequest(true)
-                ->withHeaders(['Prefer' => 'return=minimal'])
-                ->patch($this->supabaseUrl().'/rest/v1/nasabah?id_nasabah=eq.'.$idNasabah, [
+            Nasabah::where('id_nasabah', $idNasabah)->update([
                     'password' => 'firebase-auth-pending',
                 ]);
-
-            if (! $response->successful()) {
-                Log::warning('Mobile failed to mark nasabah as Firebase pending after reset.', [
-                    'id_nasabah' => $idNasabah,
-                    'status' => $response->status(),
-                    'body' => $response->body(),
-                ]);
-            }
         } catch (\Throwable $exception) {
             Log::warning('Mobile failed to mark nasabah as Firebase pending unexpectedly.', [
                 'id_nasabah' => $idNasabah,
@@ -470,36 +414,4 @@ class MobileNasabahAuthController extends Controller
         return hash('sha256', $token);
     }
 
-    private function supabaseRequest(bool $useServiceRole = false): PendingRequest
-    {
-        $key = $useServiceRole
-            ? (env('SUPABASE_SERVICE_ROLE_KEY') ?: env('SUPABASE_KEY'))
-            : env('SUPABASE_KEY');
-
-        if (! $this->supabaseUrl() || ! $key) {
-            throw new RuntimeException('Konfigurasi Supabase belum lengkap.');
-        }
-
-        return Http::acceptJson()->withHeaders([
-            'apikey' => $key,
-            'Authorization' => 'Bearer '.$key,
-            'Content-Type' => 'application/json',
-        ]);
-    }
-
-    private function supabaseUrl(): string
-    {
-        $url = rtrim((string) env('SUPABASE_URL'), '/');
-
-        if ($url === '') {
-            throw new RuntimeException('SUPABASE_URL belum diatur.');
-        }
-
-        return $url;
-    }
-
-    private function firstRow(mixed $rows): ?array
-    {
-        return is_array($rows) && isset($rows[0]) && is_array($rows[0]) ? $rows[0] : null;
-    }
 }

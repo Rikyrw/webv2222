@@ -18,6 +18,7 @@ class TransaksiSetor extends Model
 
     protected $fillable = [
         'id_nasabah',
+        'id_admin',
         'total_nilai',
         'tanggal_setor',
         'tanggal_proses',
@@ -38,5 +39,10 @@ class TransaksiSetor extends Model
     public function detailSetor(): HasMany
     {
         return $this->hasMany(DetailSetor::class, 'id_transaksi_setor', 'id_transaksi_setor');
+    }
+
+    public function fotoSetor(): HasMany
+    {
+        return $this->hasMany(FotoSetor::class, 'id_transaksi_setor', 'id_transaksi_setor');
     }
 }

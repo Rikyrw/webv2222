@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\TransaksiPenarikan;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 
 class NasabahTransaksiPPOBController extends Controller
 {
@@ -29,38 +29,35 @@ class NasabahTransaksiPPOBController extends Controller
         }
 
         try {
-            $supabaseUrl = env('SUPABASE_URL');
-            $supabaseKey = env('SUPABASE_KEY');
-            if ($supabaseUrl && $supabaseKey && !$filterError) {
-                $filters = [];
-                $filters[] = 'id_nasabah=eq.' . intval($user_id);
+            if (!$filterError) {
+                $query = TransaksiPenarikan::where('id_nasabah', (int) $user_id)
+                    ->orderByDesc('tanggal_pengajuan');
+
                 if ($hasDateFilter) {
-                    $filters[] = 'tanggal_pengajuan=gte.' . $startDate;
-                    $filters[] = 'tanggal_pengajuan=lte.' . $endDate;
+                    $query->whereBetween('tanggal_pengajuan', [$startDate, $endDate]);
                 } else {
-                    $filters[] = 'or=(status.is.null,status.eq.menunggu,status.eq.pending)';
+                    $query->where(function ($builder) {
+                        $builder->whereNull('status')
+                            ->orWhereIn('status', ['menunggu', 'pending']);
+                    });
                 }
 
-                $filters[] = 'order=tanggal_pengajuan.desc';
-                $response = Http::withHeaders([
-                    'apikey' => $supabaseKey,
-                    'Authorization' => 'Bearer ' . $supabaseKey,
-                ])->get($supabaseUrl . '/rest/v1/penarikan_saldo?select=id_penarikan,jenis_penukaran,nominal,status,tanggal_pengajuan,deskripsi&' . implode('&', $filters));
-
-                $rows = $response->json();
-                if (is_array($rows)) {
-                    $hist = array_map(function ($row) {
-                        return [
-                            'type' => 'penarikan',
-                            'id' => $row['id_penarikan'] ?? null,
-                            'service' => $row['jenis_penukaran'] ?? 'E-money',
-                            'amount' => (float) ($row['nominal'] ?? 0),
-                            'status' => $row['status'] ?? 'menunggu',
-                            'deskripsi' => $row['deskripsi'] ?? '',
-                            'created_at' => $row['tanggal_pengajuan'] ?? null,
-                        ];
-                    }, $rows);
-                }
+                $hist = $query->get([
+                    'id_penarikan',
+                    'jenis_penukaran',
+                    'nominal',
+                    'status',
+                    'tanggal_pengajuan',
+                    'deskripsi',
+                ])->map(fn (TransaksiPenarikan $row): array => [
+                    'type' => 'penarikan',
+                    'id' => $row->id_penarikan,
+                    'service' => $row->jenis_penukaran ?: 'E-money',
+                    'amount' => (float) $row->nominal,
+                    'status' => $row->status ?: 'menunggu',
+                    'deskripsi' => $row->deskripsi ?: '',
+                    'created_at' => optional($row->tanggal_pengajuan)->toDateString(),
+                ])->all();
             }
         } catch (\Exception $e) {
             \Log::error('PPOB history fetch error: ' . $e->getMessage());

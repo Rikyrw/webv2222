@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Mail\NasabahPasswordResetLinkMail;
+use App\Models\Nasabah;
 use App\Services\FirebasePasswordResetLinkGenerator;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -11,6 +13,8 @@ use Tests\TestCase;
 
 class NasabahPasswordResetTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_password_reset_email_renders_visible_firebase_reset_url(): void
     {
         $resetUrl = 'https://greenpoint-d9611.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=token';
@@ -27,6 +31,7 @@ class NasabahPasswordResetTest extends TestCase
     public function test_password_reset_sends_greenpoint_mail_with_firebase_reset_link(): void
     {
         Mail::fake();
+        $this->createNasabah(['password' => 'firebase-auth:uid-manual']);
 
         $resetUrl = 'https://greenpoint-d9611.firebaseapp.com/__/auth/action?mode=resetPassword&oobCode=token';
 
@@ -47,16 +52,6 @@ class NasabahPasswordResetTest extends TestCase
             }
         });
 
-        Http::fake([
-            '*' => Http::response([[
-                'id_nasabah' => 17,
-                'email' => 'manual@example.test',
-                'nama_lengkap' => 'Nasabah Manual',
-                'password' => 'firebase-auth:uid-manual',
-                'google_sub' => null,
-            ]], 200),
-        ]);
-
         $this->post(route('nasabah.password.email'), [
             'email' => ' MANUAL@EXAMPLE.TEST ',
         ])->assertRedirect()
@@ -72,6 +67,7 @@ class NasabahPasswordResetTest extends TestCase
     public function test_password_reset_falls_back_to_firebase_email_when_custom_link_is_unavailable(): void
     {
         Mail::fake();
+        $this->createNasabah(['password' => 'firebase-auth:uid-manual']);
 
         config([
             'services.firebase.api_key' => 'test-api-key',
@@ -79,13 +75,6 @@ class NasabahPasswordResetTest extends TestCase
         ]);
 
         Http::fake([
-            '*/rest/v1/nasabah*' => Http::response([[
-                'id_nasabah' => 17,
-                'email' => 'manual@example.test',
-                'nama_lengkap' => 'Nasabah Manual',
-                'password' => 'firebase-auth:uid-manual',
-                'google_sub' => null,
-            ]], 200),
             '*accounts:sendOobCode*' => Http::response(['email' => 'manual@example.test'], 200),
         ]);
 
@@ -101,15 +90,13 @@ class NasabahPasswordResetTest extends TestCase
                 && str_contains($request->url(), 'accounts:sendOobCode?key=test-api-key')
                 && $request['requestType'] === 'PASSWORD_RESET'
                 && $request['email'] === 'manual@example.test'
-                && ! isset($request['returnOobLink']);
+                && !isset($request['returnOobLink']);
         });
     }
 
     public function test_password_reset_requests_are_throttled(): void
     {
-        Http::fake([
-            '*' => Http::response([], 200),
-        ]);
+        Http::fake();
 
         for ($request = 0; $request < 3; $request++) {
             $this->post(route('nasabah.password.email'), [
@@ -120,5 +107,19 @@ class NasabahPasswordResetTest extends TestCase
         $this->post(route('nasabah.password.email'), [
             'email' => 'manual@example.test',
         ])->assertTooManyRequests();
+    }
+
+    private function createNasabah(array $overrides = []): Nasabah
+    {
+        return Nasabah::create([
+            'nama_lengkap' => 'Nasabah Manual',
+            'user_name' => 'nasabahmanual',
+            'email' => 'manual@example.test',
+            'password' => password_hash('rahasia1', PASSWORD_BCRYPT),
+            'status' => 'aktif',
+            'saldo' => 0,
+            'created_at' => now(),
+            ...$overrides,
+        ]);
     }
 }

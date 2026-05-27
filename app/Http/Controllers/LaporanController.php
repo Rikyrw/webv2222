@@ -52,7 +52,7 @@ class LaporanController extends Controller
         $databaseError = null;
 
         try {
-            // Get financial data from Supabase
+            // Get financial data from the configured Laravel database connection.
             $totalSetoran = TransaksiSetor::where('status', 'selesai')
                 ->whereBetween('tanggal_setor', [$start, $end])
                 ->sum('total_nilai') ?? 0;

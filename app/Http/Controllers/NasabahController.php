@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Nasabah;
+use App\Models\TransaksiPenarikan;
+use App\Models\TransaksiSetor;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 
 class NasabahController extends Controller
 {
@@ -12,56 +14,29 @@ class NasabahController extends Controller
         $activePage = 'nasabah';
         $pageTitle = 'Daftar Nasabah';
         $flash = '';
-        $nasabahs = [];
-        $nasabahsMeta = [
-            'page' => 1,
-            'has_next' => false,
-            'has_prev' => false,
-            'offset' => 0,
-        ];
         $databaseError = null;
 
         try {
-            // Handle POST action: approve or reject nasabah
             if ($request->isMethod('post') && $request->filled('action') && $request->filled('id_nasabah')) {
                 $id = (int) $request->input('id_nasabah');
-                $action = $request->input('action'); // expected: aktifkan | tolak
+                $status = match ($request->input('action')) {
+                    'aktifkan' => 'aktif',
+                    'tolak' => 'nonaktif',
+                    default => null,
+                };
 
-                // Validate CSRF token
                 if (!hash_equals(session('_token', ''), $request->input('_token', ''))) {
                     $flash = 'Token keamanan tidak valid.';
+                } elseif ($status) {
+                    Nasabah::where('id_nasabah', $id)->update(['status' => $status]);
+                    $flash = 'Status nasabah berhasil diperbarui.';
                 } else {
-                    if ($action === 'aktifkan') {
-                        $newStatus = 'aktif';
-                    } elseif ($action === 'tolak') {
-                        $newStatus = 'nonaktif';
-                    } else {
-                        $newStatus = null;
-                    }
-
-                    if ($newStatus) {
-                        $response = $this->supabaseRequest(
-                            'patch',
-                            '/rest/v1/nasabah?id_nasabah=eq.' . $id,
-                            ['status' => $newStatus],
-                            true
-                        );
-
-                        if ($response->successful()) {
-                            $flash = 'Status nasabah berhasil diperbarui.';
-                        } else {
-                            $flash = 'Gagal memperbarui status nasabah.';
-                        }
-                    } else {
-                        $flash = 'Aksi tidak dikenali.';
-                    }
+                    $flash = 'Aksi tidak dikenali.';
                 }
             }
 
-            // Check session flash
             if (session()->has('flash_nasabah')) {
-                $flash = session('flash_nasabah');
-                session()->forget('flash_nasabah');
+                $flash = session()->pull('flash_nasabah');
             }
 
             $page = max(1, (int) $request->get('page', 1));
@@ -69,9 +44,10 @@ class NasabahController extends Controller
             $nasabahs = $result['items'];
             $nasabahsMeta = $result['meta'];
         } catch (\Exception $e) {
-            \Log::error('NasabahController Database Error: ' . $e->getMessage());
-            $databaseError = 'Tidak dapat terhubung ke database. Periksa koneksi internet Anda.';
+            \Log::error('NasabahController Database Error: '.$e->getMessage());
+            $databaseError = 'Tidak dapat terhubung ke database. Periksa koneksi database.';
             $nasabahs = [];
+            $nasabahsMeta = $this->emptyMeta();
         }
 
         return view('admin.daftar_nasabah', compact(
@@ -88,8 +64,8 @@ class NasabahController extends Controller
     {
         $activePage = 'nasabah';
         $pageTitle = 'Edit Nasabah';
-
         $nasabah = $this->fetchNasabahById($id);
+
         if (!$nasabah) {
             abort(404);
         }
@@ -110,7 +86,7 @@ class NasabahController extends Controller
         ]);
 
         try {
-            $payload = [
+            Nasabah::where('id_nasabah', $id)->update([
                 'nama_lengkap' => $request->input('nama_lengkap'),
                 'alamat' => $request->input('alamat') ?: null,
                 'no_hp' => $request->input('no_hp') ?: null,
@@ -118,22 +94,12 @@ class NasabahController extends Controller
                 'status' => $request->input('status'),
                 'user_name' => $request->input('user_name') ?: null,
                 'email' => $request->input('email') ?: null,
-            ];
-
-            $response = $this->supabaseRequest(
-                'patch',
-                '/rest/v1/nasabah?id_nasabah=eq.' . $id,
-                $payload,
-                true
-            );
-
-            if (!$response->successful()) {
-                throw new \RuntimeException('Supabase update gagal');
-            }
+            ]);
 
             return redirect()->route('admin.nasabah.daftar')->with('flash_nasabah', 'Data nasabah berhasil diperbarui.');
         } catch (\Exception $e) {
-            \Log::error('NasabahController Update Error: ' . $e->getMessage());
+            \Log::error('NasabahController Update Error: '.$e->getMessage());
+
             return redirect()->back()->with('flash_nasabah', 'Gagal memperbarui data nasabah.');
         }
     }
@@ -141,20 +107,12 @@ class NasabahController extends Controller
     public function destroy(int $id)
     {
         try {
-            $response = $this->supabaseRequest(
-                'delete',
-                '/rest/v1/nasabah?id_nasabah=eq.' . $id,
-                null,
-                true
-            );
-
-            if (!$response->successful()) {
-                throw new \RuntimeException('Supabase delete gagal');
-            }
+            Nasabah::where('id_nasabah', $id)->delete();
 
             return redirect()->route('admin.nasabah.daftar')->with('flash_nasabah', 'Nasabah berhasil dihapus.');
         } catch (\Exception $e) {
-            \Log::error('NasabahController Delete Error: ' . $e->getMessage());
+            \Log::error('NasabahController Delete Error: '.$e->getMessage());
+
             return redirect()->back()->with('flash_nasabah', 'Gagal menghapus nasabah.');
         }
     }
@@ -164,76 +122,49 @@ class NasabahController extends Controller
         $activePage = 'nasabah';
         $pageTitle = 'Riwayat Nasabah';
         $nasabah = $this->fetchNasabahById($id);
+
         if (!$nasabah) {
             abort(404);
         }
 
-        $setorList = [];
-        $penarikanList = [];
         $databaseError = null;
 
         try {
-            $setorResponse = $this->supabaseRequest(
-                'get',
-                '/rest/v1/transaksi_setor?select=id_transaksi_setor,total_nilai,status,tanggal_setor,tanggal_proses,detail_setor(berat_kg,jenis_sampah(nama_jenis))&id_nasabah=eq.' . $id . '&order=tanggal_setor.desc&limit=20',
-                null,
-                false
-            );
+            $setorList = TransaksiSetor::with('detailSetor.sampah')
+                ->where('id_nasabah', $id)
+                ->orderByDesc('tanggal_setor')
+                ->limit(20)
+                ->get()
+                ->map(fn (TransaksiSetor $item): array => [
+                    'id' => $item->id_transaksi_setor,
+                    'tanggal' => $item->tanggal_setor?->toDateString(),
+                    'tanggal_proses' => $item->tanggal_proses?->toDateString(),
+                    'total_berat' => $item->detailSetor->sum(fn ($detail) => (float) $detail->berat_kg),
+                    'total_nilai' => (float) $item->total_nilai,
+                    'jenis' => $this->jenisLabel($item),
+                    'status' => $item->status ?? 'menunggu',
+                ])
+                ->all();
 
-            if ($setorResponse->successful()) {
-                $items = $setorResponse->json();
-                if (is_array($items)) {
-                    foreach ($items as $item) {
-                        $totalBerat = 0;
-                        $jenisList = [];
-                        $detailItems = isset($item['detail_setor']) && is_array($item['detail_setor']) ? $item['detail_setor'] : [];
-                        foreach ($detailItems as $detail) {
-                            $totalBerat += isset($detail['berat_kg']) ? (float) $detail['berat_kg'] : 0;
-                            $jenisNama = isset($detail['jenis_sampah']['nama_jenis']) ? $detail['jenis_sampah']['nama_jenis'] : null;
-                            if ($jenisNama) {
-                                $jenisList[] = $jenisNama;
-                            }
-                        }
-
-                        $setorList[] = [
-                            'id' => $item['id_transaksi_setor'] ?? null,
-                            'tanggal' => $item['tanggal_setor'] ?? null,
-                            'tanggal_proses' => $item['tanggal_proses'] ?? null,
-                            'total_berat' => $totalBerat,
-                            'total_nilai' => isset($item['total_nilai']) ? (float) $item['total_nilai'] : 0,
-                            'jenis' => count($jenisList) > 0 ? implode(', ', array_values(array_unique($jenisList))) : 'N/A',
-                            'status' => $item['status'] ?? 'menunggu',
-                        ];
-                    }
-                }
-            }
-
-            $penarikanResponse = $this->supabaseRequest(
-                'get',
-                '/rest/v1/penarikan_saldo?select=id_penarikan,jenis_penukaran,nominal,deskripsi,status,tanggal_pengajuan,tanggal_proses&id_nasabah=eq.' . $id . '&order=tanggal_pengajuan.desc&limit=20',
-                null,
-                false
-            );
-
-            if ($penarikanResponse->successful()) {
-                $items = $penarikanResponse->json();
-                if (is_array($items)) {
-                    foreach ($items as $item) {
-                        $penarikanList[] = [
-                            'id' => $item['id_penarikan'] ?? null,
-                            'jenis' => $item['jenis_penukaran'] ?? 'Penarikan',
-                            'nominal' => isset($item['nominal']) ? (float) $item['nominal'] : 0,
-                            'status' => $item['status'] ?? 'menunggu',
-                            'deskripsi' => $item['deskripsi'] ?? '-',
-                            'tanggal' => $item['tanggal_pengajuan'] ?? null,
-                            'tanggal_proses' => $item['tanggal_proses'] ?? null,
-                        ];
-                    }
-                }
-            }
+            $penarikanList = TransaksiPenarikan::where('id_nasabah', $id)
+                ->orderByDesc('tanggal_pengajuan')
+                ->limit(20)
+                ->get()
+                ->map(fn (TransaksiPenarikan $item): array => [
+                    'id' => $item->id_penarikan,
+                    'jenis' => $item->jenis_penukaran ?: 'Penarikan',
+                    'nominal' => (float) $item->nominal,
+                    'status' => $item->status ?? 'menunggu',
+                    'deskripsi' => $item->deskripsi ?: '-',
+                    'tanggal' => $item->tanggal_pengajuan?->toDateString(),
+                    'tanggal_proses' => $item->tanggal_proses?->toDateString(),
+                ])
+                ->all();
         } catch (\Exception $e) {
-            \Log::error('NasabahController Riwayat Error: ' . $e->getMessage());
+            \Log::error('NasabahController Riwayat Error: '.$e->getMessage());
             $databaseError = 'Tidak dapat mengambil riwayat nasabah.';
+            $setorList = [];
+            $penarikanList = [];
         }
 
         return view('admin.riwayat_nasabah', compact(
@@ -249,65 +180,30 @@ class NasabahController extends Controller
     private function fetchNasabahList(int $page, int $perPage): array
     {
         $offset = ($page - 1) * $perPage;
-        $limit = $perPage + 1;
-        $response = $this->supabaseRequest(
-            'get',
-            '/rest/v1/nasabah?select=id_nasabah,user_name,nama_lengkap,email,no_hp,status,saldo,alamat,created_at,google_id,photo_url,provider&order=created_at.desc&limit=' . $limit . '&offset=' . $offset,
-            null,
-            false
-        );
+        $items = Nasabah::orderByDesc('created_at')
+            ->orderByDesc('id_nasabah')
+            ->offset($offset)
+            ->limit($perPage + 1)
+            ->get();
 
-        if (!$response->successful()) {
-            return [
-                'items' => [],
-                'meta' => [
-                    'page' => $page,
-                    'has_next' => false,
-                    'has_prev' => $page > 1,
-                    'offset' => $offset,
-                ],
-            ];
-        }
-
-        $items = $response->json();
-        if (!is_array($items)) {
-            return [
-                'items' => [],
-                'meta' => [
-                    'page' => $page,
-                    'has_next' => false,
-                    'has_prev' => $page > 1,
-                    'offset' => $offset,
-                ],
-            ];
-        }
-
-        $hasNext = count($items) > $perPage;
-        if ($hasNext) {
-            $items = array_slice($items, 0, $perPage);
-        }
-
-        $mapped = [];
-        foreach ($items as $item) {
-            $tanggal = $item['created_at'] ?? null;
-            $mapped[] = [
-                'id_nasabah' => $item['id_nasabah'] ?? null,
-                'user_name' => $item['user_name'] ?? null,
-                'nama_nasabah' => $item['nama_lengkap'] ?? null,
-                'email' => $item['email'] ?? null,
-                'alamat' => $item['alamat'] ?? '-',
-                'no_hp' => $item['no_hp'] ?? '-',
-                'saldo' => $item['saldo'] ?? 0,
-                'status_akun' => $item['status'] ?? 'verifikasi',
-                'tanggal_daftar' => is_string($tanggal) ? $tanggal : '-',
-                'google_id' => $item['google_id'] ?? null,
-                'photo_url' => $item['photo_url'] ?? null,
-                'provider' => $item['provider'] ?? null,
-            ];
-        }
+        $hasNext = $items->count() > $perPage;
+        $items = $items->take($perPage);
 
         return [
-            'items' => $mapped,
+            'items' => $items->map(fn (Nasabah $item): array => [
+                'id_nasabah' => $item->id_nasabah,
+                'user_name' => $item->user_name,
+                'nama_nasabah' => $item->nama_lengkap,
+                'email' => $item->email,
+                'alamat' => $item->alamat ?: '-',
+                'no_hp' => $item->no_hp ?: '-',
+                'saldo' => $item->saldo ?? 0,
+                'status_akun' => $item->status ?? 'verifikasi',
+                'tanggal_daftar' => $item->created_at ? (string) $item->created_at : '-',
+                'google_id' => $item->google_id,
+                'photo_url' => $item->photo_url,
+                'provider' => $item->provider,
+            ])->all(),
             'meta' => [
                 'page' => $page,
                 'has_next' => $hasNext,
@@ -319,59 +215,27 @@ class NasabahController extends Controller
 
     private function fetchNasabahById(int $id): ?array
     {
-        $response = $this->supabaseRequest(
-            'get',
-            '/rest/v1/nasabah?select=id_nasabah,nama_lengkap,alamat,no_hp,saldo,status,user_name,email,created_at&id_nasabah=eq.' . $id . '&limit=1',
-            null,
-            false
-        );
-
-        if (!$response->successful()) {
-            return null;
-        }
-
-        $items = $response->json();
-        if (!is_array($items) || count($items) === 0) {
-            return null;
-        }
-
-        return $items[0];
+        return Nasabah::where('id_nasabah', $id)->first()?->getAttributes();
     }
 
-    private function supabaseRequest(string $method, string $path, ?array $payload, bool $returnRepresentation)
+    private function jenisLabel(TransaksiSetor $setor): string
     {
-        $supabaseUrl = env('SUPABASE_URL');
-        $supabaseKey = env('SUPABASE_KEY');
+        $items = $setor->detailSetor
+            ->map(fn ($detail) => $detail->sampah?->nama_jenis)
+            ->filter()
+            ->unique()
+            ->values();
 
-        $request = Http::withHeaders([
-            'apikey' => $supabaseKey,
-            'Authorization' => 'Bearer ' . $supabaseKey,
-        ]);
+        return $items->isEmpty() ? 'N/A' : $items->implode(', ');
+    }
 
-        if ($returnRepresentation) {
-            $request = $request->withHeaders([
-                'Prefer' => 'return=representation',
-            ]);
-        }
-
-        $url = $supabaseUrl . $path;
-
-        if ($method === 'get') {
-            return $request->get($url);
-        }
-
-        if ($method === 'post') {
-            return $request->post($url, $payload ?? []);
-        }
-
-        if ($method === 'patch') {
-            return $request->patch($url, $payload ?? []);
-        }
-
-        if ($method === 'delete') {
-            return $request->delete($url);
-        }
-
-        return $request->get($url);
+    private function emptyMeta(): array
+    {
+        return [
+            'page' => 1,
+            'has_next' => false,
+            'has_prev' => false,
+            'offset' => 0,
+        ];
     }
 }
