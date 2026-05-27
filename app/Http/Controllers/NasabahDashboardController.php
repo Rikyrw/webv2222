@@ -21,6 +21,7 @@ class NasabahDashboardController extends Controller
 
         $user_id = session('id_nasabah');
         $user_name = session('nama_nasabah') ?? 'Guest User';
+        $saldo = (float) (session('saldo') ?? 0);
         $supabaseUrl = env('SUPABASE_URL');
         $supabaseKey = env('SUPABASE_KEY');
 
@@ -39,6 +40,7 @@ class NasabahDashboardController extends Controller
                     'saldo' => $user['saldo'] ?? 0,
                 ]);
                 $user_name = $user['nama_lengkap'] ?? ($user['nama_nasabah'] ?? 'User');
+                $saldo = isset($user['saldo']) ? (float) $user['saldo'] : 0;
             }
         } catch (\Exception $e) {
             \Log::error('Dashboard user fetch error: '.$e->getMessage());
@@ -104,13 +106,23 @@ class NasabahDashboardController extends Controller
 
         // Compute aggregates
         $setor_count = 0;
+        $total_berat_sampah = 0;
         $ppob_total = 0;
+        $ppob_month_total = 0;
         try {
             $all_setor = Http::withHeaders([
                 'apikey' => $supabaseKey,
                 'Authorization' => 'Bearer '.$supabaseKey,
-            ])->get($supabaseUrl.'/rest/v1/transaksi_setor?select=id_transaksi_setor&id_nasabah=eq.'.$user_id)->json() ?: [];
-            $setor_count = is_array($all_setor) ? count($all_setor) : 0;
+            ])->get($supabaseUrl.'/rest/v1/transaksi_setor?select=id_transaksi_setor,detail_setor(berat_kg)&id_nasabah=eq.'.$user_id)->json() ?: [];
+            if (is_array($all_setor)) {
+                $setor_count = count($all_setor);
+                foreach ($all_setor as $setor) {
+                    $details = isset($setor['detail_setor']) && is_array($setor['detail_setor']) ? $setor['detail_setor'] : [];
+                    foreach ($details as $detail) {
+                        $total_berat_sampah += isset($detail['berat_kg']) ? (float) $detail['berat_kg'] : 0;
+                    }
+                }
+            }
 
             $all_penarikan = Http::withHeaders([
                 'apikey' => $supabaseKey,
@@ -124,6 +136,18 @@ class NasabahDashboardController extends Controller
             }
 
             $ppob_total = $sum_penarikan;
+
+            $monthStart = date('Y-m-01');
+            $nextMonthStart = date('Y-m-01', strtotime('+1 month'));
+            $month_penarikan = Http::withHeaders([
+                'apikey' => $supabaseKey,
+                'Authorization' => 'Bearer '.$supabaseKey,
+            ])->get($supabaseUrl.'/rest/v1/penarikan_saldo?select=nominal&id_nasabah=eq.'.$user_id.'&tanggal_pengajuan=gte.'.$monthStart.'&tanggal_pengajuan=lt.'.$nextMonthStart)->json() ?: [];
+            if (is_array($month_penarikan)) {
+                foreach ($month_penarikan as $pp) {
+                    $ppob_month_total += isset($pp['nominal']) ? floatval($pp['nominal']) : 0;
+                }
+            }
         } catch (\Exception $e) {
             \Log::error('Aggregates error: '.$e->getMessage());
         }
@@ -133,8 +157,11 @@ class NasabahDashboardController extends Controller
         return view('nasabah.dashboard', compact(
             'activePage',
             'user_name',
+            'saldo',
             'setor_count',
+            'total_berat_sampah',
             'ppob_total',
+            'ppob_month_total',
             'recent_setor',
             'recent_ppob'
         ));

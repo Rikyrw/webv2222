@@ -60,12 +60,26 @@
             grid-template-columns: repeat(2, 1fr);
         }
 
+        .grid.grid-4 {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
         .grid.grid-full {
             grid-column: 1 / -1;
         }
 
+        @media (max-width: 1200px) {
+            .grid.grid-4 {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
         @media (max-width: 768px) {
             .grid.grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .grid.grid-4 {
                 grid-template-columns: 1fr;
             }
 
@@ -84,6 +98,10 @@
         .metric-card {
             position: relative;
             border-left: 6px solid #2b6844;
+        }
+
+        .metric-card h3 {
+            padding-right: 56px;
         }
 
         .metric-icon {
@@ -106,11 +124,13 @@
         }
 
         .metric .value {
-            font-size: 32px;
+            font-size: 28px;
             font-weight: 700;
             color: #10b981;
             display: block;
             margin-bottom: 4px;
+            line-height: 1.15;
+            overflow-wrap: anywhere;
         }
 
         .metric .delta {
@@ -311,24 +331,40 @@
             
 
             <!-- TOP CARDS -->
-            <div class="grid grid-2">
-                <!-- Card 1: Transaksi Setor Sampah -->
+            <div class="grid grid-4">
+                <div class="card metric-card">
+                    <h3>Saldo Saat Ini</h3>
+                    <img src="{{ asset('images/Card Wallet.png') }}" alt="" class="metric-icon">
+                    <div class="metric">
+                        <span class="value">Rp {{ number_format((float)($saldo ?? 0), 0, ',', '.') }}</span>
+                        <span class="delta">Saldo yang tersedia</span>
+                    </div>
+                </div>
+
                 <div class="card metric-card">
                     <h3>Transaksi Setor Sampah</h3>
                     <img src="{{ asset('images/Health Graph.png') }}" alt="" class="metric-icon">
                     <div class="metric">
                         <span class="value">{{ number_format((int)($setor_count ?? 0), 0, ',', '.') }}</span>
-                        <span class="delta">+12 dari bulan lalu</span>
+                        <span class="delta">Total pengajuan setor</span>
                     </div>
                 </div>
 
-                <!-- Card 2: Transaksi PPOB -->
                 <div class="card metric-card">
-                    <h3>Transaksi PPOB</h3>
-                    <img src="{{ asset('images/Health Graph.png') }}" alt="" class="metric-icon">
+                    <h3>Total Berat Sampah</h3>
+                    <img src="{{ asset('images/Trash.png') }}" alt="" class="metric-icon">
                     <div class="metric">
-                        <span class="value">Rp {{ number_format((float)($ppob_total ?? 0), 0, ',', '.') }}</span>
-                        <span class="delta">+12% dari bulan lalu</span>
+                        <span class="value">{{ number_format((float)($total_berat_sampah ?? 0), 2, ',', '.') }} kg</span>
+                        <span class="delta">Akumulasi semua setor</span>
+                    </div>
+                </div>
+
+                <div class="card metric-card">
+                    <h3>PPOB Bulan Ini</h3>
+                    <img src="{{ asset('images/Flash On.png') }}" alt="" class="metric-icon">
+                    <div class="metric">
+                        <span class="value">Rp {{ number_format((float)($ppob_month_total ?? 0), 0, ',', '.') }}</span>
+                        <span class="delta">{{ \Carbon\Carbon::now()->locale('id')->translatedFormat('F Y') }}</span>
                     </div>
                 </div>
             </div>

@@ -13,6 +13,11 @@ class FirebasePasswordResetLinkGenerator
 
     private const SEND_OOB_CODE_URL = 'https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode';
 
+    public function canGenerateCustomLink(): bool
+    {
+        return $this->serviceAccountPath() !== null;
+    }
+
     public function generate(string $email, ?string $userIp = null): string
     {
         $payload = [
@@ -40,6 +45,32 @@ class FirebasePasswordResetLinkGenerator
         }
 
         return $resetUrl;
+    }
+
+    public function sendPasswordResetEmail(string $email, ?string $userIp = null): void
+    {
+        $firebaseApiKey = trim((string) config('services.firebase.api_key'));
+
+        if ($firebaseApiKey === '') {
+            throw new RuntimeException('FIREBASE_API_KEY belum diatur.');
+        }
+
+        $payload = [
+            'requestType' => 'PASSWORD_RESET',
+            'email' => $email,
+        ];
+
+        if (is_string($userIp) && $userIp !== '') {
+            $payload['userIp'] = $userIp;
+        }
+
+        $response = Http::acceptJson()
+            ->withHeaders(['X-Firebase-Locale' => 'id'])
+            ->post(self::SEND_OOB_CODE_URL.'?key='.urlencode($firebaseApiKey), $payload);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('Firebase gagal mengirim email reset password (HTTP '.$response->status().').');
+        }
     }
 
     private function accessToken(): string
@@ -83,9 +114,9 @@ class FirebasePasswordResetLinkGenerator
 
     private function serviceAccount(): array
     {
-        $path = trim((string) config('services.firebase.service_account_path'));
+        $path = $this->serviceAccountPath();
 
-        if ($path === '' || ! is_readable($path)) {
+        if ($path === null) {
             throw new RuntimeException('FIREBASE_SERVICE_ACCOUNT_PATH belum menunjuk file service account yang bisa dibaca.');
         }
 
@@ -96,6 +127,13 @@ class FirebasePasswordResetLinkGenerator
         }
 
         return $decoded;
+    }
+
+    private function serviceAccountPath(): ?string
+    {
+        $path = trim((string) config('services.firebase.service_account_path'));
+
+        return $path !== '' && is_readable($path) ? $path : null;
     }
 
     private function encodeJson(array $payload): string

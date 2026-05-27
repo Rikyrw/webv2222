@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Mail\NasabahPasswordResetLinkMail;
 use App\Services\FirebasePasswordResetLinkGenerator;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -39,6 +40,11 @@ class NasabahPasswordResetTest extends TestCase
             {
                 return $this->resetUrl;
             }
+
+            public function canGenerateCustomLink(): bool
+            {
+                return true;
+            }
         });
 
         Http::fake([
@@ -60,6 +66,42 @@ class NasabahPasswordResetTest extends TestCase
             return $mail->hasTo('manual@example.test')
                 && $mail->recipientName === 'Nasabah Manual'
                 && $mail->resetUrl === $resetUrl;
+        });
+    }
+
+    public function test_password_reset_falls_back_to_firebase_email_when_custom_link_is_unavailable(): void
+    {
+        Mail::fake();
+
+        config([
+            'services.firebase.api_key' => 'test-api-key',
+            'services.firebase.service_account_path' => base_path('missing-firebase-service-account.json'),
+        ]);
+
+        Http::fake([
+            '*/rest/v1/nasabah*' => Http::response([[
+                'id_nasabah' => 17,
+                'email' => 'manual@example.test',
+                'nama_lengkap' => 'Nasabah Manual',
+                'password' => 'firebase-auth:uid-manual',
+                'google_sub' => null,
+            ]], 200),
+            '*accounts:sendOobCode*' => Http::response(['email' => 'manual@example.test'], 200),
+        ]);
+
+        $this->post(route('nasabah.password.email'), [
+            'email' => 'manual@example.test',
+        ])->assertRedirect()
+            ->assertSessionHas('success', 'Jika email terdaftar sebagai akun manual, link reset password sudah dikirim.');
+
+        Mail::assertNotSent(NasabahPasswordResetLinkMail::class);
+
+        Http::assertSent(function (Request $request): bool {
+            return $request->method() === 'POST'
+                && str_contains($request->url(), 'accounts:sendOobCode?key=test-api-key')
+                && $request['requestType'] === 'PASSWORD_RESET'
+                && $request['email'] === 'manual@example.test'
+                && ! isset($request['returnOobLink']);
         });
     }
 

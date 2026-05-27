@@ -44,13 +44,26 @@ class NasabahPasswordResetController extends Controller
     private function sendPasswordResetMail(string $email, array $user, ?string $userIp): bool
     {
         try {
-            $resetUrl = $this->passwordResetLinks->generate($email, $userIp);
-            $recipientName = trim((string) ($user['nama_lengkap'] ?? ''));
+            if ($this->passwordResetLinks->canGenerateCustomLink()) {
+                try {
+                    $resetUrl = $this->passwordResetLinks->generate($email, $userIp);
+                    $recipientName = trim((string) ($user['nama_lengkap'] ?? ''));
 
-            Mail::to($email)->send(new NasabahPasswordResetLinkMail(
-                $recipientName !== '' ? $recipientName : 'Nasabah',
-                $resetUrl,
-            ));
+                    Mail::to($email)->send(new NasabahPasswordResetLinkMail(
+                        $recipientName !== '' ? $recipientName : 'Nasabah',
+                        $resetUrl,
+                    ));
+
+                    return true;
+                } catch (\Throwable $exception) {
+                    Log::warning('GreenPoint custom password reset email failed, falling back to Firebase email.', [
+                        'email' => $email,
+                        'message' => $exception->getMessage(),
+                    ]);
+                }
+            }
+
+            $this->passwordResetLinks->sendPasswordResetEmail($email, $userIp);
 
             return true;
         } catch (\Throwable $exception) {
@@ -71,14 +84,15 @@ class NasabahPasswordResetController extends Controller
 
         $firebaseApiKey = config('services.firebase.api_key');
 
-        if (!$firebaseApiKey) {
+        if (! $firebaseApiKey) {
             Log::warning('Firebase password account creation skipped because FIREBASE_API_KEY is missing.');
+
             return false;
         }
 
         try {
             $response = Http::acceptJson()->post(
-                'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=' . urlencode($firebaseApiKey),
+                'https://identitytoolkit.googleapis.com/v1/accounts:signUp?key='.urlencode($firebaseApiKey),
                 [
                     'email' => $email,
                     'password' => Str::password(32),
@@ -115,14 +129,14 @@ class NasabahPasswordResetController extends Controller
     {
         $response = Http::acceptJson()->withHeaders([
             'apikey' => env('SUPABASE_KEY'),
-            'Authorization' => 'Bearer ' . env('SUPABASE_KEY'),
-        ])->get(rtrim((string) env('SUPABASE_URL'), '/') . '/rest/v1/nasabah', [
+            'Authorization' => 'Bearer '.env('SUPABASE_KEY'),
+        ])->get(rtrim((string) env('SUPABASE_URL'), '/').'/rest/v1/nasabah', [
             'select' => '*',
-            'email' => 'eq.' . $email,
+            'email' => 'eq.'.$email,
             'limit' => 1,
         ]);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             Log::warning('Failed to fetch nasabah for password reset.', [
                 'status' => $response->status(),
                 'body' => $response->body(),
@@ -157,14 +171,14 @@ class NasabahPasswordResetController extends Controller
         try {
             $response = Http::acceptJson()->withHeaders([
                 'apikey' => $serviceKey,
-                'Authorization' => 'Bearer ' . $serviceKey,
+                'Authorization' => 'Bearer '.$serviceKey,
                 'Content-Type' => 'application/json',
                 'Prefer' => 'return=minimal',
-            ])->patch(rtrim((string) env('SUPABASE_URL'), '/') . '/rest/v1/nasabah?id_nasabah=eq.' . $idNasabah, [
+            ])->patch(rtrim((string) env('SUPABASE_URL'), '/').'/rest/v1/nasabah?id_nasabah=eq.'.$idNasabah, [
                 'password' => 'firebase-auth-pending',
             ]);
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 Log::warning('Failed to mark nasabah as Firebase pending after reset.', [
                     'id_nasabah' => $idNasabah,
                     'status' => $response->status(),

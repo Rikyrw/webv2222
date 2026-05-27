@@ -169,15 +169,9 @@ class MobileNasabahAuthController extends Controller
                 $email = strtolower((string) $user['email']);
 
                 if ($email !== '' && $this->ensureFirebasePasswordAccountExists($email, $user['password'] ?? null)) {
-                    $resetUrl = $this->passwordResetLinks->generate($email, $request->ip());
-                    $recipientName = trim((string) ($user['nama_lengkap'] ?? ''));
-
-                    Mail::to($email)->send(new NasabahPasswordResetLinkMail(
-                        $recipientName !== '' ? $recipientName : 'Nasabah',
-                        $resetUrl,
-                    ));
-
-                    $this->markAccountAsFirebasePending((int) $user['id_nasabah'], $user['password'] ?? null);
+                    if ($this->sendPasswordResetLink($email, $user, $request->ip())) {
+                        $this->markAccountAsFirebasePending((int) $user['id_nasabah'], $user['password'] ?? null);
+                    }
                 }
             }
         } catch (\Throwable $exception) {
@@ -265,6 +259,41 @@ class MobileNasabahAuthController extends Controller
         ));
     }
 
+    private function sendPasswordResetLink(string $email, array $user, ?string $userIp): bool
+    {
+        try {
+            if ($this->passwordResetLinks->canGenerateCustomLink()) {
+                try {
+                    $resetUrl = $this->passwordResetLinks->generate($email, $userIp);
+                    $recipientName = trim((string) ($user['nama_lengkap'] ?? ''));
+
+                    Mail::to($email)->send(new NasabahPasswordResetLinkMail(
+                        $recipientName !== '' ? $recipientName : 'Nasabah',
+                        $resetUrl,
+                    ));
+
+                    return true;
+                } catch (\Throwable $exception) {
+                    Log::warning('Mobile custom password reset email failed, falling back to Firebase email.', [
+                        'email' => $email,
+                        'message' => $exception->getMessage(),
+                    ]);
+                }
+            }
+
+            $this->passwordResetLinks->sendPasswordResetEmail($email, $userIp);
+
+            return true;
+        } catch (\Throwable $exception) {
+            Log::warning('Mobile password reset email delivery failed.', [
+                'email' => $email,
+                'message' => $exception->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
     private function nasabahExists(string $email, string $username): bool
     {
         return $this->findNasabahByEmail($email) !== null
@@ -344,6 +373,7 @@ class MobileNasabahAuthController extends Controller
 
         if (! $firebaseApiKey) {
             Log::warning('Mobile Firebase password account creation skipped because FIREBASE_API_KEY is missing.');
+
             return false;
         }
 

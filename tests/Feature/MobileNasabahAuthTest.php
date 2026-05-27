@@ -67,6 +67,11 @@ class MobileNasabahAuthTest extends TestCase
             {
                 return $this->resetUrl;
             }
+
+            public function canGenerateCustomLink(): bool
+            {
+                return true;
+            }
         });
 
         Http::fake([
@@ -88,6 +93,43 @@ class MobileNasabahAuthTest extends TestCase
             return $mail->hasTo('mobile@example.test')
                 && $mail->recipientName === 'Nasabah Mobile'
                 && $mail->resetUrl === $resetUrl;
+        });
+    }
+
+    public function test_mobile_password_reset_falls_back_to_firebase_email_when_custom_link_is_unavailable(): void
+    {
+        Mail::fake();
+
+        config([
+            'services.firebase.api_key' => 'test-api-key',
+            'services.firebase.service_account_path' => base_path('missing-firebase-service-account.json'),
+        ]);
+
+        Http::fake([
+            '*/rest/v1/nasabah*' => Http::response([[
+                'id_nasabah' => 41,
+                'email' => 'mobile@example.test',
+                'nama_lengkap' => 'Nasabah Mobile',
+                'password' => 'firebase-auth:uid-mobile',
+                'google_id' => null,
+                'google_sub' => null,
+            ]], 200),
+            '*accounts:sendOobCode*' => Http::response(['email' => 'mobile@example.test'], 200),
+        ]);
+
+        $this->postJson('/api/mobile/nasabah/password-reset', [
+            'identifier' => 'nasabahmobile',
+        ])->assertOk()
+            ->assertJsonPath('message', 'Jika akun ditemukan, link reset password sudah dikirim ke email Anda.');
+
+        Mail::assertNotSent(NasabahPasswordResetLinkMail::class);
+
+        Http::assertSent(function (Request $request): bool {
+            return $request->method() === 'POST'
+                && str_contains($request->url(), 'accounts:sendOobCode?key=test-api-key')
+                && $request['requestType'] === 'PASSWORD_RESET'
+                && $request['email'] === 'mobile@example.test'
+                && ! isset($request['returnOobLink']);
         });
     }
 
