@@ -6,6 +6,7 @@ use App\Mail\NasabahPasswordResetLinkMail;
 use App\Mail\NasabahVerificationLinkMail;
 use App\Models\Nasabah;
 use App\Services\FirebasePasswordResetLinkGenerator;
+use App\Services\MobileNasabahTokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -17,12 +18,17 @@ use Illuminate\Support\Str;
 
 class MobileNasabahAuthController extends Controller
 {
+    private const DEACTIVATED_LOGIN_MESSAGE = 'Akun Anda sedang nonaktif. Silakan hubungi CS GreenPoint untuk bantuan lebih lanjut.';
+
+    private const INACTIVE_LOGIN_MESSAGE = 'Akun Anda belum aktif. Silakan hubungi CS GreenPoint untuk bantuan lebih lanjut.';
+
     private const VERIFICATION_LINK_TTL_MINUTES = 60;
 
     private const RESEND_COOLDOWN_SECONDS = 60;
 
     public function __construct(
         private FirebasePasswordResetLinkGenerator $passwordResetLinks,
+        private MobileNasabahTokenService $tokens,
     ) {}
 
     public function register(Request $request): JsonResponse
@@ -176,6 +182,13 @@ class MobileNasabahAuthController extends Controller
                 ], 401);
             }
 
+            if ($statusMessage = $this->accountStatusMessage($user)) {
+                return response()->json([
+                    'message' => $statusMessage,
+                    'account_status' => $user['status'] ?? null,
+                ], 403);
+            }
+
             if ($this->emailNeedsVerification($user)) {
                 return response()->json([
                     'message' => 'Email belum diverifikasi.',
@@ -187,6 +200,13 @@ class MobileNasabahAuthController extends Controller
                 return response()->json([
                     'message' => 'Email/username atau password salah.',
                 ], 401);
+            }
+
+            $nasabah = Nasabah::find((int) $user['id_nasabah']);
+            if (! $nasabah) {
+                return response()->json([
+                    'message' => 'Data nasabah tidak ditemukan.',
+                ], 404);
             }
 
             return response()->json([
@@ -202,6 +222,7 @@ class MobileNasabahAuthController extends Controller
                     'google_id' => $user['google_id'] ?? null,
                     'saldo' => $user['saldo'] ?? 0,
                 ],
+                ...$this->tokens->payload($nasabah, $request->input('device_name')),
             ]);
         } catch (\Throwable $exception) {
             Log::warning('Mobile manual login verification failed.', [
@@ -213,6 +234,15 @@ class MobileNasabahAuthController extends Controller
                 'message' => 'Login belum dapat diproses. Coba lagi beberapa saat.',
             ], 500);
         }
+    }
+
+    public function logout(Request $request): JsonResponse
+    {
+        $request->user()?->currentAccessToken()?->delete();
+
+        return response()->json([
+            'message' => 'Logout berhasil.',
+        ]);
     }
 
     private function sendVerificationLink(array $user, string $token, Carbon $expiresAt): void
@@ -383,6 +413,21 @@ class MobileNasabahAuthController extends Controller
     private function isManualAccount(array $user): bool
     {
         return empty($user['google_sub']) && empty($user['google_id']);
+    }
+
+    private function accountStatusMessage(array $user): ?string
+    {
+        $status = strtolower(trim((string) ($user['status'] ?? 'aktif')));
+
+        if ($status === '' || $status === 'aktif') {
+            return null;
+        }
+
+        if (in_array($status, ['nonaktif', 'ditolak', 'inactive', 'disabled', 'banned'], true)) {
+            return self::DEACTIVATED_LOGIN_MESSAGE;
+        }
+
+        return self::INACTIVE_LOGIN_MESSAGE;
     }
 
     private function isFirebaseBackedPassword(?string $storedPassword): bool

@@ -18,15 +18,6 @@ Route::prefix('mobile/nasabah')->group(function () {
     Route::post('/verify-login', [MobileNasabahAuthController::class, 'verifyLogin'])
         ->middleware('throttle:10,1');
 
-    Route::post('/topup', [NasabahTopupController::class, 'create'])
-        ->middleware('throttle:10,1');
-
-    Route::get('/profile', [MobileNasabahDataController::class, 'profile'])
-        ->middleware('throttle:60,1');
-
-    Route::patch('/profile', [MobileNasabahDataController::class, 'updateProfile'])
-        ->middleware('throttle:20,1');
-
     Route::get('/lookup', [MobileNasabahDataController::class, 'lookup'])
         ->middleware('throttle:60,1');
 
@@ -36,30 +27,44 @@ Route::prefix('mobile/nasabah')->group(function () {
     Route::post('/mirror-profile', [MobileNasabahDataController::class, 'mirrorProfile'])
         ->middleware('throttle:30,1');
 
-    Route::patch('/password-marker', [MobileNasabahDataController::class, 'markPasswordManaged'])
-        ->middleware('throttle:30,1');
-
     Route::get('/waste-types', [MobileNasabahDataController::class, 'wasteTypes'])
         ->middleware('throttle:60,1');
 
-    Route::post('/setor', [MobileNasabahDataController::class, 'storeSetor'])
-        ->middleware('throttle:10,1');
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', [MobileNasabahAuthController::class, 'logout'])
+            ->middleware('throttle:20,1');
 
-    Route::get('/setor-history', [MobileNasabahDataController::class, 'setorHistory'])
-        ->middleware('throttle:60,1');
+        Route::post('/topup', [NasabahTopupController::class, 'create'])
+            ->middleware('throttle:10,1');
 
-    Route::post('/ppob', [MobileNasabahDataController::class, 'storePpob'])
-        ->middleware('throttle:20,1');
+        Route::get('/profile', [MobileNasabahDataController::class, 'profile'])
+            ->middleware('throttle:60,1');
 
-    Route::get('/ppob-transactions', [MobileNasabahDataController::class, 'ppobTransactions'])
-        ->middleware('throttle:60,1');
+        Route::patch('/profile', [MobileNasabahDataController::class, 'updateProfile'])
+            ->middleware('throttle:20,1');
 
-    Route::get('/dashboard', [MobileNasabahDataController::class, 'dashboard'])
-        ->middleware('throttle:60,1');
+        Route::patch('/password-marker', [MobileNasabahDataController::class, 'markPasswordManaged'])
+            ->middleware('throttle:30,1');
 
-    Route::get('/topups', [MobileNasabahDataController::class, 'topupHistory'])
-        ->middleware('throttle:60,1');
+        Route::post('/setor', [MobileNasabahDataController::class, 'storeSetor'])
+            ->middleware('throttle:10,1');
 
-    Route::get('/topup/status', [NasabahTopupController::class, 'checkStatus'])
-        ->middleware('throttle:60,1');
+        Route::get('/setor-history', [MobileNasabahDataController::class, 'setorHistory'])
+            ->middleware('throttle:60,1');
+
+        Route::post('/ppob', [MobileNasabahDataController::class, 'storePpob'])
+            ->middleware('throttle:20,1');
+
+        Route::get('/ppob-transactions', [MobileNasabahDataController::class, 'ppobTransactions'])
+            ->middleware('throttle:60,1');
+
+        Route::get('/dashboard', [MobileNasabahDataController::class, 'dashboard'])
+            ->middleware('throttle:60,1');
+
+        Route::get('/topups', [MobileNasabahDataController::class, 'topupHistory'])
+            ->middleware('throttle:60,1');
+
+        Route::get('/topup/status', [NasabahTopupController::class, 'checkStatus'])
+            ->middleware('throttle:60,1');
+    });
 });

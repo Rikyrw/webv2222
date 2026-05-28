@@ -6,6 +6,8 @@ use App\Models\Nasabah;
 use App\Models\TransaksiPenarikan;
 use App\Models\TransaksiSetor;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class NasabahController extends Controller
 {
@@ -14,7 +16,10 @@ class NasabahController extends Controller
         $activePage = 'nasabah';
         $pageTitle = 'Daftar Nasabah';
         $flash = '';
+        $flashType = 'success';
         $databaseError = null;
+        $dateFilters = $this->dateFilters($request);
+        $paginationFilters = array_filter($dateFilters, fn ($value): bool => filled($value));
 
         try {
             if ($request->isMethod('post') && $request->filled('action') && $request->filled('id_nasabah')) {
@@ -27,25 +32,29 @@ class NasabahController extends Controller
 
                 if (!hash_equals(session('_token', ''), $request->input('_token', ''))) {
                     $flash = 'Token keamanan tidak valid.';
+                    $flashType = 'danger';
                 } elseif ($status) {
                     Nasabah::where('id_nasabah', $id)->update(['status' => $status]);
                     $flash = 'Status nasabah berhasil diperbarui.';
                 } else {
                     $flash = 'Aksi tidak dikenali.';
+                    $flashType = 'danger';
                 }
             }
 
             if (session()->has('flash_nasabah')) {
                 $flash = session()->pull('flash_nasabah');
+                $flashType = session()->pull('flash_nasabah_type', 'success');
             }
 
             $page = max(1, (int) $request->get('page', 1));
-            $result = $this->fetchNasabahList($page, 10);
+            $result = $this->fetchNasabahList($page, 10, $dateFilters);
             $nasabahs = $result['items'];
             $nasabahsMeta = $result['meta'];
         } catch (\Exception $e) {
-            \Log::error('NasabahController Database Error: '.$e->getMessage());
+            Log::error('NasabahController Database Error: '.$e->getMessage());
             $databaseError = 'Tidak dapat terhubung ke database. Periksa koneksi database.';
+            $flashType = 'danger';
             $nasabahs = [];
             $nasabahsMeta = $this->emptyMeta();
         }
@@ -54,6 +63,9 @@ class NasabahController extends Controller
             'activePage',
             'pageTitle',
             'flash',
+            'flashType',
+            'dateFilters',
+            'paginationFilters',
             'nasabahs',
             'nasabahsMeta',
             'databaseError'
@@ -98,22 +110,57 @@ class NasabahController extends Controller
 
             return redirect()->route('admin.nasabah.daftar')->with('flash_nasabah', 'Data nasabah berhasil diperbarui.');
         } catch (\Exception $e) {
-            \Log::error('NasabahController Update Error: '.$e->getMessage());
+            Log::error('NasabahController Update Error: '.$e->getMessage());
 
-            return redirect()->back()->with('flash_nasabah', 'Gagal memperbarui data nasabah.');
+            return redirect()->back()
+                ->with('flash_nasabah', 'Gagal memperbarui data nasabah.')
+                ->with('flash_nasabah_type', 'danger');
         }
     }
 
     public function destroy(int $id)
     {
         try {
-            Nasabah::where('id_nasabah', $id)->delete();
+            $nasabah = Nasabah::where('id_nasabah', $id)->first();
 
-            return redirect()->route('admin.nasabah.daftar')->with('flash_nasabah', 'Nasabah berhasil dihapus.');
+            if (!$nasabah) {
+                return redirect()->route('admin.nasabah.daftar')
+                    ->with('flash_nasabah', 'Nasabah tidak ditemukan.')
+                    ->with('flash_nasabah_type', 'danger');
+            }
+
+            $hasHistory = $this->nasabahHasHistory($id);
+
+            DB::transaction(function () use ($id, $nasabah, $hasHistory): void {
+                DB::table('personal_access_tokens')
+                    ->where('tokenable_type', Nasabah::class)
+                    ->where('tokenable_id', $id)
+                    ->delete();
+
+                if ($hasHistory) {
+                    $nasabah->update(['status' => 'nonaktif']);
+
+                    return;
+                }
+
+                $nasabah->delete();
+            });
+
+            if ($hasHistory) {
+                return redirect()->route('admin.nasabah.daftar')
+                    ->with('flash_nasabah', 'Nasabah memiliki riwayat transaksi, jadi akun dinonaktifkan agar riwayat tetap aman.')
+                    ->with('flash_nasabah_type', 'warning');
+            }
+
+            return redirect()->route('admin.nasabah.daftar')
+                ->with('flash_nasabah', 'Nasabah berhasil dihapus.')
+                ->with('flash_nasabah_type', 'success');
         } catch (\Exception $e) {
-            \Log::error('NasabahController Delete Error: '.$e->getMessage());
+            Log::error('NasabahController Delete Error: '.$e->getMessage());
 
-            return redirect()->back()->with('flash_nasabah', 'Gagal menghapus nasabah.');
+            return redirect()->back()
+                ->with('flash_nasabah', 'Gagal menghapus nasabah.')
+                ->with('flash_nasabah_type', 'danger');
         }
     }
 
@@ -161,7 +208,7 @@ class NasabahController extends Controller
                 ])
                 ->all();
         } catch (\Exception $e) {
-            \Log::error('NasabahController Riwayat Error: '.$e->getMessage());
+            Log::error('NasabahController Riwayat Error: '.$e->getMessage());
             $databaseError = 'Tidak dapat mengambil riwayat nasabah.';
             $setorList = [];
             $penarikanList = [];
@@ -177,10 +224,17 @@ class NasabahController extends Controller
         ));
     }
 
-    private function fetchNasabahList(int $page, int $perPage): array
+    private function fetchNasabahList(int $page, int $perPage, array $filters = []): array
     {
         $offset = ($page - 1) * $perPage;
-        $items = Nasabah::orderByDesc('created_at')
+        $query = Nasabah::query();
+
+        if (!empty($filters['tanggal_daftar'])) {
+            $query->whereDate('created_at', $filters['tanggal_daftar']);
+        }
+
+        $items = $query
+            ->orderByDesc('created_at')
             ->orderByDesc('id_nasabah')
             ->offset($offset)
             ->limit($perPage + 1)
@@ -188,6 +242,8 @@ class NasabahController extends Controller
 
         $hasNext = $items->count() > $perPage;
         $items = $items->take($perPage);
+        $ids = $items->pluck('id_nasabah')->map(fn ($id): int => (int) $id)->values()->all();
+        $nasabahIdsWithHistory = $this->nasabahIdsWithHistory($ids);
 
         return [
             'items' => $items->map(fn (Nasabah $item): array => [
@@ -203,6 +259,7 @@ class NasabahController extends Controller
                 'google_id' => $item->google_id,
                 'photo_url' => $item->photo_url,
                 'provider' => $item->provider,
+                'can_delete' => ! in_array((int) $item->id_nasabah, $nasabahIdsWithHistory, true),
             ])->all(),
             'meta' => [
                 'page' => $page,
@@ -216,6 +273,49 @@ class NasabahController extends Controller
     private function fetchNasabahById(int $id): ?array
     {
         return Nasabah::where('id_nasabah', $id)->first()?->getAttributes();
+    }
+
+    private function dateFilters(Request $request): array
+    {
+        return [
+            'tanggal_daftar' => $this->dateInput($request->query('tanggal_daftar')),
+        ];
+    }
+
+    private function dateInput(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return null;
+        }
+
+        [$year, $month, $day] = array_map('intval', explode('-', $value));
+
+        return checkdate($month, $day, $year) ? $value : null;
+    }
+
+    private function nasabahHasHistory(int $id): bool
+    {
+        return TransaksiSetor::where('id_nasabah', $id)->exists()
+            || TransaksiPenarikan::where('id_nasabah', $id)->exists()
+            || DB::table('topup_saldo')->where('id_nasabah', $id)->exists();
+    }
+
+    private function nasabahIdsWithHistory(array $ids): array
+    {
+        if ($ids === []) {
+            return [];
+        }
+
+        return collect()
+            ->merge(TransaksiSetor::whereIn('id_nasabah', $ids)->distinct()->pluck('id_nasabah'))
+            ->merge(TransaksiPenarikan::whereIn('id_nasabah', $ids)->distinct()->pluck('id_nasabah'))
+            ->merge(DB::table('topup_saldo')->whereIn('id_nasabah', $ids)->distinct()->pluck('id_nasabah'))
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function jenisLabel(TransaksiSetor $setor): string

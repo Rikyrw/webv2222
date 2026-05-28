@@ -12,6 +12,10 @@ use RuntimeException;
 
 class NasabahGoogleAuthController extends Controller
 {
+    private const DEACTIVATED_LOGIN_MESSAGE = 'Akun Anda sedang nonaktif. Silakan hubungi CS GreenPoint untuk bantuan lebih lanjut.';
+
+    private const INACTIVE_LOGIN_MESSAGE = 'Akun Anda belum aktif. Silakan hubungi CS GreenPoint untuk bantuan lebih lanjut.';
+
     public function authenticate(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -109,8 +113,8 @@ class NasabahGoogleAuthController extends Controller
         }
 
         if ($user) {
-            if (($user['status'] ?? 'aktif') !== 'aktif') {
-                throw new RuntimeException('Akun nasabah belum aktif.');
+            if ($statusMessage = $this->accountStatusMessage($user)) {
+                throw new RuntimeException($statusMessage);
             }
 
             if (! empty($user['google_sub']) && $user['google_sub'] !== $googleProfile['sub']) {
@@ -196,6 +200,21 @@ class NasabahGoogleAuthController extends Controller
     private function usernameExists(string $username): bool
     {
         return Nasabah::where('user_name', $username)->exists();
+    }
+
+    private function accountStatusMessage(array $user): ?string
+    {
+        $status = strtolower(trim((string) ($user['status'] ?? 'aktif')));
+
+        if ($status === '' || $status === 'aktif') {
+            return null;
+        }
+
+        if (in_array($status, ['nonaktif', 'ditolak', 'inactive', 'disabled', 'banned'], true)) {
+            return self::DEACTIVATED_LOGIN_MESSAGE;
+        }
+
+        return self::INACTIVE_LOGIN_MESSAGE;
     }
 
     private function verifiedGooglePayload(): array

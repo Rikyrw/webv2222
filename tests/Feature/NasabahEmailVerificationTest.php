@@ -100,6 +100,52 @@ class NasabahEmailVerificationTest extends TestCase
         $response->assertSessionMissing('id_nasabah');
     }
 
+    public function test_deactivated_manual_login_shows_contact_cs_message(): void
+    {
+        $this->createNasabah([
+            'status' => 'nonaktif',
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->post(route('nasabah.authenticate'), [
+            'username' => 'manual@example.test',
+            'password' => 'rahasia1',
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('error', 'Akun Anda sedang nonaktif. Silakan hubungi CS GreenPoint untuk bantuan lebih lanjut.');
+        $response->assertSessionMissing('id_nasabah');
+    }
+
+    public function test_deactivated_google_login_returns_contact_cs_message(): void
+    {
+        config(['services.google.client_id' => 'google-client.test']);
+        $this->createNasabah([
+            'email' => 'google@example.test',
+            'status' => 'nonaktif',
+            'email_verified_at' => now(),
+        ]);
+
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
+                'iss' => 'https://accounts.google.com',
+                'aud' => 'google-client.test',
+                'exp' => time() + 300,
+                'email_verified' => true,
+                'email' => 'google@example.test',
+                'sub' => 'google-sub-1',
+                'name' => 'Google Nasabah',
+            ], 200),
+        ]);
+
+        $this->postJson(route('nasabah.google.authenticate'), [
+            'credential' => 'valid-google-token',
+        ])->assertUnprocessable()
+            ->assertJsonPath('message', 'Akun Anda sedang nonaktif. Silakan hubungi CS GreenPoint untuk bantuan lebih lanjut.');
+
+        $this->assertFalse(session()->has('id_nasabah'));
+    }
+
     public function test_invalid_email_like_login_identifier_shows_format_error_before_authentication(): void
     {
         Http::fake();

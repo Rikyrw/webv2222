@@ -118,7 +118,30 @@ class MobileNasabahAuthTest extends TestCase
             'password' => 'rahasia123',
         ])->assertOk()
             ->assertJsonPath('user.email', 'mobile@example.test')
-            ->assertJsonPath('user.nama_lengkap', 'Nasabah Mobile');
+            ->assertJsonPath('user.nama_lengkap', 'Nasabah Mobile')
+            ->assertJsonStructure(['access_token', 'token_type', 'expires_at']);
+    }
+
+    public function test_mobile_profile_requires_and_accepts_sanctum_token(): void
+    {
+        $this->createNasabah([
+            'password' => password_hash('rahasia123', PASSWORD_BCRYPT),
+            'email_verified_at' => now(),
+        ]);
+
+        $this->getJson('/api/mobile/nasabah/profile')
+            ->assertUnauthorized();
+
+        $token = $this->postJson('/api/mobile/nasabah/verify-login', [
+            'identifier' => 'mobile@example.test',
+            'password' => 'rahasia123',
+        ])->assertOk()->json('access_token');
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/mobile/nasabah/profile')
+            ->assertOk()
+            ->assertJsonPath('data.email', 'mobile@example.test')
+            ->assertJsonPath('data.nama_lengkap', 'Nasabah Mobile');
     }
 
     public function test_mobile_unverified_manual_login_returns_email_not_verified(): void
@@ -134,6 +157,46 @@ class MobileNasabahAuthTest extends TestCase
         ])->assertForbidden()
             ->assertJsonPath('message', 'Email belum diverifikasi.')
             ->assertJsonPath('email', 'mobile@example.test');
+    }
+
+    public function test_mobile_deactivated_manual_login_returns_contact_cs_message(): void
+    {
+        $this->createNasabah([
+            'password' => password_hash('rahasia123', PASSWORD_BCRYPT),
+            'email_verified_at' => now(),
+            'status' => 'nonaktif',
+        ]);
+
+        $this->postJson('/api/mobile/nasabah/verify-login', [
+            'identifier' => 'mobile@example.test',
+            'password' => 'rahasia123',
+        ])->assertForbidden()
+            ->assertJsonPath('message', 'Akun Anda sedang nonaktif. Silakan hubungi CS GreenPoint untuk bantuan lebih lanjut.')
+            ->assertJsonPath('account_status', 'nonaktif');
+    }
+
+    public function test_mobile_mirror_profile_does_not_reactivate_deactivated_account(): void
+    {
+        $this->createNasabah([
+            'email_verified_at' => now(),
+            'status' => 'nonaktif',
+            'password' => 'firebase-auth:old-uid',
+        ]);
+
+        $this->postJson('/api/mobile/nasabah/mirror-profile', [
+            'firebase_uid' => 'new-uid',
+            'email' => 'mobile@example.test',
+            'user_name' => 'nasabahmobile',
+            'nama_lengkap' => 'Nasabah Mobile',
+            'provider' => 'firebase',
+        ])->assertForbidden()
+            ->assertJsonPath('message', 'Akun Anda sedang nonaktif. Silakan hubungi CS GreenPoint untuk bantuan lebih lanjut.')
+            ->assertJsonPath('account_status', 'nonaktif');
+
+        $this->assertDatabaseHas('nasabah', [
+            'email' => 'mobile@example.test',
+            'status' => 'nonaktif',
+        ]);
     }
 
     private function createNasabah(array $overrides = []): Nasabah

@@ -9,6 +9,7 @@ use App\Models\Sampah;
 use App\Models\TopupSaldo;
 use App\Models\TransaksiPenarikan;
 use App\Models\TransaksiSetor;
+use App\Services\MobileNasabahTokenService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -18,8 +19,23 @@ use Illuminate\Support\Facades\Storage;
 
 class MobileNasabahDataController extends Controller
 {
+    private const DEACTIVATED_LOGIN_MESSAGE = 'Akun Anda sedang nonaktif. Silakan hubungi CS GreenPoint untuk bantuan lebih lanjut.';
+
+    private const INACTIVE_LOGIN_MESSAGE = 'Akun Anda belum aktif. Silakan hubungi CS GreenPoint untuk bantuan lebih lanjut.';
+
+    public function __construct(
+        private MobileNasabahTokenService $tokens,
+    ) {}
+
     public function profile(Request $request): JsonResponse
     {
+        $nasabah = $this->authenticatedNasabah($request);
+        if ($nasabah) {
+            return response()->json([
+                'data' => $this->profileArray($nasabah->fresh() ?? $nasabah),
+            ]);
+        }
+
         $validated = $request->validate([
             'email' => ['required', 'email'],
         ]);
@@ -58,7 +74,7 @@ class MobileNasabahDataController extends Controller
     public function updateProfile(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'old_email' => ['required', 'email'],
+            'old_email' => ['nullable', 'email'],
             'nama_lengkap' => ['required', 'string', 'max:255'],
             'user_name' => ['required', 'string', 'max:50'],
             'email' => ['required', 'email', 'max:255'],
@@ -66,10 +82,11 @@ class MobileNasabahDataController extends Controller
             'no_hp' => ['required', 'string', 'max:20'],
         ]);
 
-        $oldEmail = strtolower(trim($validated['old_email']));
+        $authenticated = $this->authenticatedNasabah($request);
+        $oldEmail = strtolower(trim($validated['old_email'] ?? (string) $authenticated?->email));
         $newEmail = strtolower(trim($validated['email']));
 
-        $nasabah = Nasabah::where('email', $oldEmail)->first();
+        $nasabah = $authenticated ?? Nasabah::where('email', $oldEmail)->first();
         if (!$nasabah) {
             return response()->json(['message' => 'Data nasabah tidak ditemukan.'], 404);
         }
@@ -122,12 +139,18 @@ class MobileNasabahDataController extends Controller
         $provider = $this->filledText($validated['provider'] ?? null) ?: 'firebase';
         $existing = Nasabah::where('email', $email)->first();
 
+        if ($existing && ($statusMessage = $this->accountStatusMessage($existing->getAttributes()))) {
+            return response()->json([
+                'message' => $statusMessage,
+                'account_status' => $existing->status,
+            ], 403);
+        }
+
         $payload = [
             'user_name' => $this->filledText($validated['user_name'] ?? null) ?: explode('@', $email)[0],
             'nama_lengkap' => $this->filledText($validated['nama_lengkap'] ?? null) ?: explode('@', $email)[0],
             'email' => $email,
             'no_hp' => $this->filledText($validated['no_hp'] ?? null),
-            'status' => 'aktif',
             'alamat' => $this->filledText($validated['alamat'] ?? null) ?: '',
             'photo_url' => $this->filledText($validated['photo_url'] ?? null),
             'google_id' => $this->filledText($validated['google_id'] ?? null),
@@ -148,23 +171,31 @@ class MobileNasabahDataController extends Controller
         } else {
             $nasabah = Nasabah::create([
                 ...$payload,
+                'status' => 'aktif',
                 'saldo' => $validated['saldo'] ?? 0,
                 'created_at' => now(),
                 'password' => 'firebase-auth:'.$validated['firebase_uid'],
             ]);
         }
 
-        return response()->json(['data' => $this->profileArray($nasabah)]);
+        return response()->json([
+            'data' => $this->profileArray($nasabah),
+            ...$this->tokens->payload($nasabah, $request->input('device_name')),
+        ]);
     }
 
     public function markPasswordManaged(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'email' => ['required', 'email'],
             'firebase_uid' => ['required', 'string', 'max:255'],
         ]);
 
-        Nasabah::where('email', strtolower(trim($validated['email'])))->update([
+        $nasabah = $this->authenticatedNasabah($request);
+        if (!$nasabah) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        $nasabah->update([
             'password' => 'firebase-auth:'.$validated['firebase_uid'],
         ]);
 
@@ -200,12 +231,12 @@ class MobileNasabahDataController extends Controller
     public function dashboard(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'nasabah_id' => ['required', 'integer', 'min:1'],
+            'nasabah_id' => ['nullable', 'integer', 'min:1'],
             'from' => ['required', 'date_format:Y-m-d'],
             'to' => ['required', 'date_format:Y-m-d'],
         ]);
 
-        $nasabahId = (int) $validated['nasabah_id'];
+        $nasabahId = $this->authenticatedNasabahId($request);
         $setorRows = TransaksiSetor::with('detailSetor')
             ->where('id_nasabah', $nasabahId)
             ->whereBetween('tanggal_setor', [$validated['from'], $validated['to']])
@@ -242,12 +273,12 @@ class MobileNasabahDataController extends Controller
     public function topupHistory(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'nasabah_id' => ['required', 'integer', 'min:1'],
+            'nasabah_id' => ['nullable', 'integer', 'min:1'],
             'date' => ['nullable', 'date_format:Y-m-d'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:50'],
         ]);
 
-        $query = TopupSaldo::where('id_nasabah', (int) $validated['nasabah_id'])
+        $query = TopupSaldo::where('id_nasabah', $this->authenticatedNasabahId($request))
             ->orderByDesc('created_at')
             ->limit((int) ($validated['limit'] ?? 5));
 
@@ -265,13 +296,13 @@ class MobileNasabahDataController extends Controller
     public function storePpob(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'id_nasabah' => ['required', 'integer', 'min:1'],
+            'id_nasabah' => ['nullable', 'integer', 'min:1'],
             'jenis_penukaran' => ['required', 'string', 'max:50'],
             'nominal' => ['required', 'integer', 'min:1000'],
             'deskripsi' => ['required', 'string', 'max:255'],
         ]);
 
-        $nasabah = Nasabah::find((int) $validated['id_nasabah']);
+        $nasabah = $this->authenticatedNasabah($request);
         if (!$nasabah) {
             return response()->json(['message' => 'Data nasabah tidak ditemukan.'], 404);
         }
@@ -281,7 +312,7 @@ class MobileNasabahDataController extends Controller
         }
 
         $row = TransaksiPenarikan::create([
-            'id_nasabah' => (int) $validated['id_nasabah'],
+            'id_nasabah' => (int) $nasabah->id_nasabah,
             'jenis_penukaran' => trim($validated['jenis_penukaran']),
             'nominal' => (int) $validated['nominal'],
             'status' => 'pending',
@@ -298,7 +329,7 @@ class MobileNasabahDataController extends Controller
     public function storeSetor(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'id_nasabah' => ['required', 'integer', 'min:1'],
+            'id_nasabah' => ['nullable', 'integer', 'min:1'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.id_jenis' => ['required', 'integer', 'min:1'],
             'items.*.berat_kg' => ['required', 'numeric', 'min:1'],
@@ -311,8 +342,8 @@ class MobileNasabahDataController extends Controller
                 return response()->json(['message' => $items['error']], 422);
             }
 
-            $transaksiId = DB::transaction(function () use ($validated, $items): int {
-                $nasabahId = (int) $validated['id_nasabah'];
+            $nasabahId = $this->authenticatedNasabahId($request);
+            $transaksiId = DB::transaction(function () use ($nasabahId, $items): int {
                 $transaksi = TransaksiSetor::create([
                     'id_nasabah' => $nasabahId,
                     'total_nilai' => $items['total_nilai'],
@@ -364,7 +395,7 @@ class MobileNasabahDataController extends Controller
     {
         $validated = $this->historyValidation($request);
         $query = TransaksiSetor::with('detailSetor.sampah')
-            ->where('id_nasabah', (int) $validated['nasabah_id'])
+            ->where('id_nasabah', $this->authenticatedNasabahId($request))
             ->orderByDesc('tanggal_setor');
 
         if ($request->boolean('pending_only')) {
@@ -379,7 +410,7 @@ class MobileNasabahDataController extends Controller
     private function ppobHistoryPage(Request $request): JsonResponse
     {
         $validated = $this->historyValidation($request);
-        $query = TransaksiPenarikan::where('id_nasabah', (int) $validated['nasabah_id'])
+        $query = TransaksiPenarikan::where('id_nasabah', $this->authenticatedNasabahId($request))
             ->orderByDesc('tanggal_pengajuan');
 
         if ($request->boolean('pending_only')) {
@@ -394,7 +425,7 @@ class MobileNasabahDataController extends Controller
     private function historyValidation(Request $request): array
     {
         return $request->validate([
-            'nasabah_id' => ['required', 'integer', 'min:1'],
+            'nasabah_id' => ['nullable', 'integer', 'min:1'],
             'page' => ['nullable', 'integer', 'min:0'],
             'page_size' => ['nullable', 'integer', 'min:1', 'max:50'],
             'from' => ['nullable', 'date_format:Y-m-d'],
@@ -412,6 +443,27 @@ class MobileNasabahDataController extends Controller
             'items' => $rows->take($pageSize)->map($mapper)->values()->all(),
             'has_next_page' => $rows->count() > $pageSize,
         ]);
+    }
+
+    private function authenticatedNasabah(Request $request): ?Nasabah
+    {
+        $user = $request->user();
+
+        if ($user instanceof Nasabah && ($statusMessage = $this->accountStatusMessage($user->getAttributes()))) {
+            abort(403, $statusMessage);
+        }
+
+        return $user instanceof Nasabah ? $user : null;
+    }
+
+    private function authenticatedNasabahId(Request $request): int
+    {
+        $nasabah = $this->authenticatedNasabah($request);
+        if (!$nasabah) {
+            abort(401, 'Unauthenticated.');
+        }
+
+        return (int) $nasabah->id_nasabah;
     }
 
     private function findNasabahByIdentifier(string $identifier, bool $includeEmailMatch = true): ?array
@@ -443,12 +495,12 @@ class MobileNasabahDataController extends Controller
 
     private function findNasabahByUsername(string $username): ?array
     {
-        return $this->profileArray(Nasabah::where('user_name', $username)->first(), true);
+        return $this->profileArray(Nasabah::where('user_name', $username)->first());
     }
 
     private function findNasabahByUsernameIlike(string $username): ?array
     {
-        return $this->profileArray(Nasabah::whereRaw('LOWER(user_name) = ?', [strtolower($username)])->first(), true);
+        return $this->profileArray(Nasabah::whereRaw('LOWER(user_name) = ?', [strtolower($username)])->first());
     }
 
     private function buildSetorItems(array $items): array
@@ -696,5 +748,20 @@ class MobileNasabahDataController extends Controller
         $text = trim((string) $value);
 
         return $text === '' ? null : $text;
+    }
+
+    private function accountStatusMessage(array $user): ?string
+    {
+        $status = strtolower(trim((string) ($user['status'] ?? 'aktif')));
+
+        if ($status === '' || $status === 'aktif') {
+            return null;
+        }
+
+        if (in_array($status, ['nonaktif', 'ditolak', 'inactive', 'disabled', 'banned'], true)) {
+            return self::DEACTIVATED_LOGIN_MESSAGE;
+        }
+
+        return self::INACTIVE_LOGIN_MESSAGE;
     }
 }

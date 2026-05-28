@@ -10,6 +10,10 @@ use Illuminate\Support\Str;
 
 class NasabahLoginController extends Controller
 {
+    private const DEACTIVATED_LOGIN_MESSAGE = 'Akun Anda sedang nonaktif. Silakan hubungi CS GreenPoint untuk bantuan lebih lanjut.';
+
+    private const INACTIVE_LOGIN_MESSAGE = 'Akun Anda belum aktif. Silakan hubungi CS GreenPoint untuk bantuan lebih lanjut.';
+
     public function showLogin()
     {
         return view('nasabah.login');
@@ -36,9 +40,13 @@ class NasabahLoginController extends Controller
         }
 
         try {
-            $user = $this->findActiveNasabahForLogin($username);
+            $user = $this->findNasabahForLogin($username);
 
             if ($user) {
+                if ($statusMessage = $this->accountStatusMessage($user)) {
+                    return back()->withInput()->with('error', $statusMessage);
+                }
+
                 if ($this->emailNeedsVerification($user)) {
                     return $this->redirectToVerificationNotice($user);
                 }
@@ -150,16 +158,30 @@ class NasabahLoginController extends Controller
             && empty($user['email_verified_at']);
     }
 
-    private function findActiveNasabahForLogin(string $username): ?array
+    private function findNasabahForLogin(string $username): ?array
     {
-        return Nasabah::where('status', 'aktif')
-            ->where(function ($query) use ($username) {
+        return Nasabah::where(function ($query) use ($username) {
                 $query->where('user_name', $username)
                     ->orWhere('email', $username);
             })
             ->orderByDesc('id_nasabah')
             ->first()
             ?->getAttributes();
+    }
+
+    private function accountStatusMessage(array $user): ?string
+    {
+        $status = strtolower(trim((string) ($user['status'] ?? 'aktif')));
+
+        if ($status === '' || $status === 'aktif') {
+            return null;
+        }
+
+        if (in_array($status, ['nonaktif', 'ditolak', 'inactive', 'disabled', 'banned'], true)) {
+            return self::DEACTIVATED_LOGIN_MESSAGE;
+        }
+
+        return self::INACTIVE_LOGIN_MESSAGE;
     }
 
     private function loginSystemErrorMessage(\Throwable $e): string

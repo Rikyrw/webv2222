@@ -14,7 +14,8 @@ class NasabahTopupController extends Controller
 {
     public function create(Request $request)
     {
-        $userId = session('id_nasabah') ?: $request->input('id_nasabah');
+        $authenticatedNasabah = $request->user() instanceof Nasabah ? $request->user() : null;
+        $userId = $authenticatedNasabah?->id_nasabah ?: session('id_nasabah') ?: $request->input('id_nasabah');
         if (!$userId || !is_numeric($userId)) {
             return response()->json(['message' => 'Silakan login terlebih dahulu.'], 401);
         }
@@ -64,9 +65,9 @@ class NasabahTopupController extends Controller
             : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
 
         $customerDetails = [
-            'first_name' => session('nama_nasabah') ?: ($request->input('nama_lengkap') ?: 'Nasabah'),
-            'email' => session('email') ?: ($request->input('email') ?: 'unknown@example.com'),
-            'phone' => session('no_hp') ?: ($request->input('no_hp') ?: ''),
+            'first_name' => $authenticatedNasabah?->nama_lengkap ?: session('nama_nasabah') ?: ($request->input('nama_lengkap') ?: 'Nasabah'),
+            'email' => $authenticatedNasabah?->email ?: session('email') ?: ($request->input('email') ?: 'unknown@example.com'),
+            'phone' => $authenticatedNasabah?->no_hp ?: session('no_hp') ?: ($request->input('no_hp') ?: ''),
         ];
 
         $payload = [
@@ -161,6 +162,11 @@ class NasabahTopupController extends Controller
 
         $topup = TopupSaldo::where('order_id', $orderId)->first();
         if (!$topup) {
+            return response()->json(['status' => 'not_found']);
+        }
+
+        $authenticatedNasabah = $request->user() instanceof Nasabah ? $request->user() : null;
+        if ($authenticatedNasabah && (int) $topup->id_nasabah !== (int) $authenticatedNasabah->id_nasabah) {
             return response()->json(['status' => 'not_found']);
         }
 
