@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\MobileNasabahAuthController;
 use App\Http\Controllers\MobileNasabahDataController;
+use App\Http\Controllers\NasabahTransaksiSetorController;
 use App\Http\Controllers\NasabahTopupController;
 use Illuminate\Support\Facades\Route;
 
@@ -45,6 +47,12 @@ Route::prefix('mobile/nasabah')->group(function () {
 
         Route::patch('/password-marker', [MobileNasabahDataController::class, 'markPasswordManaged'])
             ->middleware('throttle:30,1');
+
+        Route::post('/chatbot/message', [ChatbotController::class, 'sendMobile'])
+            ->middleware('throttle:20,1');
+
+        Route::post('/validate-waste-photo', [NasabahTransaksiSetorController::class, 'detectWastePhoto'])
+            ->middleware('throttle:10,1');
 
         Route::post('/setor', [MobileNasabahDataController::class, 'storeSetor'])
             ->middleware('throttle:10,1');

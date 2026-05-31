@@ -91,10 +91,7 @@ class NasabahController extends Controller
             'nama_lengkap' => 'required|string|max:150',
             'alamat' => 'nullable|string|max:255',
             'no_hp' => 'nullable|string|max:30',
-            'saldo' => 'nullable|numeric|min:0',
             'status' => 'required|in:aktif,menunggu,nonaktif',
-            'user_name' => 'nullable|string|max:100',
-            'email' => 'nullable|email|max:150',
         ]);
 
         try {
@@ -102,10 +99,7 @@ class NasabahController extends Controller
                 'nama_lengkap' => $request->input('nama_lengkap'),
                 'alamat' => $request->input('alamat') ?: null,
                 'no_hp' => $request->input('no_hp') ?: null,
-                'saldo' => $request->input('saldo') ?? 0,
                 'status' => $request->input('status'),
-                'user_name' => $request->input('user_name') ?: null,
-                'email' => $request->input('email') ?: null,
             ]);
 
             return redirect()->route('admin.nasabah.daftar')->with('flash_nasabah', 'Data nasabah berhasil diperbarui.');

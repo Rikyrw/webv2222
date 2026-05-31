@@ -134,7 +134,7 @@ class NasabahGoogleAuthController extends Controller
 
     private function findNasabahByEmail(string $email): ?array
     {
-        return Nasabah::where('email', $email)->first()?->getAttributes();
+        return Nasabah::whereEmailInsensitive($email)->first()?->getAttributes();
     }
 
     private function linkGoogleSubIfSupported(array $user, string $googleSub): array
@@ -199,7 +199,7 @@ class NasabahGoogleAuthController extends Controller
 
     private function usernameExists(string $username): bool
     {
-        return Nasabah::where('user_name', $username)->exists();
+        return Nasabah::whereUsernameInsensitive($username)->exists();
     }
 
     private function accountStatusMessage(array $user): ?string

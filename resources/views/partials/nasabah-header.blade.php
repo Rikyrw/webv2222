@@ -36,3 +36,10 @@
         </div>
     @endif
 </div>
+
+@if (session(\App\Support\PasswordPolicy::WARNING_SESSION_KEY))
+    @include('partials.toast', [
+        'type' => 'warning',
+        'message' => session(\App\Support\PasswordPolicy::WARNING_SESSION_KEY),
+    ])
+@endif

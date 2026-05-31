@@ -32,34 +32,32 @@
                     </thead>
                     <tbody>
                         @forelse ($sampahList as $item)
-                            @if ($item['status'] !== 'nonaktif')
-                                <tr>
-                                    <td class="fw-semibold">{{ $loop->iteration }}</td>
-                                    <td>{{ $item['nama_jenis'] }}</td>
-                                    <td>Rp {{ number_format($item['harga_per_kg'], 0, ',', '.') }}</td>
-                                    <td class="{{ (float)$item['stok_kg'] < 5 ? 'fw-bold text-danger' : '' }}">
-                                        {{ number_format($item['stok_kg'], 1, ',', '.') }} kg
-                                    </td>
-                                    <td>
-                                        @if ($item['status'] === 'aktif')
-                                            <span class="badge bg-success">Aktif</span>
-                                        @else
-                                            <span class="badge bg-danger">Nonaktif</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <div class="d-flex justify-content-center flex-wrap gp-actions">
-                                            <a href="{{ route('admin.sampah.edit', $item['id_jenis']) }}" class="btn btn-sm btn-secondary"><i class="bi bi-pencil"></i>Edit</a>
-                                            <form method="POST" class="delete-form d-inline" data-confirm="Hapus sampah {{ $item['nama_jenis'] }}?">
-                                                @csrf
-                                                <input type="hidden" name="action" value="delete">
-                                                <input type="hidden" name="id" value="{{ $item['id_jenis'] }}">
-                                                <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i>Hapus</button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endif
+                            <tr>
+                                <td class="fw-semibold">{{ $loop->iteration }}</td>
+                                <td>{{ $item['nama_jenis'] }}</td>
+                                <td>Rp {{ number_format($item['harga_per_kg'], 0, ',', '.') }}</td>
+                                <td class="{{ (float)$item['stok_kg'] < 5 ? 'fw-bold text-danger' : '' }}">
+                                    {{ number_format($item['stok_kg'], 1, ',', '.') }} kg
+                                </td>
+                                <td>
+                                    @if ($item['status'] === 'aktif')
+                                        <span class="badge bg-success">Aktif</span>
+                                    @else
+                                        <span class="badge bg-danger">Nonaktif</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <div class="d-flex justify-content-center flex-wrap gp-actions">
+                                        <a href="{{ route('admin.sampah.edit', $item['id_jenis']) }}" class="btn btn-sm btn-secondary"><i class="bi bi-pencil"></i>Edit</a>
+                                        <form method="POST" class="delete-form d-inline" data-confirm="Hapus sampah {{ $item['nama_jenis'] }}?">
+                                            @csrf
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id" value="{{ $item['id_jenis'] }}">
+                                            <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i>Hapus</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
                         @empty
                             <tr>
                                 <td colspan="6" class="gp-empty">Tidak ada data sampah</td>

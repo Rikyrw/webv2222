@@ -218,12 +218,24 @@
             resize: vertical;
         }
 
+        .username-hint,
+        .username-warning,
         .password-hint,
         .password-feedback {
             color: var(--gp-muted);
             font-size: 12px;
             min-height: 18px;
             line-height: 1.45;
+        }
+
+        .username-warning {
+            display: none;
+            color: #a61b1b;
+            font-weight: 700;
+        }
+
+        .username-warning.show {
+            display: block;
         }
 
         .password-match,
@@ -404,9 +416,15 @@
                                 autocomplete="username"
                                 autocapitalize="none"
                                 spellcheck="false"
+                                pattern="[A-Za-z0-9_]+"
+                                title="Username hanya boleh berisi huruf, angka, dan underscore tanpa spasi"
                                 placeholder="Masukkan username"
                                 value="{{ old('username') }}"
                             >
+                            <div class="username-hint">Gunakan huruf, angka, atau underscore. Jangan gunakan spasi.</div>
+                            <div class="username-warning" id="username-warning" aria-live="polite">
+                                Username tidak boleh memakai spasi.
+                            </div>
                         </div>
 
                         <div class="form-group">
@@ -458,12 +476,14 @@
                                 type="password"
                                 id="password"
                                 name="password"
-                                maxlength="8"
+                                minlength="8"
                                 required
                                 autocomplete="new-password"
-                                placeholder="Maksimal 8 karakter"
+                                placeholder="Minimal 8 karakter"
                             >
-                            <div class="password-hint">Gunakan maksimal 8 karakter.</div>
+                            <div class="password-hint">
+                                Minimal 8 karakter, huruf besar, huruf kecil, angka, dan karakter khusus (!@#$%^&*).
+                            </div>
                         </div>
 
                         <div class="form-group">
@@ -473,7 +493,7 @@
                                 type="password"
                                 id="konfirmasi_password"
                                 name="konfirmasi_password"
-                                maxlength="8"
+                                minlength="8"
                                 required
                                 autocomplete="new-password"
                                 placeholder="Ulangi password"
@@ -522,6 +542,18 @@
             const feedback = document.querySelector('.password-feedback');
             const match = document.getElementById('password-match');
             const mismatch = document.getElementById('password-mismatch');
+            const username = document.getElementById('username');
+            const usernameWarning = document.getElementById('username-warning');
+
+            function validateUsername() {
+                if (!username || !usernameWarning) {
+                    return;
+                }
+
+                const hasInvalidCharacter = /[^A-Za-z0-9_]/.test(username.value);
+                usernameWarning.classList.toggle('show', hasInvalidCharacter);
+                username.setCustomValidity(hasInvalidCharacter ? 'Username hanya boleh berisi huruf, angka, dan underscore tanpa spasi.' : '');
+            }
 
             function validatePassword() {
                 if (!password || !konfirmasi || !match || !mismatch) {
@@ -546,6 +578,8 @@
                 }
             }
 
+            username?.addEventListener('input', validateUsername);
+            validateUsername();
             password?.addEventListener('input', validatePassword);
             konfirmasi?.addEventListener('input', validatePassword);
         });

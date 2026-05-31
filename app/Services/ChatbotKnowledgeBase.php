@@ -127,7 +127,7 @@ class ChatbotKnowledgeBase
         ])) {
             return "Untuk daftar akun Green Point:\n\n"
                 ."1. Dari halaman awal, pilih tombol \"Daftar\".\n"
-                ."2. Isi Nama Lengkap, Username, Email, Alamat, Nomor Telepon, Password minimal 8 karakter, dan Confirm Password.\n"
+                ."2. Isi Nama Lengkap, Username, Email, Alamat, Nomor Telepon, Password minimal 8 karakter yang mengandung huruf besar, huruf kecil, angka, dan karakter khusus (!@#$%^&*), lalu Confirm Password.\n"
                 ."3. Tekan tombol \"Daftar\".\n"
                 ."4. Untuk daftar manual, klik link verifikasi yang dikirim ke emailmu.\n"
                 ."5. Setelah email berhasil diverifikasi, masuk dengan email atau username dan password akunmu.\n"

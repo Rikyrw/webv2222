@@ -27,7 +27,7 @@
                     <div class="col-md-3 col-sm-6">
                         <div class="gp-mini-card">
                             <span>ID Transaksi</span>
-                            <strong>#{{ $transaksi['id_transaksi_setor'] }}</strong>
+                            <strong>{{ $transaksi['display_id'] ?? ('#' . $transaksi['id_transaksi_setor']) }}</strong>
                         </div>
                     </div>
                     <div class="col-md-3 col-sm-6">
@@ -207,8 +207,8 @@
     }
 
     .gp-photo-thumb {
-        width: 120px;
-        height: 90px;
+        width: 88px;
+        height: 66px;
         object-fit: cover;
         border: 1px solid #dfe7e1;
         border-radius: 8px;
@@ -218,7 +218,9 @@
     .gp-photo-modal-img {
         display: block;
         width: 100%;
-        max-height: 72vh;
+        max-width: 100%;
+        height: auto;
+        max-height: 60vh;
         object-fit: contain;
         border-radius: 8px;
         background: #f5f8f5;

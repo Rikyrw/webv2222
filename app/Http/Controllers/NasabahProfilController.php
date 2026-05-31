@@ -2,11 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\NasabahVerificationLinkMail;
 use App\Models\Nasabah;
+use App\Support\UsernamePolicy;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 
 class NasabahProfilController extends Controller
 {
+    private const VERIFICATION_LINK_TTL_MINUTES = 60;
+
     public function index(Request $request)
     {
         $activePage = 'profil';
@@ -103,7 +111,7 @@ class NasabahProfilController extends Controller
     {
         // Validasi input
         $validated = $request->validate([
-            'username' => ['required', 'string', 'min:3', 'max:50', 'regex:/^[A-Za-z0-9_]+$/'],
+            'username' => UsernamePolicy::rules(required: true, min: 3),
             'nama_nasabah' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'no_hp' => 'nullable|string|max:20',
@@ -112,7 +120,7 @@ class NasabahProfilController extends Controller
             'username.required' => 'Username harus diisi',
             'username.min' => 'Username minimal 3 karakter',
             'username.max' => 'Username maksimal 50 karakter',
-            'username.regex' => 'Username hanya boleh berisi huruf, angka, dan underscore',
+            'username.regex' => UsernamePolicy::MESSAGE,
             'nama_nasabah.required' => 'Nama lengkap harus diisi',
             'nama_nasabah.max' => 'Nama lengkap tidak boleh lebih dari 255 karakter',
             'email.required' => 'Email harus diisi',
@@ -129,39 +137,126 @@ class NasabahProfilController extends Controller
 
         try {
             $username = trim($validated['username']);
+            $newEmail = strtolower(trim($validated['email']));
 
-            $exists = Nasabah::where('user_name', $username)
+            $exists = Nasabah::whereUsernameInsensitive($username)
                 ->where('id_nasabah', '!=', $id)
                 ->exists();
             if ($exists) {
                 return back()->withInput()->withErrors(['username' => 'Username sudah digunakan oleh pengguna lain']);
             }
 
+            $emailExists = Nasabah::whereEmailInsensitive($newEmail)
+                ->where('id_nasabah', '!=', $id)
+                ->exists();
+            if ($emailExists) {
+                return back()->withInput()->withErrors(['email' => 'Email sudah digunakan oleh pengguna lain']);
+            }
+
+            $model = Nasabah::findOrFail($id);
+            $currentEmail = strtolower(trim((string) $model->email));
+            $emailChanged = $newEmail !== $currentEmail;
+            $token = null;
+            $expiresAt = null;
+
             $payload = [
                 'user_name' => $username,
                 'nama_lengkap' => $validated['nama_nasabah'],
-                'email' => $validated['email'],
+                'email' => $newEmail,
                 'no_hp' => $validated['no_hp'] ?? '',
                 'alamat' => $validated['alamat'] ?? '',
             ];
 
-            $model = Nasabah::findOrFail($id);
+            if ($emailChanged) {
+                $token = $this->generateVerificationToken();
+                $expiresAt = now()->addMinutes(self::VERIFICATION_LINK_TTL_MINUTES);
+                $payload['email_verified_at'] = null;
+                $payload['email_verification_token_hash'] = $this->tokenHash($token);
+                $payload['email_verification_expires_at'] = $expiresAt;
+                $payload['email_verification_sent_at'] = now();
+            }
+
             $model->update($payload);
-            $row = $model->fresh()->getAttributes();
-                // Update session with new values
-                session([
-                    'nama_nasabah' => $row['nama_lengkap'] ?? $validated['nama_nasabah'],
-                    'username' => $row['user_name'] ?? $username,
-                    'email' => $row['email'] ?? $validated['email'],
-                    'no_hp' => $row['no_hp'] ?? ($validated['no_hp'] ?? ''),
-                    'alamat' => $row['alamat'] ?? ($validated['alamat'] ?? ''),
+            $fresh = $model->fresh();
+            $row = $fresh->getAttributes();
+
+            if ($emailChanged && $token !== null && $expiresAt instanceof Carbon) {
+                $verificationEmailSent = false;
+
+                try {
+                    $this->sendVerificationLink($row, $token, $expiresAt);
+                    $verificationEmailSent = true;
+                } catch (\Throwable $exception) {
+                    Log::warning('Profile email verification link failed.', [
+                        'id_nasabah' => $id,
+                        'email' => $newEmail,
+                        'message' => $exception->getMessage(),
+                    ]);
+                }
+
+                $request->session()->forget([
+                    'id_nasabah',
+                    'nama_nasabah',
+                    'username',
+                    'email',
+                    'alamat',
+                    'no_hp',
+                    'saldo',
+                ]);
+                $request->session()->put(NasabahEmailVerificationController::SESSION_KEY, [
+                    'id_nasabah' => (int) $row['id_nasabah'],
+                    'email' => $newEmail,
                 ]);
 
-                return redirect()->route('nasabah.profil')->with('success', 'Profil berhasil diperbarui');
+                $redirect = redirect()->route('nasabah.verification.notice');
+
+                return $verificationEmailSent
+                    ? $redirect->with('success', 'Email profil diperbarui. Link verifikasi sudah dikirim ke email baru. Silakan verifikasi sebelum login lagi.')
+                    : $redirect->with('error', 'Email profil diperbarui, tetapi link verifikasi belum dapat dikirim. Gunakan tombol kirim ulang verifikasi.');
+            }
+
+            // Update session with new values.
+            session([
+                'nama_nasabah' => $row['nama_lengkap'] ?? $validated['nama_nasabah'],
+                'username' => $row['user_name'] ?? $username,
+                'email' => $row['email'] ?? $newEmail,
+                'no_hp' => $row['no_hp'] ?? ($validated['no_hp'] ?? ''),
+                'alamat' => $row['alamat'] ?? ($validated['alamat'] ?? ''),
+            ]);
+
+            return redirect()->route('nasabah.profil')->with('success', 'Profil berhasil diperbarui');
         } catch (\Exception $e) {
             \Log::error('Profile update error: ' . $e->getMessage());
             return back()->withInput()->withErrors(['email' => 'Terjadi kesalahan: ' . $e->getMessage()]);
         }
+    }
+
+    private function sendVerificationLink(array $user, string $token, Carbon $expiresAt): void
+    {
+        $verificationUrl = URL::temporarySignedRoute(
+            'nasabah.verification.verify',
+            $expiresAt,
+            [
+                'id' => (int) $user['id_nasabah'],
+                'token' => $token,
+            ],
+        );
+
+        Mail::to($user['email'])->send(new NasabahVerificationLinkMail(
+            $user['nama_lengkap'] ?? 'Nasabah',
+            $verificationUrl,
+            self::VERIFICATION_LINK_TTL_MINUTES,
+        ));
+    }
+
+    private function generateVerificationToken(): string
+    {
+        return bin2hex(random_bytes(32));
+    }
+
+    private function tokenHash(string $token): string
+    {
+        return hash('sha256', $token);
     }
 
     private function getInitials($name)

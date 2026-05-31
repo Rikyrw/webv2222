@@ -1,5 +1,50 @@
 @extends('layouts.app')
 
+@push('styles')
+<style>
+    .riwayat-penarikan-table {
+        min-width: 920px;
+        table-layout: fixed;
+    }
+
+    .riwayat-penarikan-table th:nth-child(1),
+    .riwayat-penarikan-table td:nth-child(1) {
+        width: 58px;
+    }
+
+    .riwayat-penarikan-table th:nth-child(2),
+    .riwayat-penarikan-table td:nth-child(2) {
+        width: 130px;
+    }
+
+    .riwayat-penarikan-table th:nth-child(3),
+    .riwayat-penarikan-table td:nth-child(3) {
+        width: 140px;
+    }
+
+    .riwayat-penarikan-table th:nth-child(5),
+    .riwayat-penarikan-table td:nth-child(5),
+    .riwayat-penarikan-table th:nth-child(6),
+    .riwayat-penarikan-table td:nth-child(6) {
+        width: 150px;
+    }
+
+    .riwayat-penarikan-table th:nth-child(7),
+    .riwayat-penarikan-table td:nth-child(7) {
+        width: 120px;
+    }
+
+    .riwayat-description {
+        color: #2f3b35;
+        line-height: 1.45;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        white-space: normal;
+        word-break: normal;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="gp-page">
     <div class="card">
@@ -77,7 +122,7 @@
                 <h2 class="gp-title">Riwayat Penarikan Saldo</h2>
             </div>
             <div class="table-responsive">
-                <table class="table gp-table gp-data-table table-hover align-middle" data-page-length="8">
+                <table class="table gp-table gp-data-table table-hover align-middle riwayat-penarikan-table" data-page-length="8">
                     <thead>
                         <tr>
                             <th>No.</th>
@@ -95,8 +140,8 @@
                                 <td class="fw-semibold">{{ $loop->iteration }}</td>
                                 <td>{{ $item['jenis'] }}</td>
                                 <td>Rp {{ number_format($item['nominal'], 0, ',', '.') }}</td>
-                                <td style="max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ $item['deskripsi'] }}">
-                                    {{ $item['deskripsi'] }}
+                                <td>
+                                    <div class="riwayat-description">{{ $item['deskripsi'] }}</div>
                                 </td>
                                 <td>{{ $item['tanggal'] ? date('d M Y', strtotime($item['tanggal'])) : '-' }}</td>
                                 <td>{{ $item['tanggal_proses'] ? date('d M Y', strtotime($item['tanggal_proses'])) : '-' }}</td>

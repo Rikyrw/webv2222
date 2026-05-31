@@ -12,6 +12,16 @@ class ChatbotController extends Controller
 {
     public function send(Request $request, GroqChatbotService $chatbot): JsonResponse
     {
+        return $this->sendForContext($request, $chatbot, 'web');
+    }
+
+    public function sendMobile(Request $request, GroqChatbotService $chatbot): JsonResponse
+    {
+        return $this->sendForContext($request, $chatbot, 'mobile');
+    }
+
+    private function sendForContext(Request $request, GroqChatbotService $chatbot, string $context): JsonResponse
+    {
         $validator = Validator::make($request->all(), [
             'message' => ['required', 'string', 'max:1000'],
             'history' => ['sometimes', 'array', 'max:12'],
@@ -32,6 +42,7 @@ class ChatbotController extends Controller
                 'message' => $chatbot->reply(
                     $validated['message'],
                     $validated['history'] ?? [],
+                    $context,
                 ),
             ]);
         } catch (GroqChatbotException $exception) {

@@ -277,14 +277,16 @@
 			<div class="stat-note">Akumulasi setoran sampah hari ini</div>
 		</div>
 
-		<div class="stat-card">
-			<div class="stat-label">Pendapatan Bulan Ini</div>
-			<div class="stat-icon">
-				<img src="{{ asset('images/Health Graph.png') }}" alt="" aria-hidden="true">
+		@if (!empty($canViewRevenue))
+			<div class="stat-card">
+				<div class="stat-label">Pendapatan Bulan Ini</div>
+				<div class="stat-icon">
+					<img src="{{ asset('images/Health Graph.png') }}" alt="" aria-hidden="true">
+				</div>
+				<div class="stat-value">Rp {{ number_format($pendapatanThisMonth ?? 0, 0, ',', '.') }}</div>
+				<div class="stat-note">Akumulasi transaksi selesai bulan ini</div>
 			</div>
-			<div class="stat-value">Rp {{ number_format($pendapatanThisMonth ?? 0, 0, ',', '.') }}</div>
-			<div class="stat-note">Akumulasi transaksi selesai bulan ini</div>
-		</div>
+		@endif
 
 		<div class="stat-card">
 			<div class="stat-label">Total Saldo Nasabah</div>

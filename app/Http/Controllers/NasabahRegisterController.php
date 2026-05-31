@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Mail\NasabahVerificationLinkMail;
 use App\Models\Nasabah;
+use App\Support\PasswordPolicy;
+use App\Support\UsernamePolicy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -24,21 +26,16 @@ class NasabahRegisterController extends Controller
     {
         $validated = $request->validate([
             'nama' => 'required|string|max:255',
-            'username' => 'required|string|max:50',
+            'username' => UsernamePolicy::rules(),
             'email' => 'required|email|max:255',
-            'password' => 'required|string|max:8',
-            'konfirmasi_password' => 'required|string|max:8',
+            'password' => PasswordPolicy::rules(),
+            'konfirmasi_password' => PasswordPolicy::confirmationRules(),
             'alamat' => 'nullable|string',
             'no_hp' => 'required|string|max:20',
+        ], [
+            ...PasswordPolicy::messages(),
+            ...UsernamePolicy::messages('username'),
         ]);
-
-        if ($validated['password'] !== $validated['konfirmasi_password']) {
-            return back()->withInput()->withErrors(['password' => 'Password dan konfirmasi password tidak sama!']);
-        }
-
-        if (strlen($validated['password']) > 8) {
-            return back()->withInput()->withErrors(['password' => 'Password maksimal 8 karakter!']);
-        }
 
         try {
             $email = strtolower(trim($validated['email']));
@@ -130,8 +127,8 @@ class NasabahRegisterController extends Controller
 
     private function nasabahExists(string $email, string $username): bool
     {
-        return Nasabah::where('email', $email)
-            ->orWhere('user_name', $username)
+        return Nasabah::whereEmailInsensitive($email)
+            ->orWhere(fn ($query) => $query->whereUsernameInsensitive($username))
             ->exists();
     }
 }

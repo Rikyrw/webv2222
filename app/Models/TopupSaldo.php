@@ -13,6 +13,7 @@ class TopupSaldo extends Model
     protected $table = 'topup_saldo';
     protected $primaryKey = 'id_topup';
     protected $keyType = 'int';
+    public $timestamps = false;
 
     protected $fillable = [
         'id_nasabah',
@@ -27,12 +28,14 @@ class TopupSaldo extends Model
         'snap_redirect_url',
         'raw_notification',
         'transaction_time',
+        'created_at',
     ];
 
     protected $casts = [
         'gross_amount' => 'decimal:2',
         'raw_notification' => 'array',
         'transaction_time' => 'datetime',
+        'created_at' => 'datetime',
     ];
 
     public function nasabah(): BelongsTo

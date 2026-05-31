@@ -405,7 +405,7 @@
                         <span id="saldo-amount" data-live-saldo>Rp {{ number_format((float)($user['saldo'] ?? 0), 0, ',', '.') }}</span>
                     </div>
                     
-                    <div class="topup-box" role="region" aria-label="Top up saldo">
+                    <div class="topup-box" id="topup-saldo" role="region" aria-label="Top up saldo">
                         <div class="topup-title">Top Up Saldo</div>
                         <form id="topup-form" class="topup-form" method="post" action="{{ route('nasabah.topup.create') }}">
                             @csrf

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Nasabah;
+use App\Services\FirebaseAuthUserManager;
+use App\Support\PasswordPolicy;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -13,6 +15,10 @@ class NasabahLoginController extends Controller
     private const DEACTIVATED_LOGIN_MESSAGE = 'Akun Anda sedang nonaktif. Silakan hubungi CS GreenPoint untuk bantuan lebih lanjut.';
 
     private const INACTIVE_LOGIN_MESSAGE = 'Akun Anda belum aktif. Silakan hubungi CS GreenPoint untuk bantuan lebih lanjut.';
+
+    public function __construct(
+        private FirebaseAuthUserManager $firebaseUsers,
+    ) {}
 
     public function showLogin()
     {
@@ -72,6 +78,10 @@ class NasabahLoginController extends Controller
                 if (! $loginSuccess) {
                     $firebaseUid = $this->signInWithFirebase($user['email'] ?? null, $password);
 
+                    if (! $firebaseUid && $this->syncFirebaseEmailForLogin($storedPassword, $user['email'] ?? null)) {
+                        $firebaseUid = $this->signInWithFirebase($user['email'] ?? null, $password);
+                    }
+
                     if ($firebaseUid) {
                         if ($this->isFirebaseUidMarker($storedPassword) && ! hash_equals(Str::after($storedPassword, 'firebase-auth:'), $firebaseUid)) {
                             $loginSuccess = false;
@@ -86,6 +96,12 @@ class NasabahLoginController extends Controller
                 }
 
                 if ($loginSuccess) {
+                    if ($passwordWarning = PasswordPolicy::warningFor($password)) {
+                        session([PasswordPolicy::WARNING_SESSION_KEY => $passwordWarning]);
+                    } else {
+                        session()->forget(PasswordPolicy::WARNING_SESSION_KEY);
+                    }
+
                     // Set session (samakan dengan kolom tabel: `nama_lengkap`, `user_name`)
                     session([
                         'id_nasabah' => $user['id_nasabah'],
@@ -151,6 +167,29 @@ class NasabahLoginController extends Controller
         return $this->isFirebaseBackedPassword($storedPassword);
     }
 
+    private function syncFirebaseEmailForLogin(?string $storedPassword, ?string $email): bool
+    {
+        $firebaseUid = $this->firebaseUid($storedPassword);
+        $email = strtolower(trim((string) $email));
+
+        if ($firebaseUid === null || $email === '') {
+            return false;
+        }
+
+        return $this->firebaseUsers->updateEmailByUid($firebaseUid, $email, true);
+    }
+
+    private function firebaseUid(?string $storedPassword): ?string
+    {
+        if (! is_string($storedPassword) || ! str_starts_with($storedPassword, 'firebase-auth:')) {
+            return null;
+        }
+
+        $uid = substr($storedPassword, strlen('firebase-auth:'));
+
+        return $uid !== '' ? $uid : null;
+    }
+
     private function emailNeedsVerification(array $user): bool
     {
         return empty($user['google_sub'])
@@ -160,9 +199,11 @@ class NasabahLoginController extends Controller
 
     private function findNasabahForLogin(string $username): ?array
     {
-        return Nasabah::where(function ($query) use ($username) {
-                $query->where('user_name', $username)
-                    ->orWhere('email', $username);
+        $identifier = Nasabah::normalizeLookupValue($username);
+
+        return Nasabah::where(function ($query) use ($identifier) {
+                $query->whereUsernameInsensitive($identifier)
+                    ->orWhere(fn ($query) => $query->whereEmailInsensitive($identifier));
             })
             ->orderByDesc('id_nasabah')
             ->first()

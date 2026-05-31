@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\NasabahVerificationLinkMail;
 use App\Models\Nasabah;
+use App\Services\FirebaseAuthUserManager;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -19,6 +20,10 @@ class NasabahEmailVerificationController extends Controller
     private const VERIFICATION_LINK_TTL_MINUTES = 60;
 
     private const RESEND_COOLDOWN_SECONDS = 60;
+
+    public function __construct(
+        private FirebaseAuthUserManager $firebaseUsers,
+    ) {}
 
     public function notice(Request $request): View
     {
@@ -65,6 +70,7 @@ class NasabahEmailVerificationController extends Controller
             ]);
 
             $request->session()->forget(self::SESSION_KEY);
+            $this->syncFirebaseEmailIfNeeded($user);
 
             return redirect()
                 ->route('nasabah.login')
@@ -144,15 +150,39 @@ class NasabahEmailVerificationController extends Controller
 
     private function emailNeedsVerification(array $user): bool
     {
-        return empty($user['google_sub'])
-            && array_key_exists('email_verified_at', $user)
+        return array_key_exists('email_verified_at', $user)
             && empty($user['email_verified_at']);
     }
 
     private function emailIsVerified(array $user): bool
     {
-        return ! empty($user['google_sub'])
-            || (array_key_exists('email_verified_at', $user) && ! empty($user['email_verified_at']));
+        return array_key_exists('email_verified_at', $user) && ! empty($user['email_verified_at']);
+    }
+
+    private function syncFirebaseEmailIfNeeded(array $user): bool
+    {
+        $firebaseUid = $this->firebaseUid($user['password'] ?? null);
+        if ($firebaseUid === null) {
+            return true;
+        }
+
+        $email = strtolower(trim((string) ($user['email'] ?? '')));
+        if ($email === '') {
+            return false;
+        }
+
+        return $this->firebaseUsers->updateEmailByUid($firebaseUid, $email, true);
+    }
+
+    private function firebaseUid(mixed $storedPassword): ?string
+    {
+        if (! is_string($storedPassword) || ! str_starts_with($storedPassword, 'firebase-auth:')) {
+            return null;
+        }
+
+        $uid = substr($storedPassword, strlen('firebase-auth:'));
+
+        return $uid !== '' ? $uid : null;
     }
 
     private function verificationTokenIsUsable(array $user, string $token): bool
@@ -209,6 +239,6 @@ class NasabahEmailVerificationController extends Controller
 
     private function findNasabahByEmail(string $email): ?array
     {
-        return Nasabah::where('email', $email)->first()?->getAttributes();
+        return Nasabah::whereEmailInsensitive($email)->first()?->getAttributes();
     }
 }

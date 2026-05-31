@@ -50,24 +50,27 @@ class LaporanController extends Controller
         $composition = [];
         $topNasabah = [];
         $databaseError = null;
+        $canViewFinanceReport = session('admin_role') === 'superadmin';
 
         try {
             // Get financial data from the configured Laravel database connection.
-            $totalSetoran = TransaksiSetor::where('status', 'selesai')
-                ->whereBetween('tanggal_setor', [$start, $end])
-                ->sum('total_nilai') ?? 0;
-            
-            $totalSetoranCount = TransaksiSetor::where('status', 'selesai')
-                ->whereBetween('tanggal_setor', [$start, $end])
-                ->count();
-            
-            // Total penarikan/withdrawal
-            $totalPenarikan = TransaksiPenarikan::where('status', 'selesai')
-                ->whereBetween('tanggal_proses', [$start, $end])
-                ->sum('nominal') ?? 0;
-            
-            // Total saldo nasabah aktif
-            $saldoAkhir = Nasabah::where('status', 'aktif')->sum('saldo') ?? 0;
+            if ($canViewFinanceReport) {
+                $totalSetoran = TransaksiSetor::where('status', 'selesai')
+                    ->whereBetween('tanggal_setor', [$start, $end])
+                    ->sum('total_nilai') ?? 0;
+                
+                $totalSetoranCount = TransaksiSetor::where('status', 'selesai')
+                    ->whereBetween('tanggal_setor', [$start, $end])
+                    ->count();
+                
+                // Total penarikan/withdrawal
+                $totalPenarikan = TransaksiPenarikan::where('status', 'selesai')
+                    ->whereBetween('tanggal_proses', [$start, $end])
+                    ->sum('nominal') ?? 0;
+                
+                // Total saldo nasabah aktif
+                $saldoAkhir = Nasabah::where('status', 'aktif')->sum('saldo') ?? 0;
+            }
             
             // Waste composition by type (for the selected period)
             $compositionData = DetailSetor::join('transaksi_setor', 'detail_setor.id_transaksi_setor', '=', 'transaksi_setor.id_transaksi_setor')
@@ -120,12 +123,17 @@ class LaporanController extends Controller
             'saldoAkhir',
             'composition',
             'topNasabah',
-            'databaseError'
+            'databaseError',
+            'canViewFinanceReport'
         ));
     }
 
     public function excelKeuangan(Request $request)
     {
+        if (session('admin_role') !== 'superadmin') {
+            abort(403);
+        }
+
         try {
             $period = $request->get('periode', 'month');
             
@@ -190,6 +198,10 @@ class LaporanController extends Controller
 
     public function pdfKeuangan(Request $request)
     {
+        if (session('admin_role') !== 'superadmin') {
+            abort(403);
+        }
+
         try {
             $period = $request->get('periode', 'month');
             

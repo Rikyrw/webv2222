@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\NasabahVerificationLinkMail;
 use App\Models\DetailSetor;
 use App\Models\FotoSetor;
 use App\Models\Nasabah;
@@ -10,18 +11,23 @@ use App\Models\TopupSaldo;
 use App\Models\TransaksiPenarikan;
 use App\Models\TransaksiSetor;
 use App\Services\MobileNasabahTokenService;
+use App\Support\UsernamePolicy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class MobileNasabahDataController extends Controller
 {
     private const DEACTIVATED_LOGIN_MESSAGE = 'Akun Anda sedang nonaktif. Silakan hubungi CS GreenPoint untuk bantuan lebih lanjut.';
 
     private const INACTIVE_LOGIN_MESSAGE = 'Akun Anda belum aktif. Silakan hubungi CS GreenPoint untuk bantuan lebih lanjut.';
+
+    private const VERIFICATION_LINK_TTL_MINUTES = 60;
 
     public function __construct(
         private MobileNasabahTokenService $tokens,
@@ -76,22 +82,25 @@ class MobileNasabahDataController extends Controller
         $validated = $request->validate([
             'old_email' => ['nullable', 'email'],
             'nama_lengkap' => ['required', 'string', 'max:255'],
-            'user_name' => ['required', 'string', 'max:50'],
+            'user_name' => UsernamePolicy::rules(),
             'email' => ['required', 'email', 'max:255'],
             'alamat' => ['required', 'string'],
             'no_hp' => ['required', 'string', 'max:20'],
-        ]);
+        ], UsernamePolicy::messages('user_name'));
 
         $authenticated = $this->authenticatedNasabah($request);
         $oldEmail = strtolower(trim($validated['old_email'] ?? (string) $authenticated?->email));
         $newEmail = strtolower(trim($validated['email']));
 
-        $nasabah = $authenticated ?? Nasabah::where('email', $oldEmail)->first();
+        $nasabah = $authenticated ?? Nasabah::whereEmailInsensitive($oldEmail)->first();
         if (!$nasabah) {
             return response()->json(['message' => 'Data nasabah tidak ditemukan.'], 404);
         }
 
-        if ($newEmail !== $oldEmail && Nasabah::where('email', $newEmail)->where('id_nasabah', '!=', $nasabah->id_nasabah)->exists()) {
+        $currentEmail = strtolower(trim((string) $nasabah->email));
+        $emailChanged = $newEmail !== $currentEmail;
+
+        if ($emailChanged && Nasabah::whereEmailInsensitive($newEmail)->where('id_nasabah', '!=', $nasabah->id_nasabah)->exists()) {
             return response()->json([
                 'message' => 'Email sudah digunakan.',
                 'errors' => ['email' => ['Email sudah digunakan.']],
@@ -99,24 +108,58 @@ class MobileNasabahDataController extends Controller
         }
 
         $username = trim($validated['user_name']);
-        if (Nasabah::where('user_name', $username)->where('id_nasabah', '!=', $nasabah->id_nasabah)->exists()) {
+        if (Nasabah::whereUsernameInsensitive($username)->where('id_nasabah', '!=', $nasabah->id_nasabah)->exists()) {
             return response()->json([
                 'message' => 'Username sudah digunakan.',
                 'errors' => ['user_name' => ['Username sudah digunakan.']],
             ], 422);
         }
 
-        $nasabah->update([
+        $token = null;
+        $expiresAt = null;
+        $payload = [
             'nama_lengkap' => trim($validated['nama_lengkap']),
             'user_name' => $username,
             'email' => $newEmail,
             'alamat' => trim($validated['alamat']),
             'no_hp' => trim($validated['no_hp']),
-        ]);
+        ];
+
+        if ($emailChanged) {
+            $token = $this->generateVerificationToken();
+            $expiresAt = now()->addMinutes(self::VERIFICATION_LINK_TTL_MINUTES);
+            $payload['email_verified_at'] = null;
+            $payload['email_verification_token_hash'] = $this->tokenHash($token);
+            $payload['email_verification_expires_at'] = $expiresAt;
+            $payload['email_verification_sent_at'] = now();
+        }
+
+        $nasabah->update($payload);
+        $fresh = $nasabah->fresh();
+        $verificationEmailSent = false;
+
+        if ($emailChanged && $token !== null && $expiresAt instanceof Carbon && $fresh) {
+            try {
+                $this->sendVerificationLink($fresh->getAttributes(), $token, $expiresAt);
+                $verificationEmailSent = true;
+            } catch (\Throwable $exception) {
+                Log::warning('Mobile profile email verification link failed.', [
+                    'id_nasabah' => $fresh->id_nasabah,
+                    'email' => $newEmail,
+                    'message' => $exception->getMessage(),
+                ]);
+            }
+        }
 
         return response()->json([
-            'message' => 'Profil berhasil diperbarui.',
-            'data' => $this->profileArray($nasabah->fresh()),
+            'message' => $emailChanged
+                ? ($verificationEmailSent
+                    ? 'Profil berhasil diperbarui. Link verifikasi sudah dikirim ke email baru.'
+                    : 'Profil berhasil diperbarui, tetapi email verifikasi belum dapat dikirim. Coba kirim ulang verifikasi.')
+                : 'Profil berhasil diperbarui.',
+            'email_verification_required' => $emailChanged,
+            'verification_email_sent' => $emailChanged ? $verificationEmailSent : null,
+            'data' => $this->profileArray($fresh),
         ]);
     }
 
@@ -125,7 +168,7 @@ class MobileNasabahDataController extends Controller
         $validated = $request->validate([
             'firebase_uid' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
-            'user_name' => ['nullable', 'string', 'max:50'],
+            'user_name' => UsernamePolicy::rules(required: false),
             'nama_lengkap' => ['nullable', 'string', 'max:255'],
             'alamat' => ['nullable', 'string'],
             'no_hp' => ['nullable', 'string', 'max:20'],
@@ -133,11 +176,11 @@ class MobileNasabahDataController extends Controller
             'google_id' => ['nullable', 'string', 'max:255'],
             'provider' => ['nullable', 'string', 'max:50'],
             'saldo' => ['nullable', 'numeric'],
-        ]);
+        ], UsernamePolicy::messages('user_name'));
 
         $email = strtolower(trim($validated['email']));
         $provider = $this->filledText($validated['provider'] ?? null) ?: 'firebase';
-        $existing = Nasabah::where('email', $email)->first();
+        $existing = Nasabah::whereEmailInsensitive($email)->first();
 
         if ($existing && ($statusMessage = $this->accountStatusMessage($existing->getAttributes()))) {
             return response()->json([
@@ -147,7 +190,7 @@ class MobileNasabahDataController extends Controller
         }
 
         $payload = [
-            'user_name' => $this->filledText($validated['user_name'] ?? null) ?: explode('@', $email)[0],
+            'user_name' => $this->filledText($validated['user_name'] ?? null) ?: UsernamePolicy::fromEmail($email),
             'nama_lengkap' => $this->filledText($validated['nama_lengkap'] ?? null) ?: explode('@', $email)[0],
             'email' => $email,
             'no_hp' => $this->filledText($validated['no_hp'] ?? null),
@@ -474,33 +517,23 @@ class MobileNasabahDataController extends Controller
         }
 
         if ($includeEmailMatch) {
-            $record = $this->findNasabahByEmail(strtolower($value)) ?: $this->findNasabahByEmailIlike($value);
+            $record = $this->findNasabahByEmail($value);
             if ($record) {
                 return $record;
             }
         }
 
-        return $this->findNasabahByUsername($value) ?: $this->findNasabahByUsernameIlike($value);
+        return $this->findNasabahByUsername($value);
     }
 
     private function findNasabahByEmail(string $email): ?array
     {
-        return $this->profileArray(Nasabah::where('email', $email)->first());
-    }
-
-    private function findNasabahByEmailIlike(string $email): ?array
-    {
-        return $this->profileArray(Nasabah::whereRaw('LOWER(email) = ?', [strtolower($email)])->first());
+        return $this->profileArray(Nasabah::whereEmailInsensitive($email)->first());
     }
 
     private function findNasabahByUsername(string $username): ?array
     {
-        return $this->profileArray(Nasabah::where('user_name', $username)->first());
-    }
-
-    private function findNasabahByUsernameIlike(string $username): ?array
-    {
-        return $this->profileArray(Nasabah::whereRaw('LOWER(user_name) = ?', [strtolower($username)])->first());
+        return $this->profileArray(Nasabah::whereUsernameInsensitive($username)->first());
     }
 
     private function buildSetorItems(array $items): array
@@ -673,6 +706,34 @@ class MobileNasabahDataController extends Controller
             'tanggal_pengajuan' => $row->tanggal_pengajuan?->toDateString(),
             'deskripsi' => $row->deskripsi,
         ];
+    }
+
+    private function sendVerificationLink(array $user, string $token, Carbon $expiresAt): void
+    {
+        $verificationUrl = URL::temporarySignedRoute(
+            'nasabah.verification.verify',
+            $expiresAt,
+            [
+                'id' => (int) $user['id_nasabah'],
+                'token' => $token,
+            ],
+        );
+
+        Mail::to($user['email'])->send(new NasabahVerificationLinkMail(
+            $user['nama_lengkap'] ?? 'Nasabah',
+            $verificationUrl,
+            self::VERIFICATION_LINK_TTL_MINUTES,
+        ));
+    }
+
+    private function generateVerificationToken(): string
+    {
+        return bin2hex(random_bytes(32));
+    }
+
+    private function tokenHash(string $token): string
+    {
+        return hash('sha256', $token);
     }
 
     private function profileArray(?Nasabah $row, bool $includeSensitive = false): ?array

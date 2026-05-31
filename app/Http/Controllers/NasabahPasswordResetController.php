@@ -31,7 +31,18 @@ class NasabahPasswordResetController extends Controller
         $email = strtolower(trim($validated['email']));
         $user = $this->findNasabahByEmail($email);
 
-        if ($user && $this->isManualAccount($user)) {
+        if ($user && $this->isManualAccount($user) && ! $this->emailIsVerified($user)) {
+            $request->session()->put(NasabahEmailVerificationController::SESSION_KEY, [
+                'id_nasabah' => (int) $user['id_nasabah'],
+                'email' => $email,
+            ]);
+
+            return redirect()
+                ->route('nasabah.verification.notice')
+                ->withErrors(['email' => 'Email belum diverifikasi. Verifikasi email dulu sebelum reset password.']);
+        }
+
+        if ($user && $this->isManualAccount($user) && $this->emailIsVerified($user)) {
             if ($this->ensureFirebasePasswordAccountExists($email, $user['password'] ?? null)) {
                 if ($this->sendPasswordResetMail($email, $user, $request->ip())) {
                     $this->markAccountAsFirebasePending((int) $user['id_nasabah'], $user['password'] ?? null);
@@ -79,16 +90,12 @@ class NasabahPasswordResetController extends Controller
 
     private function ensureFirebasePasswordAccountExists(string $email, ?string $storedPassword): bool
     {
-        if ($this->isFirebaseBackedPassword($storedPassword)) {
-            return true;
-        }
-
         $firebaseApiKey = config('services.firebase.api_key');
 
         if (! $firebaseApiKey) {
             Log::warning('Firebase password account creation skipped because FIREBASE_API_KEY is missing.');
 
-            return false;
+            return $this->isFirebaseUidMarker($storedPassword);
         }
 
         try {
@@ -116,19 +123,21 @@ class NasabahPasswordResetController extends Controller
                 'body' => $response->body(),
             ]);
 
-            return false;
+            return $this->isFirebaseUidMarker($storedPassword);
         } catch (\Throwable $exception) {
             Log::warning('Firebase password account creation failed unexpectedly.', [
                 'message' => $exception->getMessage(),
             ]);
 
-            return false;
+            return $this->isFirebaseUidMarker($storedPassword);
         }
+
+        return $this->isFirebaseUidMarker($storedPassword);
     }
 
     private function findNasabahByEmail(string $email): ?array
     {
-        return Nasabah::where('email', $email)->first()?->getAttributes();
+        return Nasabah::whereEmailInsensitive($email)->first()?->getAttributes();
     }
 
     private function isManualAccount(array $user): bool
@@ -136,14 +145,20 @@ class NasabahPasswordResetController extends Controller
         return empty($user['google_sub']);
     }
 
-    private function isFirebaseBackedPassword(?string $storedPassword): bool
+    private function emailIsVerified(array $user): bool
     {
-        return is_string($storedPassword) && (str_starts_with($storedPassword, 'firebase-auth:') || $storedPassword === 'firebase-auth-pending');
+        return array_key_exists('email_verified_at', $user)
+            && ! empty($user['email_verified_at']);
+    }
+
+    private function isFirebaseUidMarker(?string $storedPassword): bool
+    {
+        return is_string($storedPassword) && str_starts_with($storedPassword, 'firebase-auth:');
     }
 
     private function markAccountAsFirebasePending(int $idNasabah, ?string $storedPassword): void
     {
-        if ($this->isFirebaseBackedPassword($storedPassword)) {
+        if ($storedPassword === 'firebase-auth-pending') {
             return;
         }
 

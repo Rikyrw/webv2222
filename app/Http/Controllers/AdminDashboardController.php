@@ -26,6 +26,7 @@ class AdminDashboardController extends Controller
         $pieLabels = ['Data Kosong'];
         $pieData = [0];
         $databaseError = null;
+        $canViewRevenue = session('admin_role') === 'superadmin';
 
         try {
             // Get real data from database
@@ -49,14 +50,14 @@ class AdminDashboardController extends Controller
             
             $totalSampahToday = $totalSampahToday ?? 0;
             
-            // Revenue this month
-            $thisMonth = date('Y-m');
-            $pendapatanThisMonth = TransaksiSetor::where('status', 'selesai')
-                ->whereYear('tanggal_setor', date('Y'))
-                ->whereMonth('tanggal_setor', date('m'))
-                ->sum('total_nilai');
-            
-            $pendapatanThisMonth = $pendapatanThisMonth ?? 0;
+            // Revenue this month (superadmin only)
+            if ($canViewRevenue) {
+                $pendapatanThisMonth = TransaksiSetor::where('status', 'selesai')
+                    ->whereYear('tanggal_setor', date('Y'))
+                    ->whereMonth('tanggal_setor', date('m'))
+                    ->sum('total_nilai');
+                $pendapatanThisMonth = $pendapatanThisMonth ?? 0;
+            }
 
             // Chart data - last 7 days
             $lineLabels = [];
@@ -96,7 +97,7 @@ class AdminDashboardController extends Controller
         }
 
         return view('admin.dashboard', compact(
-            'activePage', 'pageTitle', 'nasabahCount', 'topNasabah', 'totalSaldo', 'totalSampahToday', 'pendapatanThisMonth', 'lineLabels', 'lineData', 'pieLabels', 'pieData', 'databaseError'
+            'activePage', 'pageTitle', 'nasabahCount', 'topNasabah', 'totalSaldo', 'totalSampahToday', 'pendapatanThisMonth', 'lineLabels', 'lineData', 'pieLabels', 'pieData', 'databaseError', 'canViewRevenue'
         ));
     }
 }

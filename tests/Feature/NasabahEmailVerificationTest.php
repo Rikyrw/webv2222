@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\NasabahEmailVerificationController;
 use App\Mail\NasabahVerificationLinkMail;
 use App\Models\Nasabah;
+use App\Services\FirebaseAuthUserManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
@@ -45,6 +48,39 @@ class NasabahEmailVerificationTest extends TestCase
             return $mail->hasTo('manual@example.test')
                 && str_contains($mail->verificationUrl, '/nasabah/verifikasi-email/');
         });
+    }
+
+    public function test_manual_registration_rejects_password_that_does_not_match_policy(): void
+    {
+        Mail::fake();
+
+        $this->post(route('nasabah.store'), [
+            ...$this->registrationPayload(),
+            'password' => 'rahasia1',
+            'konfirmasi_password' => 'rahasia1',
+        ])->assertSessionHasErrors(['password']);
+
+        $this->assertDatabaseMissing('nasabah', [
+            'email' => 'manual@example.test',
+        ]);
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_manual_registration_rejects_username_with_spaces(): void
+    {
+        Mail::fake();
+
+        $this->post(route('nasabah.store'), [
+            ...$this->registrationPayload(),
+            'username' => 'nasabah manual',
+        ])->assertSessionHasErrors(['username']);
+
+        $this->assertDatabaseMissing('nasabah', [
+            'email' => 'manual@example.test',
+        ]);
+
+        Mail::assertNothingSent();
     }
 
     public function test_verification_link_marks_email_verified_and_consumes_token(): void
@@ -98,6 +134,329 @@ class NasabahEmailVerificationTest extends TestCase
         $response->assertRedirect(route('nasabah.verification.notice'));
         $response->assertSessionHas('error', 'Email belum diverifikasi.');
         $response->assertSessionMissing('id_nasabah');
+    }
+
+    public function test_verified_manual_login_with_legacy_weak_password_still_succeeds_with_warning(): void
+    {
+        $this->createNasabah([
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->post(route('nasabah.authenticate'), [
+            'username' => 'manual@example.test',
+            'password' => 'rahasia1',
+        ]);
+
+        $response->assertRedirect(route('nasabah.dashboard'));
+        $response->assertSessionHas('id_nasabah');
+        $response->assertSessionHas(
+            \App\Support\PasswordPolicy::WARNING_SESSION_KEY,
+            \App\Support\PasswordPolicy::WARNING_MESSAGE,
+        );
+
+        $this->get(route('nasabah.dashboard'))
+            ->assertOk()
+            ->assertSee(\App\Support\PasswordPolicy::WARNING_MESSAGE);
+    }
+
+    public function test_verified_manual_login_matches_username_case_insensitively(): void
+    {
+        $this->createNasabah([
+            'user_name' => 'NasabahManual',
+            'password' => password_hash('Rahasia1!', PASSWORD_BCRYPT),
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->post(route('nasabah.authenticate'), [
+            'username' => 'nasabahmanual',
+            'password' => 'Rahasia1!',
+        ]);
+
+        $response->assertRedirect(route('nasabah.dashboard'));
+        $response->assertSessionHas('id_nasabah');
+        $response->assertSessionMissing(\App\Support\PasswordPolicy::WARNING_SESSION_KEY);
+    }
+
+    public function test_verified_manual_login_accepts_username_without_existing_spaces(): void
+    {
+        $this->createNasabah([
+            'user_name' => 'Kira Wijaya',
+            'password' => password_hash('Rahasia1!', PASSWORD_BCRYPT),
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->post(route('nasabah.authenticate'), [
+            'username' => 'kirawijaya',
+            'password' => 'Rahasia1!',
+        ]);
+
+        $response->assertRedirect(route('nasabah.dashboard'));
+        $response->assertSessionHas('id_nasabah');
+    }
+
+    public function test_profile_update_rejects_username_with_spaces(): void
+    {
+        $user = $this->createNasabah([
+            'password' => password_hash('Rahasia1!', PASSWORD_BCRYPT),
+            'email_verified_at' => now(),
+        ]);
+
+        $this->withSession(['id_nasabah' => $user->id_nasabah])
+            ->post(route('nasabah.profil.update'), [
+                'username' => 'nasabah manual',
+                'nama_nasabah' => 'Nasabah Manual',
+                'email' => 'manual@example.test',
+                'no_hp' => '08123456789',
+                'alamat' => 'Jalan Hijau',
+            ])
+            ->assertSessionHasErrors(['username']);
+    }
+
+    public function test_profile_email_change_marks_new_email_unverified_and_sends_verification_link(): void
+    {
+        Mail::fake();
+
+        $user = $this->createNasabah([
+            'password' => password_hash('Rahasia1!', PASSWORD_BCRYPT),
+            'email_verified_at' => now(),
+        ]);
+
+        $response = $this->withSession(['id_nasabah' => $user->id_nasabah])
+            ->post(route('nasabah.profil.update'), [
+                'username' => 'nasabahmanual',
+                'nama_nasabah' => 'Nasabah Manual',
+                'email' => 'manual-baru@example.test',
+                'no_hp' => '08123456789',
+                'alamat' => 'Jalan Hijau',
+            ]);
+
+        $response->assertRedirect(route('nasabah.verification.notice'));
+        $response->assertSessionHas('success', 'Email profil diperbarui. Link verifikasi sudah dikirim ke email baru. Silakan verifikasi sebelum login lagi.');
+        $response->assertSessionMissing('id_nasabah');
+        $response->assertSessionHas(NasabahEmailVerificationController::SESSION_KEY, [
+            'id_nasabah' => (int) $user->id_nasabah,
+            'email' => 'manual-baru@example.test',
+        ]);
+
+        $fresh = $user->fresh();
+        $this->assertSame('manual-baru@example.test', $fresh->email);
+        $this->assertNull($fresh->email_verified_at);
+        $this->assertSame(64, strlen((string) $fresh->email_verification_token_hash));
+        $this->assertNotNull($fresh->email_verification_expires_at);
+
+        Mail::assertSent(NasabahVerificationLinkMail::class, function (NasabahVerificationLinkMail $mail): bool {
+            return $mail->hasTo('manual-baru@example.test')
+                && str_contains($mail->verificationUrl, '/nasabah/verifikasi-email/');
+        });
+    }
+
+    public function test_profile_email_change_can_be_verified_then_login_with_new_email_for_local_password(): void
+    {
+        Mail::fake();
+
+        $user = $this->createNasabah([
+            'password' => password_hash('Rahasia1!', PASSWORD_BCRYPT),
+            'email_verified_at' => now(),
+        ]);
+
+        $this->withSession(['id_nasabah' => $user->id_nasabah])
+            ->post(route('nasabah.profil.update'), [
+                'username' => 'nasabahmanual',
+                'nama_nasabah' => 'Nasabah Manual',
+                'email' => 'manual-baru@example.test',
+                'no_hp' => '08123456789',
+                'alamat' => 'Jalan Hijau',
+            ])
+            ->assertRedirect(route('nasabah.verification.notice'));
+
+        $verificationUrl = null;
+        Mail::assertSent(NasabahVerificationLinkMail::class, function (NasabahVerificationLinkMail $mail) use (&$verificationUrl): bool {
+            $verificationUrl = $mail->verificationUrl;
+
+            return $mail->hasTo('manual-baru@example.test');
+        });
+
+        $this->get($verificationUrl)
+            ->assertRedirect(route('nasabah.login'))
+            ->assertSessionHas('success', 'Email berhasil diverifikasi. Silakan login.');
+
+        $this->post(route('nasabah.authenticate'), [
+            'username' => 'manual-baru@example.test',
+            'password' => 'Rahasia1!',
+        ])->assertRedirect(route('nasabah.dashboard'))
+            ->assertSessionHas('id_nasabah', $user->id_nasabah);
+    }
+
+    public function test_profile_email_change_does_not_change_existing_firebase_password_marker(): void
+    {
+        Mail::fake();
+        config(['services.firebase.api_key' => 'test-api-key']);
+
+        $firebaseUsers = new class extends FirebaseAuthUserManager
+        {
+            public array $updates = [];
+
+            public function updateEmailByUid(string $firebaseUid, string $email, bool $emailVerified = true): bool
+            {
+                $this->updates[] = compact('firebaseUid', 'email', 'emailVerified');
+
+                return true;
+            }
+        };
+
+        $this->app->instance(FirebaseAuthUserManager::class, $firebaseUsers);
+
+        $user = $this->createNasabah([
+            'password' => 'firebase-auth:old-uid',
+            'email_verified_at' => now(),
+        ]);
+
+        $this->withSession(['id_nasabah' => $user->id_nasabah])
+            ->post(route('nasabah.profil.update'), [
+                'username' => 'nasabahmanual',
+                'nama_nasabah' => 'Nasabah Manual',
+                'email' => 'manual-baru@example.test',
+                'no_hp' => '08123456789',
+                'alamat' => 'Jalan Hijau',
+            ])
+            ->assertRedirect(route('nasabah.verification.notice'));
+
+        $this->assertSame('firebase-auth:old-uid', $user->fresh()->getAttribute('password'));
+
+        $verificationUrl = null;
+        Mail::assertSent(NasabahVerificationLinkMail::class, function (NasabahVerificationLinkMail $mail) use (&$verificationUrl): bool {
+            $verificationUrl = $mail->verificationUrl;
+
+            return $mail->hasTo('manual-baru@example.test');
+        });
+
+        $this->get($verificationUrl)
+            ->assertRedirect(route('nasabah.login'))
+            ->assertSessionHas('success', 'Email berhasil diverifikasi. Silakan login.');
+
+        $fresh = $user->fresh();
+        $this->assertNotNull($fresh->email_verified_at);
+        $this->assertSame('firebase-auth:old-uid', $fresh->getAttribute('password'));
+        $this->assertSame([
+            [
+                'firebaseUid' => 'old-uid',
+                'email' => 'manual-baru@example.test',
+                'emailVerified' => true,
+            ],
+        ], $firebaseUsers->updates);
+
+        Http::fake([
+            '*accounts:signInWithPassword*' => Http::response([
+                'localId' => 'old-uid',
+                'email' => 'manual-baru@example.test',
+            ], 200),
+        ]);
+
+        $this->post(route('nasabah.authenticate'), [
+            'username' => 'manual-baru@example.test',
+            'password' => 'PasswordLama1!',
+        ])->assertRedirect(route('nasabah.dashboard'))
+            ->assertSessionHas('id_nasabah', $user->id_nasabah);
+
+        Http::assertSent(function (Request $request): bool {
+            return str_contains($request->url(), 'accounts:signInWithPassword?key=test-api-key')
+                && $request['email'] === 'manual-baru@example.test'
+                && $request['password'] === 'PasswordLama1!';
+        });
+    }
+
+    public function test_login_repairs_firebase_email_sync_for_already_verified_changed_email(): void
+    {
+        config(['services.firebase.api_key' => 'test-api-key']);
+
+        $firebaseUsers = new class extends FirebaseAuthUserManager
+        {
+            public array $updates = [];
+
+            public function updateEmailByUid(string $firebaseUid, string $email, bool $emailVerified = true): bool
+            {
+                $this->updates[] = compact('firebaseUid', 'email', 'emailVerified');
+
+                return true;
+            }
+        };
+
+        $this->app->instance(FirebaseAuthUserManager::class, $firebaseUsers);
+
+        $user = $this->createNasabah([
+            'email' => 'manual-baru@example.test',
+            'password' => 'firebase-auth:old-uid',
+            'email_verified_at' => now(),
+        ]);
+
+        Http::fake([
+            '*accounts:signInWithPassword*' => Http::sequence()
+                ->push(['error' => ['message' => 'EMAIL_NOT_FOUND']], 400)
+                ->push([
+                    'localId' => 'old-uid',
+                    'email' => 'manual-baru@example.test',
+                ], 200),
+        ]);
+
+        $this->post(route('nasabah.authenticate'), [
+            'username' => 'manual-baru@example.test',
+            'password' => 'PasswordLama1!',
+        ])->assertRedirect(route('nasabah.dashboard'))
+            ->assertSessionHas('id_nasabah', $user->id_nasabah);
+
+        $this->assertSame([
+            [
+                'firebaseUid' => 'old-uid',
+                'email' => 'manual-baru@example.test',
+                'emailVerified' => true,
+            ],
+        ], $firebaseUsers->updates);
+    }
+
+    public function test_verification_still_marks_email_verified_when_firebase_sync_fails(): void
+    {
+        Mail::fake();
+
+        $firebaseUsers = new class extends FirebaseAuthUserManager
+        {
+            public function updateEmailByUid(string $firebaseUid, string $email, bool $emailVerified = true): bool
+            {
+                return false;
+            }
+        };
+
+        $this->app->instance(FirebaseAuthUserManager::class, $firebaseUsers);
+
+        $user = $this->createNasabah([
+            'password' => 'firebase-auth:old-uid',
+            'email_verified_at' => now(),
+        ]);
+
+        $this->withSession(['id_nasabah' => $user->id_nasabah])
+            ->post(route('nasabah.profil.update'), [
+                'username' => 'nasabahmanual',
+                'nama_nasabah' => 'Nasabah Manual',
+                'email' => 'manual-baru@example.test',
+                'no_hp' => '08123456789',
+                'alamat' => 'Jalan Hijau',
+            ])
+            ->assertRedirect(route('nasabah.verification.notice'));
+
+        $verificationUrl = null;
+        Mail::assertSent(NasabahVerificationLinkMail::class, function (NasabahVerificationLinkMail $mail) use (&$verificationUrl): bool {
+            $verificationUrl = $mail->verificationUrl;
+
+            return $mail->hasTo('manual-baru@example.test');
+        });
+
+        $this->get($verificationUrl)
+            ->assertRedirect(route('nasabah.login'))
+            ->assertSessionHas('success', 'Email berhasil diverifikasi. Silakan login.');
+
+        $fresh = $user->fresh();
+        $this->assertNotNull($fresh->email_verified_at);
+        $this->assertNull($fresh->email_verification_token_hash);
+        $this->assertNull($fresh->email_verification_expires_at);
     }
 
     public function test_deactivated_manual_login_shows_contact_cs_message(): void
@@ -183,8 +542,8 @@ class NasabahEmailVerificationTest extends TestCase
             'nama' => 'Nasabah Manual',
             'username' => 'nasabahmanual',
             'email' => 'manual@example.test',
-            'password' => 'rahasia1',
-            'konfirmasi_password' => 'rahasia1',
+            'password' => 'Rahasia1!',
+            'konfirmasi_password' => 'Rahasia1!',
             'alamat' => 'Jalan Hijau',
             'no_hp' => '08123456789',
         ];

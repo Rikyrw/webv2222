@@ -396,6 +396,10 @@ class NasabahTransaksiSetorController extends Controller
 
     private function rememberValidatedWastePhoto(string $photo, int $idJenis, string $namaJenis): void
     {
+        if (!request()->hasSession()) {
+            return;
+        }
+
         $approvedPhotos = $this->pruneValidatedWastePhotos(session('validated_waste_photos', []));
         $approvedPhotos[hash('sha256', $photo)] = [
             'id_jenis' => $idJenis,

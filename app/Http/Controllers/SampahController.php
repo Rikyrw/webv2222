@@ -133,8 +133,7 @@ class SampahController extends Controller
 
     private function fetchSampahList(): array
     {
-        return Sampah::where('status', 'aktif')
-            ->orderBy('nama_jenis')
+        return Sampah::orderBy('nama_jenis')
             ->get(['id_jenis_sampah', 'nama_jenis', 'harga_per_kg', 'stok', 'status'])
             ->map(fn (Sampah $item): array => [
                 'id_jenis' => $item->id_jenis_sampah,

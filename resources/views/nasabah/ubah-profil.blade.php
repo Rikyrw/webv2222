@@ -266,6 +266,18 @@
             color: #dc2626;
         }
 
+        .field-warning {
+            display: none;
+            margin-top: 4px;
+            color: #dc2626;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .field-warning.show {
+            display: block;
+        }
+
         @media (max-width: 768px) {
             .main {
                 margin-left: 0;
@@ -344,14 +356,17 @@
                                    minlength="3"
                                    maxlength="50"
                                    pattern="[a-zA-Z0-9_]+"
-                                   title="Username hanya boleh berisi huruf, angka, dan underscore"
+                                   title="Username hanya boleh berisi huruf, angka, dan underscore tanpa spasi"
                                    required />
                             <div class="character-count">
                                 <span id="usernameCount">0</span>/50 karakter
                             </div>
                             <small style="display: block; margin-top: 4px; color: #6b7280; font-size: 12px;">
-                                * Username hanya boleh berisi huruf, angka, dan underscore (_)
+                                * Username hanya boleh berisi huruf, angka, dan underscore (_) tanpa spasi
                             </small>
+                            <div class="field-warning" id="usernameWarning" aria-live="polite">
+                                Username tidak boleh memakai spasi atau simbol selain underscore.
+                            </div>
                             @error('username')
                                 <span style="color: #dc2626; font-size: 13px; margin-top: 4px; display: block;">{{ $message }}</span>
                             @enderror
@@ -566,12 +581,16 @@
 
         // Validate username format
         if (usernameInput) {
-            usernameInput.addEventListener('input', function(e) {
-                const regex = /^[a-zA-Z0-9_]*$/;
-                if (!regex.test(this.value)) {
-                    this.value = this.value.replace(/[^a-zA-Z0-9_]/g, '');
-                }
-            });
+            function validateUsernameFormat() {
+                const warning = document.getElementById('usernameWarning');
+                const isInvalid = /[^a-zA-Z0-9_]/.test(usernameInput.value);
+
+                warning?.classList.toggle('show', isInvalid);
+                usernameInput.setCustomValidity(isInvalid ? 'Username hanya boleh berisi huruf, angka, dan underscore tanpa spasi.' : '');
+            }
+
+            usernameInput.addEventListener('input', validateUsernameFormat);
+            validateUsernameFormat();
         }
 
         // Validate phone number format

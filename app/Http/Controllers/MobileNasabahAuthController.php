@@ -7,6 +7,8 @@ use App\Mail\NasabahVerificationLinkMail;
 use App\Models\Nasabah;
 use App\Services\FirebasePasswordResetLinkGenerator;
 use App\Services\MobileNasabahTokenService;
+use App\Support\PasswordPolicy;
+use App\Support\UsernamePolicy;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -35,12 +37,15 @@ class MobileNasabahAuthController extends Controller
     {
         $validated = $request->validate([
             'nama' => ['required', 'string', 'max:255'],
-            'username' => ['required', 'string', 'max:50'],
+            'username' => UsernamePolicy::rules(),
             'email' => ['required', 'email', 'max:255'],
-            'password' => ['required', 'string', 'min:8'],
-            'konfirmasi_password' => ['required', 'string', 'same:password'],
+            'password' => PasswordPolicy::rules(),
+            'konfirmasi_password' => PasswordPolicy::confirmationRules(),
             'alamat' => ['nullable', 'string'],
             'no_hp' => ['required', 'string', 'max:20'],
+        ], [
+            ...PasswordPolicy::messages(),
+            ...UsernamePolicy::messages('username'),
         ]);
 
         try {
@@ -145,24 +150,59 @@ class MobileNasabahAuthController extends Controller
         try {
             $user = $this->findNasabahByIdentifier($identifier);
 
-            if ($user && $this->isManualAccount($user)) {
-                $email = strtolower((string) $user['email']);
-
-                if ($email !== '' && $this->ensureFirebasePasswordAccountExists($email, $user['password'] ?? null)) {
-                    if ($this->sendPasswordResetLink($email, $user, $request->ip())) {
-                        $this->markAccountAsFirebasePending((int) $user['id_nasabah'], $user['password'] ?? null);
-                    }
-                }
+            if (! $user) {
+                return response()->json([
+                    'message' => 'Email atau username tidak ditemukan. Periksa kembali atau daftar akun baru.',
+                ], 404);
             }
+
+            if (! $this->isManualAccount($user)) {
+                return response()->json([
+                    'message' => 'Akun ini terdaftar lewat Google. Silakan masuk menggunakan tombol Masuk dengan Google.',
+                ], 422);
+            }
+
+            $email = strtolower((string) $user['email']);
+
+            if ($email === '') {
+                return response()->json([
+                    'message' => 'Email akun belum lengkap. Silakan hubungi CS GreenPoint.',
+                ], 422);
+            }
+
+            if ($this->emailNeedsVerification($user)) {
+                return response()->json([
+                    'message' => 'Email akun belum diverifikasi. Verifikasi email dulu sebelum reset password.',
+                    'email' => $email,
+                ], 403);
+            }
+
+            if (! $this->ensureFirebasePasswordAccountExists($email, $user['password'] ?? null)) {
+                return response()->json([
+                    'message' => 'Reset password belum bisa diproses. Konfigurasi Firebase perlu dicek.',
+                ], 503);
+            }
+
+            if (! $this->sendPasswordResetLink($email, $user, $request->ip())) {
+                return response()->json([
+                    'message' => 'Gagal mengirim email reset password. Coba lagi nanti atau hubungi CS GreenPoint.',
+                ], 503);
+            }
+
+            $this->markAccountAsFirebasePending((int) $user['id_nasabah'], $user['password'] ?? null);
         } catch (\Throwable $exception) {
             Log::warning('Mobile password reset email failed.', [
                 'identifier' => $identifier,
                 'message' => $exception->getMessage(),
             ]);
+
+            return response()->json([
+                'message' => 'Gagal memproses reset password saat ini. Coba lagi nanti.',
+            ], 500);
         }
 
         return response()->json([
-            'message' => 'Jika akun ditemukan, link reset password sudah dikirim ke email Anda.',
+            'message' => 'Link reset password sudah dikirim. Cek inbox atau folder spam email Anda.',
         ]);
     }
 
@@ -209,8 +249,12 @@ class MobileNasabahAuthController extends Controller
                 ], 404);
             }
 
+            $passwordWarning = PasswordPolicy::warningFor($validated['password']);
+
             return response()->json([
                 'message' => 'Login manual terverifikasi.',
+                'requires_password_change' => $passwordWarning !== null,
+                'password_warning' => $passwordWarning,
                 'user' => [
                     'id_nasabah' => $user['id_nasabah'] ?? null,
                     'email' => strtolower((string) ($user['email'] ?? '')),
@@ -306,8 +350,10 @@ class MobileNasabahAuthController extends Controller
 
     private function findNasabahByIdentifier(string $identifier): ?array
     {
+        $identifier = trim($identifier);
+
         if (str_contains($identifier, '@')) {
-            return $this->findNasabahByEmail(strtolower($identifier));
+            return $this->findNasabahByEmail($identifier);
         }
 
         return $this->findNasabahByUsername($identifier);
@@ -315,18 +361,17 @@ class MobileNasabahAuthController extends Controller
 
     private function findNasabahByEmail(string $email): ?array
     {
-        return Nasabah::where('email', $email)->first()?->getAttributes();
+        return Nasabah::whereEmailInsensitive($email)->first()?->getAttributes();
     }
 
     private function findNasabahByUsername(string $username): ?array
     {
-        return Nasabah::where('user_name', $username)->first()?->getAttributes();
+        return Nasabah::whereUsernameInsensitive($username)->first()?->getAttributes();
     }
 
     private function emailNeedsVerification(array $user): bool
     {
-        return $this->isManualAccount($user)
-            && array_key_exists('email_verified_at', $user)
+        return array_key_exists('email_verified_at', $user)
             && empty($user['email_verified_at']);
     }
 
@@ -349,16 +394,12 @@ class MobileNasabahAuthController extends Controller
 
     private function ensureFirebasePasswordAccountExists(string $email, ?string $storedPassword): bool
     {
-        if ($this->isFirebaseBackedPassword($storedPassword)) {
-            return true;
-        }
-
         $firebaseApiKey = config('services.firebase.api_key');
 
         if (! $firebaseApiKey) {
             Log::warning('Mobile Firebase password account creation skipped because FIREBASE_API_KEY is missing.');
 
-            return false;
+            return $this->isFirebaseUidMarker($storedPassword);
         }
 
         try {
@@ -387,14 +428,16 @@ class MobileNasabahAuthController extends Controller
             Log::warning('Mobile Firebase password account creation failed unexpectedly.', [
                 'message' => $exception->getMessage(),
             ]);
+
+            return $this->isFirebaseUidMarker($storedPassword);
         }
 
-        return false;
+        return $this->isFirebaseUidMarker($storedPassword);
     }
 
     private function markAccountAsFirebasePending(int $idNasabah, ?string $storedPassword): void
     {
-        if ($this->isFirebaseBackedPassword($storedPassword)) {
+        if ($storedPassword === 'firebase-auth-pending') {
             return;
         }
 
@@ -412,7 +455,7 @@ class MobileNasabahAuthController extends Controller
 
     private function isManualAccount(array $user): bool
     {
-        return empty($user['google_sub']) && empty($user['google_id']);
+        return empty($user['google_sub']);
     }
 
     private function accountStatusMessage(array $user): ?string
@@ -434,6 +477,11 @@ class MobileNasabahAuthController extends Controller
     {
         return is_string($storedPassword)
             && (str_starts_with($storedPassword, 'firebase-auth:') || $storedPassword === 'firebase-auth-pending');
+    }
+
+    private function isFirebaseUidMarker(?string $storedPassword): bool
+    {
+        return is_string($storedPassword) && str_starts_with($storedPassword, 'firebase-auth:');
     }
 
     private function passwordMatches(string $password, mixed $storedPassword): bool

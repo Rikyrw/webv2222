@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
@@ -50,6 +51,29 @@ class Nasabah extends Authenticatable
         'email_verification_expires_at' => 'datetime',
         'email_verification_sent_at' => 'datetime',
     ];
+
+    public static function normalizeLookupValue(string $value): string
+    {
+        return strtolower(trim($value));
+    }
+
+    public static function normalizeUsernameKey(string $value): string
+    {
+        return preg_replace('/\s+/', '', self::normalizeLookupValue($value)) ?? '';
+    }
+
+    public function scopeWhereEmailInsensitive(Builder $query, string $email): Builder
+    {
+        return $query->whereRaw('LOWER(email) = ?', [self::normalizeLookupValue($email)]);
+    }
+
+    public function scopeWhereUsernameInsensitive(Builder $query, string $username): Builder
+    {
+        return $query->where(function (Builder $query) use ($username): void {
+            $query->whereRaw('LOWER(user_name) = ?', [self::normalizeLookupValue($username)])
+                ->orWhereRaw("LOWER(REPLACE(user_name, ' ', '')) = ?", [self::normalizeUsernameKey($username)]);
+        });
+    }
 
     public function transaksiSetor(): HasMany
     {

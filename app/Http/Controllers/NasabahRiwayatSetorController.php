@@ -126,11 +126,30 @@ class NasabahRiwayatSetorController extends Controller
                 'berat_kg' => $totalBerat,
                 'subtotal' => $totalNilai,
                 'tanggal_setor' => $row->tanggal_setor?->toDateString(),
-                'status' => $row->status ?? 'menunggu',
+                'status' => $this->normalizeStatus($row->status ?? null),
                 'rejected_notes' => implode('; ', $rejectedNotes),
             ];
         }
 
         return $transactions;
+    }
+
+    private function normalizeStatus(mixed $status): string
+    {
+        $value = strtolower(trim((string) $status));
+
+        if ($value === '' || in_array($value, ['menunggu', 'pending', 'diproses', 'process'], true)) {
+            return 'pending';
+        }
+
+        if (in_array($value, ['selesai', 'success', 'approved', 'berhasil', 'sukses'], true)) {
+            return 'selesai';
+        }
+
+        if (in_array($value, ['ditolak', 'rejected', 'reject', 'failed', 'gagal', 'cancelled', 'canceled'], true)) {
+            return 'ditolak';
+        }
+
+        return $value;
     }
 }

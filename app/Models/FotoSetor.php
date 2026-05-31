@@ -13,6 +13,7 @@ class FotoSetor extends Model
     protected $table = 'foto_setor';
     protected $primaryKey = 'id_foto_setor';
     protected $keyType = 'int';
+    public $incrementing = false;
     public $timestamps = false;
 
     protected $fillable = [

@@ -30,36 +30,38 @@
     </div>
 
     <div class="report-grid">
-        <div class="report-card">
-            <div class="report-card-header">
-                <div class="report-card-title">Laporan Keuangan</div>
-                <div class="report-card-subtitle">Ringkasan pemasukan dan pengeluaran.</div>
-            </div>
+        @if (!empty($canViewFinanceReport))
+            <div class="report-card">
+                <div class="report-card-header">
+                    <div class="report-card-title">Laporan Keuangan</div>
+                    <div class="report-card-subtitle">Ringkasan pemasukan dan pengeluaran.</div>
+                </div>
 
-            <div class="report-panel">
-                <div class="report-panel-label">Ringkasan</div>
-                <div class="report-list">
-                    <div class="report-metric">
-                        <div class="report-metric-label">Total Setoran</div>
-                        <div class="report-metric-value">Rp {{ number_format($totalSetoran, 0, ',', '.') }}</div>
-                        <div class="report-metric-meta">{{ $totalSetoranCount }} transaksi</div>
-                    </div>
-                    <div class="report-metric">
-                        <div class="report-metric-label">Total Penarikan</div>
-                        <div class="report-metric-value">Rp {{ number_format($totalPenarikan, 0, ',', '.') }}</div>
-                    </div>
-                    <div class="report-metric">
-                        <div class="report-metric-label">Saldo Akhir</div>
-                        <div class="report-metric-value">Rp {{ number_format($saldoAkhir, 0, ',', '.') }}</div>
+                <div class="report-panel">
+                    <div class="report-panel-label">Ringkasan</div>
+                    <div class="report-list">
+                        <div class="report-metric">
+                            <div class="report-metric-label">Total Setoran</div>
+                            <div class="report-metric-value">Rp {{ number_format($totalSetoran, 0, ',', '.') }}</div>
+                            <div class="report-metric-meta">{{ $totalSetoranCount }} transaksi</div>
+                        </div>
+                        <div class="report-metric">
+                            <div class="report-metric-label">Total Penarikan</div>
+                            <div class="report-metric-value">Rp {{ number_format($totalPenarikan, 0, ',', '.') }}</div>
+                        </div>
+                        <div class="report-metric">
+                            <div class="report-metric-label">Saldo Akhir</div>
+                            <div class="report-metric-value">Rp {{ number_format($saldoAkhir, 0, ',', '.') }}</div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="report-actions">
-                <a href="{{ route('admin.laporan.excel.keuangan', ['periode' => $period]) }}" class="btn btn-primary" target="_blank"><i class="bi bi-file-earmark-spreadsheet"></i>Excel</a>
-                <a href="{{ route('admin.laporan.pdf.keuangan', ['periode' => $period]) }}" class="btn btn-danger" target="_blank"><i class="bi bi-file-earmark-pdf"></i>PDF</a>
+                <div class="report-actions">
+                    <a href="{{ route('admin.laporan.excel.keuangan', ['periode' => $period]) }}" class="btn btn-primary" target="_blank"><i class="bi bi-file-earmark-spreadsheet"></i>Excel</a>
+                    <a href="{{ route('admin.laporan.pdf.keuangan', ['periode' => $period]) }}" class="btn btn-danger" target="_blank"><i class="bi bi-file-earmark-pdf"></i>PDF</a>
+                </div>
             </div>
-        </div>
+        @endif
 
         <div class="report-card">
             <div class="report-card-header">

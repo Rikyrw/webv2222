@@ -62,8 +62,10 @@ class NasabahDashboardController extends Controller
         try {
             $recent_ppob = TransaksiPenarikan::where('id_nasabah', $user_id)
                 ->orderByDesc('tanggal_pengajuan')
-                ->limit(5)
+                ->limit(12)
                 ->get()
+                ->filter(fn (TransaksiPenarikan $r): bool => $this->isPpobTransaction($r))
+                ->take(5)
                 ->map(fn (TransaksiPenarikan $r): array => [
                     'type' => 'penarikan',
                     'id' => $r->id_penarikan,
@@ -80,22 +82,85 @@ class NasabahDashboardController extends Controller
 
         $setor_count = 0;
         $total_berat_sampah = 0;
+        $completed_setor_value = 0;
+        $waiting_setor_count = 0;
+        $completed_setor_count = 0;
+        $rejected_setor_count = 0;
+        $monthly_setor_count = 0;
+        $monthly_total_berat_sampah = 0;
+        $monthly_completed_setor_value = 0;
+        $monthly_waiting_setor_count = 0;
+        $monthly_completed_setor_count = 0;
+        $monthly_rejected_setor_count = 0;
         $ppob_total = 0;
         $ppob_month_total = 0;
+        $ppob_count = 0;
+        $monthly_ppob_count = 0;
+        $withdrawal_count = 0;
+        $withdrawal_amount = 0;
         try {
-            $setorQuery = TransaksiSetor::with('detailSetor')->where('id_nasabah', $user_id);
-            $setor_count = (clone $setorQuery)->count();
-            $total_berat_sampah = (float) $setorQuery->get()
-                ->flatMap(fn (TransaksiSetor $setor) => $setor->detailSetor)
-                ->sum(fn ($detail) => (float) $detail->berat_kg);
-
-            $ppob_total = (float) TransaksiPenarikan::where('id_nasabah', $user_id)->sum('nominal');
             $monthStart = date('Y-m-01');
             $nextMonthStart = date('Y-m-01', strtotime('+1 month'));
-            $ppob_month_total = (float) TransaksiPenarikan::where('id_nasabah', $user_id)
-                ->where('tanggal_pengajuan', '>=', $monthStart)
-                ->where('tanggal_pengajuan', '<', $nextMonthStart)
-                ->sum('nominal');
+
+            $setorRows = TransaksiSetor::with('detailSetor')
+                ->where('id_nasabah', $user_id)
+                ->get();
+
+            $setor_count = $setorRows->count();
+
+            foreach ($setorRows as $setor) {
+                $bucket = $this->setorStatusBucket($setor->status ?? null);
+
+                if ($bucket === 'waiting') {
+                    $waiting_setor_count++;
+                } elseif ($bucket === 'completed') {
+                    $completed_setor_count++;
+                    $completed_setor_value += (int) round((float) $setor->total_nilai);
+                } elseif ($bucket === 'rejected') {
+                    $rejected_setor_count++;
+                }
+
+                $rowWeight = (float) $setor->detailSetor->sum(fn ($detail) => (float) $detail->berat_kg);
+                $total_berat_sampah += $rowWeight;
+
+                $setorDate = $setor->tanggal_setor?->toDateString() ?? '';
+                $isMonthlySetor = $setorDate >= $monthStart && $setorDate < $nextMonthStart;
+
+                if ($isMonthlySetor) {
+                    $monthly_setor_count++;
+                    $monthly_total_berat_sampah += $rowWeight;
+
+                    if ($bucket === 'waiting') {
+                        $monthly_waiting_setor_count++;
+                    } elseif ($bucket === 'completed') {
+                        $monthly_completed_setor_count++;
+                        $monthly_completed_setor_value += (int) round((float) $setor->total_nilai);
+                    } elseif ($bucket === 'rejected') {
+                        $monthly_rejected_setor_count++;
+                    }
+                }
+            }
+
+            $ppobRows = TransaksiPenarikan::where('id_nasabah', $user_id)->get();
+
+            foreach ($ppobRows as $row) {
+                $nominal = (float) $row->nominal;
+                $pengajuanDate = $row->tanggal_pengajuan?->toDateString() ?? '';
+                $isMonthlyPpob = $pengajuanDate >= $monthStart && $pengajuanDate < $nextMonthStart;
+
+                if ($this->isPpobTransaction($row)) {
+                    $ppob_count++;
+                    $ppob_total += $nominal;
+
+                    if ($isMonthlyPpob) {
+                        $monthly_ppob_count++;
+                        $ppob_month_total += $nominal;
+                    }
+                } else {
+                    $withdrawal_count++;
+                    $withdrawal_amount += $nominal;
+                }
+            }
         } catch (\Exception $e) {
             \Log::error('Aggregates error: '.$e->getMessage());
         }
@@ -108,11 +173,61 @@ class NasabahDashboardController extends Controller
             'saldo',
             'setor_count',
             'total_berat_sampah',
+            'completed_setor_value',
+            'waiting_setor_count',
+            'completed_setor_count',
+            'rejected_setor_count',
+            'monthly_setor_count',
+            'monthly_total_berat_sampah',
+            'monthly_completed_setor_value',
+            'monthly_waiting_setor_count',
+            'monthly_completed_setor_count',
+            'monthly_rejected_setor_count',
             'ppob_total',
             'ppob_month_total',
+            'ppob_count',
+            'monthly_ppob_count',
+            'withdrawal_count',
+            'withdrawal_amount',
             'recent_setor',
             'recent_ppob'
         ));
+    }
+
+    private function setorStatusBucket(mixed $status): ?string
+    {
+        $value = strtolower(trim((string) $status));
+
+        if (in_array($value, ['pending', 'menunggu', 'diproses', 'process'], true)) {
+            return 'waiting';
+        }
+
+        if (in_array($value, ['success', 'approved', 'berhasil', 'selesai', 'sukses'], true)) {
+            return 'completed';
+        }
+
+        if (in_array($value, ['rejected', 'reject', 'ditolak', 'failed', 'gagal', 'cancelled', 'canceled'], true)) {
+            return 'rejected';
+        }
+
+        return null;
+    }
+
+    private function isPpobTransaction(TransaksiPenarikan $row): bool
+    {
+        $description = strtolower(trim((string) $row->deskripsi));
+
+        if (
+            str_starts_with($description, 'emoney:')
+            || str_starts_with($description, 'pln:')
+            || str_starts_with($description, 'pulsa:')
+        ) {
+            return true;
+        }
+
+        $type = strtolower(trim((string) $row->jenis_penukaran));
+
+        return in_array($type, ['dana', 'gopay', 'ovo', 'shopeepay', 'linkaja', 'emoney', 'e-money', 'pln', 'pulsa'], true);
     }
 
     public function logout()

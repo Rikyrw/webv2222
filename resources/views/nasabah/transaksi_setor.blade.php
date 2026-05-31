@@ -467,13 +467,8 @@
 
                         <div class="form-actions">
                             <button type="button" id="addItemBtn" class="btn-primary">+ Tambah Item</button>
-                            <button type="button" id="uploadPhotoBtn" class="btn-secondary">Upload Foto</button>
-                            <input type="file" id="photoInput" accept="image/jpeg,image/png,image/jpg" multiple style="display: none;">
                             <span id="formMsg"></span>
                         </div>
-
-                        <!-- Photo Preview -->
-                        <div id="photoPreview" class="photo-preview"></div>
 
                         <h4 style="margin-top: 12px;">Daftar Item</h4>
                         <table id="itemsTable" class="table">
@@ -512,9 +507,6 @@
 
     <script>
         const addItemBtn = document.getElementById('addItemBtn');
-        const uploadPhotoBtn = document.getElementById('uploadPhotoBtn');
-        const photoInput = document.getElementById('photoInput');
-        const photoPreview = document.getElementById('photoPreview');
         const jenisSelect = document.getElementById('jenisSelect');
         const beratInput = document.getElementById('beratInput');
         const itemsTableBody = document.querySelector('#itemsTable tbody');
@@ -531,34 +523,11 @@
             maximumFractionDigits: 0
         });
 
-        uploadPhotoBtn.addEventListener('click', function() {
-            if (items.length === 0) {
-                alert('Tambahkan item terlebih dahulu sebelum upload foto');
-                return;
-            }
-            photoInput.click();
-        });
-
-        photoInput.addEventListener('change', async function(e) {
-            const files = Array.from(e.target.files);
-            if (files.length === 0) {
-                return;
-            }
-
-            if (files.length > 1) {
-                alert('Upload satu foto untuk satu item. Foto pertama akan diperiksa.');
-            }
-
-            await processPhotoForItem(files[0], items.length - 1);
-            photoInput.value = '';
-        });
-
         function setPhotoChecking(isChecking) {
             activePhotoChecks += isChecking ? 1 : -1;
             activePhotoChecks = Math.max(0, activePhotoChecks);
             const disabled = activePhotoChecks > 0;
 
-            uploadPhotoBtn.disabled = disabled;
             addItemBtn.disabled = disabled;
             setorForm.querySelector('button[type="submit"]').disabled = disabled;
             if (disabled) {

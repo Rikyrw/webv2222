@@ -1,5 +1,21 @@
 @extends('layouts.app')
 
+@push('styles')
+<style>
+    .locked-field {
+        background: #f6f8f6 !important;
+        color: #53625a !important;
+        cursor: not-allowed;
+    }
+
+    .locked-note {
+        color: #6d7a71;
+        font-size: 12px;
+        margin-top: 6px;
+    }
+</style>
+@endpush
+
 @section('content')
 <div class="gp-page">
     <div class="card">
@@ -23,11 +39,13 @@
                 </div>
                 <div class="col-md-6">
                     <label for="user_name" class="form-label">Username</label>
-                    <input type="text" class="form-control" id="user_name" name="user_name" value="{{ $nasabah['user_name'] ?? '' }}" maxlength="100">
+                    <input type="text" class="form-control locked-field" id="user_name" value="{{ $nasabah['user_name'] ?? '' }}" readonly aria-readonly="true">
+                    <div class="locked-note">Username tidak dapat diubah dari halaman admin.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="email" class="form-label">Email</label>
-                    <input type="email" class="form-control" id="email" name="email" value="{{ $nasabah['email'] ?? '' }}" maxlength="150">
+                    <input type="email" class="form-control locked-field" id="email" value="{{ $nasabah['email'] ?? '' }}" readonly aria-readonly="true">
+                    <div class="locked-note">Email hanya dapat diperbarui oleh nasabah melalui profil dan verifikasi email.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="no_hp" class="form-label">No. HP</label>
@@ -35,7 +53,8 @@
                 </div>
                 <div class="col-md-6">
                     <label for="saldo" class="form-label">Saldo (Rp)</label>
-                    <input type="number" class="form-control" id="saldo" name="saldo" value="{{ $nasabah['saldo'] ?? 0 }}" min="0" step="1">
+                    <input type="text" class="form-control locked-field" id="saldo" value="Rp {{ number_format((float) ($nasabah['saldo'] ?? 0), 0, ',', '.') }}" readonly aria-readonly="true">
+                    <div class="locked-note">Saldo berubah otomatis dari transaksi, top up, dan penarikan.</div>
                 </div>
                 <div class="col-md-6">
                     <label for="status" class="form-label">Status <span class="text-danger">*</span></label>

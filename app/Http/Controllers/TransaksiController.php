@@ -329,6 +329,7 @@ class TransaksiController extends Controller
 
         return [
             'id_transaksi_setor' => $row->id_transaksi_setor,
+            'display_id' => 'GP-ST-'.str_pad((string) $row->id_transaksi_setor, 6, '0', STR_PAD_LEFT),
             'id_nasabah' => $row->id_nasabah,
             'nama_nasabah' => $row->nasabah?->nama_lengkap ?: '-',
             'saldo' => (float) ($row->nasabah?->saldo ?? 0),
@@ -364,7 +365,7 @@ class TransaksiController extends Controller
 
         return FotoSetor::with('sampah')
             ->where('id_transaksi_setor', $transaksiId)
-            ->orderBy('id_foto_setor')
+            ->orderBy('created_at')
             ->get()
             ->map(function (FotoSetor $item, int $index) use ($detailsById, $detailItems): ?array {
                 $fotoUrl = trim((string) $item->foto_url);

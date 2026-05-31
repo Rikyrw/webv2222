@@ -53,6 +53,7 @@ class NasabahTopupController extends Controller
                 'status' => 'pending',
                 'transaction_status' => 'pending',
                 'payment_type' => null,
+                'created_at' => now(),
             ]);
         } catch (\Throwable $exception) {
             Log::error('Topup insert failed: '.$exception->getMessage());
