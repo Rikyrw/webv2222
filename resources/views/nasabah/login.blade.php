@@ -487,6 +487,7 @@
                                 autocomplete="username"
                                 autocapitalize="none"
                                 spellcheck="false"
+                                placeholder="Masukkan username atau email"
                                 value="{{ old('username') }}"
                             >
                         </div>
@@ -501,6 +502,7 @@
                                     name="password" 
                                     required
                                     autocomplete="current-password"
+                                    placeholder="Masukkan password"
                                 >
                                 <button type="button" id="togglePassword" class="toggle-pass" aria-label="Tampilkan password" aria-pressed="false">
                                     <i id="togglePasswordIcon" class="icon-eye"></i>

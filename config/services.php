@@ -51,4 +51,14 @@ return [
         'vision_model' => env('GROQ_VISION_MODEL', 'meta-llama/llama-4-scout-17b-16e-instruct'),
     ],
 
+    'midtrans' => [
+        'client_key' => env('MIDTRANS_CLIENT_KEY'),
+        'server_key' => env('MIDTRANS_SERVER_KEY'),
+        'is_prod' => env('MIDTRANS_IS_PROD', false),
+    ],
+
+    'http' => [
+        'ca_bundle' => env('HTTP_CA_BUNDLE'),
+    ],
+
 ];

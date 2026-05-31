@@ -10,7 +10,7 @@ class NasabahEmoneyController extends Controller
 {
     public function index(Request $request)
     {
-        $user_id = session('id_nasabah') ?? 1;
+        $user_id = (int) session('id_nasabah');
         $saldo_val = 0;
 
         $saldo_val = (float) (Nasabah::where('id_nasabah', $user_id)->value('saldo') ?? 0);
@@ -20,7 +20,7 @@ class NasabahEmoneyController extends Controller
 
     public function store(Request $request)
     {
-        $user_id = session('id_nasabah') ?? 1;
+        $user_id = (int) session('id_nasabah');
 
         $request->validate([
             'target' => 'required|string|max:255',

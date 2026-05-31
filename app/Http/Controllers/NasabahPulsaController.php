@@ -11,7 +11,7 @@ class NasabahPulsaController extends Controller
 {
     public function index(Request $request)
     {
-        $user_id = session('id_nasabah') ?? 1;
+        $user_id = (int) session('id_nasabah');
         $saldo_val = 0;
 
         $saldo_val = (float) (Nasabah::where('id_nasabah', $user_id)->value('saldo') ?? 0);
@@ -34,7 +34,7 @@ class NasabahPulsaController extends Controller
             'nominal' => 'required|integer|min:5000|max:50000',
         ]);
 
-        $user_id = session('id_nasabah') ?? 1;
+        $user_id = (int) session('id_nasabah');
         $nominal = (int) $request->input('nominal');
         $category = $request->input('category');
         $target = $request->input('target');

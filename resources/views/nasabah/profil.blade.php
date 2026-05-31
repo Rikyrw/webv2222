@@ -513,7 +513,7 @@
     <!-- Chat Bot -->
     @include('partials.chatbot')
 
-    <script src="{{ env('MIDTRANS_IS_PROD') ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js' }}" data-client-key="{{ env('MIDTRANS_CLIENT_KEY') }}"></script>
+    <script src="{{ config('services.midtrans.is_prod') ? 'https://app.midtrans.com/snap/snap.js' : 'https://app.sandbox.midtrans.com/snap/snap.js' }}" data-client-key="{{ config('services.midtrans.client_key') }}"></script>
     <script>
         (function () {
             var form = document.getElementById('topup-form');

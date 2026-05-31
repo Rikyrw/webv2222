@@ -51,13 +51,13 @@ class NasabahTransaksiSetorController extends Controller
             }
         }
 
-        // Fallback to session or dummy if still null
+        // Keep the page usable during a temporary database read failure.
         if (!$user) {
             $user = [
-                'id_nasabah' => session('id_nasabah') ?? 1,
-                'nama_nasabah' => session('nama_nasabah') ?? 'Ridho Pratama',
-                'alamat' => session('alamat') ?? 'Jl. Merdeka No. 42, Jakarta Selatan',
-                'saldo' => session('saldo') ?? 250000,
+                'id_nasabah' => (int) session('id_nasabah'),
+                'nama_nasabah' => session('nama_nasabah') ?? 'User',
+                'alamat' => session('alamat') ?? '',
+                'saldo' => session('saldo') ?? 0,
                 'email' => session('email') ?? '',
                 'no_hp' => session('no_hp') ?? '',
                 'username' => session('username') ?? '',

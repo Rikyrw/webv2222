@@ -9,7 +9,7 @@ class NasabahRiwayatSetorController extends Controller
 {
     public function index(Request $request)
     {
-        $id_nasabah = session('id_nasabah') ?? 1;
+        $id_nasabah = (int) session('id_nasabah');
         $user_name = session('nama_nasabah') ?? 'Guest User';
 
         $activePage = 'riwayat-setor';

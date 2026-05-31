@@ -9,7 +9,7 @@ class NasabahTransaksiPPOBController extends Controller
 {
     public function index(Request $request)
     {
-        $user_id = session('id_nasabah') ?? 1;
+        $user_id = (int) session('id_nasabah');
         $user_name = session('nama_nasabah') ?? 'Guest User';
         $hist = [];
         $filterError = null;

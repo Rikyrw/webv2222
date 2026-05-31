@@ -21,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $caBundle = env('HTTP_CA_BUNDLE');
+        $caBundle = config('services.http.ca_bundle');
 
         if (!$caBundle) {
             return;

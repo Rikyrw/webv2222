@@ -41,7 +41,7 @@
             overflow: hidden;
             background: #ffffff;
             border: 1px solid var(--gp-border);
-            border-radius: 14px;
+            border-radius: var(--gp-radius);
             box-shadow: 0 20px 52px rgba(15, 23, 42, 0.12);
         }
 
@@ -88,7 +88,7 @@
             width: 46px;
             height: 46px;
             flex: 0 0 46px;
-            border-radius: 12px;
+            border-radius: 10px;
             background: #ffffff;
             box-shadow: 0 12px 26px rgba(0, 0, 0, 0.16);
         }
@@ -137,7 +137,7 @@
             color: #ffffff;
             background: rgba(255, 255, 255, 0.14);
             border: 1px solid rgba(255, 255, 255, 0.18);
-            border-radius: 9px;
+            border-radius: 7px;
             font-size: 12px;
             font-weight: 800;
             line-height: 1;
@@ -182,6 +182,7 @@
 
         .form-group {
             display: grid;
+            align-content: start;
             gap: 8px;
             min-width: 0;
         }
@@ -209,7 +210,7 @@
             width: 100%;
             min-height: 42px;
             padding: 9px 12px !important;
-            border-radius: 10px !important;
+            border-radius: 7px !important;
             font-size: 13px !important;
         }
 
@@ -321,7 +322,7 @@
 
         .register-page .google-auth-error,
         .register-page .google-auth-disabled {
-            border-radius: 10px;
+            border-radius: 8px;
         }
 
         .footer-text {

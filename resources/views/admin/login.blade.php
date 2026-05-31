@@ -447,13 +447,13 @@
 
                         <div class="form-group">
                             <label class="field-label" for="email"><i class="icon-mail"></i> Email</label>
-                            <input class="input" type="email" id="email" name="email" required value="{{ old('email') }}" autocomplete="username" autofocus>
+                            <input class="input" type="email" id="email" name="email" required value="{{ old('email') }}" autocomplete="username" placeholder="Masukkan email admin" autofocus>
                         </div>
 
                         <div class="form-group">
                             <label class="field-label" for="password"><i class="icon-key-round"></i> Password</label>
                             <div class="password-field">
-                                <input class="input" type="password" id="password" name="password" required autocomplete="current-password">
+                                <input class="input" type="password" id="password" name="password" required autocomplete="current-password" placeholder="Masukkan password">
                                 <button type="button" id="togglePassword" class="toggle-pass" aria-label="Tampilkan password" aria-pressed="false">
                                     <i id="togglePasswordIcon" class="icon-eye"></i>
                                 </button>

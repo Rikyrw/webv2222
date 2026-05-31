@@ -106,32 +106,32 @@ Route::get('/nasabah/verifikasi-email/{id}/{token}', [NasabahEmailVerificationCo
     ->name('nasabah.verification.verify');
 
 // Nasabah dashboard routes
-Route::get('/nasabah/dashboard', [NasabahDashboardController::class, 'index'])->name('nasabah.dashboard');
-Route::get('/nasabah/transaksi', [NasabahTransaksiPPOBController::class, 'index'])->name('nasabah.transaksi');
-Route::get('/nasabah/riwayat-setor', [NasabahRiwayatSetorController::class, 'index'])->name('nasabah.riwayat-setor');
-Route::get('/nasabah/profil', [NasabahProfilController::class, 'index'])->name('nasabah.profil');
-Route::get('/nasabah/profil/ubah', [NasabahProfilController::class, 'edit'])->name('nasabah.profil.edit');
-Route::post('/nasabah/profil/update', [NasabahProfilController::class, 'update'])->name('nasabah.profil.update');
-Route::get('/nasabah/setor', [NasabahTransaksiSetorController::class, 'index'])->name('nasabah.setor');
-Route::post('/nasabah/setor/deteksi-foto', [NasabahTransaksiSetorController::class, 'detectWastePhoto'])->name('nasabah.setor.detect-photo');
-Route::post('/nasabah/setor', [NasabahTransaksiSetorController::class, 'index'])->name('nasabah.setor.post');
-Route::post('/nasabah/topup', [NasabahTopupController::class, 'create'])->name('nasabah.topup.create');
-Route::get('/nasabah/topup/status', [NasabahTopupController::class, 'checkStatus'])->name('nasabah.topup.status');
+Route::middleware('nasabah.session')->group(function () {
+    Route::get('/nasabah/dashboard', [NasabahDashboardController::class, 'index'])->name('nasabah.dashboard');
+    Route::get('/nasabah/transaksi', [NasabahTransaksiPPOBController::class, 'index'])->name('nasabah.transaksi');
+    Route::get('/nasabah/riwayat-setor', [NasabahRiwayatSetorController::class, 'index'])->name('nasabah.riwayat-setor');
+    Route::get('/nasabah/profil', [NasabahProfilController::class, 'index'])->name('nasabah.profil');
+    Route::get('/nasabah/profil/ubah', [NasabahProfilController::class, 'edit'])->name('nasabah.profil.edit');
+    Route::post('/nasabah/profil/update', [NasabahProfilController::class, 'update'])->name('nasabah.profil.update');
+    Route::get('/nasabah/setor', [NasabahTransaksiSetorController::class, 'index'])->name('nasabah.setor');
+    Route::post('/nasabah/setor/deteksi-foto', [NasabahTransaksiSetorController::class, 'detectWastePhoto'])->name('nasabah.setor.detect-photo');
+    Route::post('/nasabah/setor', [NasabahTransaksiSetorController::class, 'index'])->name('nasabah.setor.post');
+    Route::post('/nasabah/topup', [NasabahTopupController::class, 'create'])->name('nasabah.topup.create');
+    Route::get('/nasabah/topup/status', [NasabahTopupController::class, 'checkStatus'])->name('nasabah.topup.status');
+
+    // Nasabah PPOB routes
+    Route::get('/nasabah/emoney', [NasabahEmoneyController::class, 'index'])->name('nasabah.emoney');
+    Route::post('/nasabah/emoney', [NasabahEmoneyController::class, 'store'])->name('nasabah.emoney.store');
+    Route::get('/nasabah/pulsa', [NasabahPulsaController::class, 'index'])->name('nasabah.pulsa');
+    Route::post('/nasabah/pulsa', [NasabahPulsaController::class, 'store'])->name('nasabah.pulsa.store');
+    Route::get('/nasabah/pln', [NasabahPlnController::class, 'index'])->name('nasabah.pln');
+    Route::post('/nasabah/pln', [NasabahPlnController::class, 'store'])->name('nasabah.pln.store');
+});
 
 // Midtrans payment notifications
-Route::any('/midtrans/notification{any?}', [NasabahTopupController::class, 'handleNotification'])
-    ->where('any', '.*')
+Route::post('/midtrans/notification', [NasabahTopupController::class, 'handleNotification'])
     ->name('midtrans.notification');
-
-// Nasabah PPOB routes
-Route::get('/nasabah/emoney', [NasabahEmoneyController::class, 'index'])->name('nasabah.emoney');
-Route::post('/nasabah/emoney', [NasabahEmoneyController::class, 'store'])->name('nasabah.emoney.store');
-Route::get('/nasabah/pulsa', [NasabahPulsaController::class, 'index'])->name('nasabah.pulsa');
-Route::post('/nasabah/pulsa', [NasabahPulsaController::class, 'store'])->name('nasabah.pulsa.store');
-Route::get('/nasabah/pln', [NasabahPlnController::class, 'index'])->name('nasabah.pln');
-Route::post('/nasabah/pln', [NasabahPlnController::class, 'store'])->name('nasabah.pln.store');
 
 // Nasabah register routes
 Route::get('/nasabah/register', [NasabahRegisterController::class, 'showRegister'])->name('nasabah.register');
 Route::post('/nasabah/register', [NasabahRegisterController::class, 'store'])->name('nasabah.store');
-

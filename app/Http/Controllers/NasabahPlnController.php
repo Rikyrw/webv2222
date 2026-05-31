@@ -11,7 +11,7 @@ class NasabahPlnController extends Controller
 {
     public function index(Request $request)
     {
-        $userId = session('id_nasabah') ?? 1;
+        $userId = (int) session('id_nasabah');
         $user = [
             'saldo' => (float) (Nasabah::where('id_nasabah', $userId)->value('saldo') ?? session('saldo') ?? 0),
         ];
@@ -27,7 +27,7 @@ class NasabahPlnController extends Controller
             'nominal' => 'required|integer|in:20000,50000,100000',
         ]);
 
-        $user_id = session('id_nasabah') ?? 1;
+        $user_id = (int) session('id_nasabah');
         $nominal = (int) $request->input('nominal');
         $target = $request->input('target');
 
