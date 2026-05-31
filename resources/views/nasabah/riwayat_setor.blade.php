@@ -20,15 +20,22 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background-color: #d2d7dd;
             color: #1f2937;
+            max-width: 100%;
+            overflow-x: hidden;
         }
 
         .app {
             display: flex;
             min-height: 100vh;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
         }
 
         .main {
             flex: 1;
+            min-width: 0;
+            max-width: 100%;
             margin-left: 280px;
             padding: 24px;
         }
@@ -51,6 +58,7 @@
 
         .card {
             background: white;
+            min-width: 0;
             padding: 24px;
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -212,6 +220,22 @@
             margin-bottom: 20px;
         }
 
+        .table-scroll {
+            width: 100%;
+            max-width: 100%;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            border: 1px solid #e8eee9;
+            border-radius: 8px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .table-scroll:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(47, 95, 62, 0.12);
+        }
+
         /* ========== PERBAIKAN SEARCH CONTAINER ========== */
         .search-container {
             position: relative;
@@ -273,6 +297,16 @@
             border-collapse: collapse;
             margin-bottom: 20px;
             border: 2px solid #d1d5db;
+        }
+
+        .table-scroll table {
+            min-width: 760px;
+            margin-bottom: 0;
+            border: 0;
+        }
+
+        .table-scroll.is-empty table {
+            min-width: 100%;
         }
 
         thead {
@@ -423,10 +457,24 @@
             .main {
                 margin-left: 0;
                 padding: 16px;
+                width: 100%;
+                overflow-x: hidden;
             }
 
             .page-header h1 {
                 font-size: 24px;
+            }
+
+            .card.table-section,
+            .filter-section,
+            .table-actions,
+            .pagination-info {
+                max-width: 100%;
+                min-width: 0;
+            }
+
+            .card.table-section {
+                padding: 16px;
             }
 
             .filter-controls {
@@ -458,6 +506,10 @@
 
             table {
                 font-size: 12px;
+            }
+
+            .table-scroll table {
+                min-width: 720px;
             }
 
             td, th {
@@ -615,58 +667,68 @@
                         </div>
                     </div>
 
+                    <button class="btn-export" aria-label="Export data" onclick="exportData()">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Export
+                    </button>
                 </div>
 
-                <table role="table" aria-label="Riwayat Setor Sampah">
-                    <thead>
-                        <tr>
-                            <th>No.</th>
-                            <th>Jenis Sampah</th>
-                            <th>Total Berat (kg)</th>
-                            <th>Total Nilai</th>
-                            <th>Tanggal</th>
-                            <th>Status</th>
-                            <th>Deskripsi Ditolak</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                        @if (empty($transactions))
+                <div class="table-scroll {{ empty($transactions) ? 'is-empty' : '' }}" role="region" aria-label="Tabel riwayat setor sampah" tabindex="0">
+                    <table role="table" aria-label="Riwayat Setor Sampah">
+                        <thead>
                             <tr>
-                                <td colspan="7" class="empty-state">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M5.5 1h13a1.5 1.5 0 0 1 1.5 1.5v21a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 23.5v-21A1.5 1.5 0 0 1 5.5 1z"></path>
-                                        <path d="M9 1v22M15 1v22M5 5h14M5 11h14"></path>
-                                    </svg>
-                                    <p>Belum ada riwayat setor sampah</p>
-                                </td>
+                                <th>No.</th>
+                                <th>Jenis Sampah</th>
+                                <th>Total Berat (kg)</th>
+                                <th>Total Nilai</th>
+                                <th>Tanggal</th>
+                                <th>Status</th>
+                                <th>Deskripsi Ditolak</th>
                             </tr>
-                        @else
-                            @foreach ($transactions as $transaction)
-                                @php
-                                    $status_class = 'pending';
-                                    if ($transaction['status'] == 'selesai') {
-                                        $status_class = 'success';
-                                    } elseif ($transaction['status'] == 'ditolak') {
-                                        $status_class = 'failed';
-                                    }
-                                @endphp
+                        </thead>
+                        <tbody id="tableBody">
+                            @if (empty($transactions))
                                 <tr>
-                                    <td>{{ $loop->iteration }}</td>
-                                    <td>{{ htmlspecialchars($transaction['nama_jenis'] ?? 'N/A') }}</td>
-                                    <td>{{ number_format($transaction['berat_kg'] ?? 0, 2) }}</td>
-                                    <td>Rp {{ number_format($transaction['subtotal'] ?? 0, 0, ',', '.') }}</td>
-                                    <td>{{ date('d/m/Y', strtotime($transaction['tanggal_setor'])) }}</td>
-                                    <td>
-                                        <span class="status status-{{ $status_class }}">
-                                            {{ ucfirst($transaction['status']) }}
-                                        </span>
+                                    <td colspan="7" class="empty-state">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M5.5 1h13a1.5 1.5 0 0 1 1.5 1.5v21a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 23.5v-21A1.5 1.5 0 0 1 5.5 1z"></path>
+                                            <path d="M9 1v22M15 1v22M5 5h14M5 11h14"></path>
+                                        </svg>
+                                        <p>Belum ada riwayat setor sampah</p>
                                     </td>
-                                    <td>{{ htmlspecialchars($transaction['rejected_notes'] ?? '') }}</td>
                                 </tr>
-                            @endforeach
-                        @endif
-                    </tbody>
-                </table>
+                            @else
+                                @foreach ($transactions as $transaction)
+                                    @php
+                                        $status_class = 'pending';
+                                        if ($transaction['status'] == 'selesai') {
+                                            $status_class = 'success';
+                                        } elseif ($transaction['status'] == 'ditolak') {
+                                            $status_class = 'failed';
+                                        }
+                                    @endphp
+                                    <tr>
+                                        <td>{{ $loop->iteration }}</td>
+                                        <td>{{ htmlspecialchars($transaction['nama_jenis'] ?? 'N/A') }}</td>
+                                        <td>{{ number_format($transaction['berat_kg'] ?? 0, 2) }}</td>
+                                        <td>Rp {{ number_format($transaction['subtotal'] ?? 0, 0, ',', '.') }}</td>
+                                        <td>{{ date('d/m/Y', strtotime($transaction['tanggal_setor'])) }}</td>
+                                        <td>
+                                            <span class="status status-{{ $status_class }}">
+                                                {{ ucfirst($transaction['status']) }}
+                                            </span>
+                                        </td>
+                                        <td>{{ htmlspecialchars($transaction['rejected_notes'] ?? '') }}</td>
+                                    </tr>
+                                @endforeach
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
 
                 <div class="pagination-info">
                     <span id="paginationText">{{ count($transactions) }} dari {{ count($transactions) }} transaksi</span>
@@ -697,7 +759,7 @@
     <script>
         const searchInput = document.getElementById('searchInput');
         const tableBody = document.getElementById('tableBody');
-        const allRows = Array.from(tableBody.querySelectorAll('tr:not(.empty-state)'));
+        const allRows = Array.from(tableBody.querySelectorAll('tr')).filter(row => !row.querySelector('.empty-state'));
         const totalRows = allRows.length;
         const paginationText = document.getElementById('paginationText');
         const rowsPerPageSelect = document.getElementById('rows-per-page');
@@ -789,7 +851,7 @@
 
         // Export functionality
         function exportData() {
-            const visibleRows = filteredRows.length > 0 ? filteredRows : allRows;
+            const visibleRows = filteredRows;
             if (!visibleRows.length) {
                 alert('Tidak ada data untuk diexport.');
                 return;
@@ -839,7 +901,7 @@
             
             const endRow = Math.min(currentPage * rowsPerPage, visibleCount);
             if (paginationText) {
-                paginationText.textContent = `${endRow} dari ${totalRows} transaksi`;
+                paginationText.textContent = `${endRow} dari ${visibleCount} transaksi`;
             }
 
             // Show/hide rows

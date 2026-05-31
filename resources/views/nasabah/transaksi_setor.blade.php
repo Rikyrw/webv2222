@@ -92,6 +92,180 @@
             margin-bottom: 8px;
         }
 
+        .profile-card {
+            align-self: start;
+            overflow: hidden;
+            padding: 0;
+        }
+
+        .profile-hero {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 22px;
+            background:
+                linear-gradient(135deg, rgba(47, 95, 62, 0.1), rgba(255, 255, 255, 0.92) 62%),
+                #f7fbf8;
+            border-bottom: 1px solid #e4ece7;
+        }
+
+        .profile-avatar {
+            display: grid;
+            place-items: center;
+            width: 58px;
+            height: 58px;
+            flex: 0 0 58px;
+            border-radius: 16px;
+            background: #2f5f3e;
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0;
+            box-shadow: 0 14px 28px rgba(47, 95, 62, 0.18);
+        }
+
+        .profile-heading {
+            min-width: 0;
+        }
+
+        .profile-kicker {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            margin-bottom: 6px;
+            padding: 4px 8px;
+            border: 1px solid #cfe2d5;
+            border-radius: 999px;
+            background: #edf5ef;
+            color: #2f5f3e;
+            font-size: 11px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .profile-heading h3 {
+            margin: 0 0 4px;
+            color: #17231b;
+            font-size: 20px;
+            font-weight: 800;
+            line-height: 1.2;
+            word-break: break-word;
+        }
+
+        .profile-heading p {
+            margin: 0;
+            color: #6d7a71;
+            font-size: 13px;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+        }
+
+        .profile-body {
+            display: grid;
+            gap: 16px;
+            padding: 18px 22px 22px;
+        }
+
+        .profile-balance {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding: 14px 16px;
+            border: 1px solid #dce9e0;
+            border-radius: 10px;
+            background: #f4faf6;
+        }
+
+        .profile-balance span {
+            color: #526158;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .profile-balance strong {
+            color: #059669;
+            font-size: 18px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .profile-detail-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .profile-detail {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .profile-detail-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            flex: 0 0 36px;
+            border-radius: 10px;
+            background: #edf5ef;
+            color: #2f5f3e;
+        }
+
+        .profile-detail-icon svg {
+            width: 18px;
+            height: 18px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+        }
+
+        .profile-detail-text {
+            min-width: 0;
+        }
+
+        .profile-detail-text span {
+            display: block;
+            margin-bottom: 2px;
+            color: #6d7a71;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .profile-detail-text strong {
+            display: block;
+            color: #17231b;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+        }
+
+        .profile-note {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px;
+            border: 1px solid #e2ece5;
+            border-radius: 10px;
+            background: #fbfdfb;
+            color: #526158;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .profile-note svg {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 18px;
+            color: #2f5f3e;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+        }
+
         .form-group {
             margin-bottom: 16px;
         }
@@ -406,9 +580,145 @@
                 align-items: flex-start;
                 gap: 8px;
             }
+
+            .profile-hero {
+                padding: 18px;
+            }
+
+            .profile-body {
+                padding: 16px 18px 18px;
+            }
+
+            .profile-balance {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 4px;
+            }
         }
     </style>
     @include('partials.greenpoint-theme')
+    <style>
+        html,
+        body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            width: 100%;
+        }
+
+        .app:has(.nasabah-sidebar),
+        .app:has(.nasabah-sidebar) .main {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            overflow-x: hidden;
+        }
+
+        .app:has(.nasabah-sidebar) .grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            width: 100%;
+            max-width: 1200px !important;
+            min-width: 0;
+            margin: 0 auto;
+            padding: 24px !important;
+        }
+
+        .card,
+        .profile-card,
+        .profile-heading,
+        .profile-detail-text,
+        #setorForm,
+        .form-group,
+        .form-actions {
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .form-group input,
+        .form-group select {
+            min-width: 0;
+        }
+
+        .items-table-scroll {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            border: 1px solid #e8eee9;
+            border-radius: 8px;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .items-table-scroll:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(47, 95, 62, 0.12);
+        }
+
+        .items-table-scroll .table {
+            min-width: 680px;
+            margin-top: 0;
+            margin-bottom: 0;
+        }
+
+        @media (max-width: 768px) {
+            .app:has(.nasabah-sidebar) .main {
+                padding: 14px !important;
+            }
+
+            .app:has(.nasabah-sidebar) .grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+                max-width: 100% !important;
+                padding: 0 !important;
+            }
+
+            .nasabah-page-header {
+                max-width: 100%;
+                min-width: 0;
+            }
+
+            .nasabah-status span {
+                max-width: 100%;
+                overflow-wrap: anywhere;
+            }
+
+            .card {
+                width: 100%;
+                padding: 16px !important;
+            }
+
+            .profile-card {
+                padding: 0 !important;
+            }
+
+            .profile-hero {
+                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .profile-avatar {
+                width: 48px;
+                height: 48px;
+                flex-basis: 48px;
+                border-radius: 14px;
+            }
+
+            .profile-heading h3 {
+                font-size: 18px;
+            }
+
+            .profile-balance strong {
+                white-space: normal;
+            }
+
+            .items-table-scroll .table {
+                min-width: 640px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="app">
@@ -422,19 +732,81 @@
                 'subtitle' => 'Ajukan setor sampah, tunggu persetujuan admin',
             ])
 
+            @php
+                $setorDisplayName = $user['nama_nasabah'] ?? 'Nasabah';
+                $setorEmail = $user['email'] ?? 'Email belum tersedia';
+                $setorAddress = $user['alamat'] ?? 'Alamat belum tersedia';
+                $setorInitials = collect(explode(' ', trim($setorDisplayName)))
+                    ->filter()
+                    ->take(2)
+                    ->map(fn ($part) => strtoupper(substr($part, 0, 1)))
+                    ->implode('') ?: 'NS';
+            @endphp
+
             <section class="grid">
                 <!-- PROFILE SECTION -->
-                <div class="card col-6">
-                    <h3>Profil</h3>
-                    <div style="margin-top: 8px;">
-                        <div class="form-group">
-                            <label>Nama</label>
-                            <div>{{ htmlspecialchars($user['nama_nasabah'] ?? '') }}</div>
+                <div class="card col-6 profile-card">
+                    <div class="profile-hero">
+                        <div class="profile-avatar" aria-hidden="true">{{ $setorInitials }}</div>
+                        <div class="profile-heading">
+                            <span class="profile-kicker">Nasabah Aktif</span>
+                            <h3>{{ htmlspecialchars($setorDisplayName) }}</h3>
+                            <p>{{ htmlspecialchars($setorEmail) }}</p>
+                        </div>
+                    </div>
+
+                    <div class="profile-body">
+                        <div class="profile-balance" role="region" aria-label="Saldo tersedia">
+                            <span>Saldo tersedia</span>
+                            <strong>Rp {{ number_format((float)($user['saldo'] ?? 0), 0, ',', '.') }}</strong>
                         </div>
 
-                        <div class="form-group">
-                            <label>Alamat</label>
-                            <div>{{ htmlspecialchars($user['alamat'] ?? '') }}</div>
+                        <div class="profile-detail-list">
+                            <div class="profile-detail">
+                                <span class="profile-detail-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                </span>
+                                <div class="profile-detail-text">
+                                    <span>Nama</span>
+                                    <strong>{{ htmlspecialchars($setorDisplayName) }}</strong>
+                                </div>
+                            </div>
+
+                            <div class="profile-detail">
+                                <span class="profile-detail-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24">
+                                        <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                                        <path d="m22 6-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 6"></path>
+                                    </svg>
+                                </span>
+                                <div class="profile-detail-text">
+                                    <span>Email</span>
+                                    <strong>{{ htmlspecialchars($setorEmail) }}</strong>
+                                </div>
+                            </div>
+
+                            <div class="profile-detail">
+                                <span class="profile-detail-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0Z"></path>
+                                        <circle cx="12" cy="10" r="3"></circle>
+                                    </svg>
+                                </span>
+                                <div class="profile-detail-text">
+                                    <span>Alamat</span>
+                                    <strong>{{ htmlspecialchars($setorAddress) }}</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="profile-note">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M12 3v18M5 8c5 0 7 3 7 7-5 0-7-3-7-7ZM19 8c-5 0-7 3-7 7 5 0 7-3 7-7Z"></path>
+                            </svg>
+                            <span>Pilah sampah sesuai jenisnya agar estimasi nilai setor lebih akurat.</span>
                         </div>
                     </div>
                 </div>
@@ -471,19 +843,21 @@
                         </div>
 
                         <h4 style="margin-top: 12px;">Daftar Item</h4>
-                        <table id="itemsTable" class="table">
-                            <thead>
-                                <tr>
-                                    <th>Jenis</th>
-                                    <th>Berat (kg)</th>
-                                    <th>Harga/kg</th>
-                                    <th>Subtotal</th>
-                                    <th>Foto</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
+                        <div class="items-table-scroll" role="region" aria-label="Daftar item setor sampah" tabindex="0">
+                            <table id="itemsTable" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Jenis</th>
+                                        <th>Berat (kg)</th>
+                                        <th>Harga/kg</th>
+                                        <th>Subtotal</th>
+                                        <th>Foto</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
 
                         <div class="totals-info">
                             <div>Total Berat: <strong id="totalBerat">0</strong> kg</div>

@@ -219,6 +219,75 @@
             transition: all 0.1s ease;
         }
 
+        /* ========== PERBAIKAN BUTTON EXPORT (PAKSA DENGAN !important) ========== */
+        .table-actions .btn-export,
+        .btn-export,
+        button.btn-export,
+        .btn-export.btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            background: #059669 !important;
+            background-color: #059669 !important;
+            color: white !important;
+            border: none !important;
+            padding: 10px 16px !important;
+            border-radius: 8px !important;
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            text-decoration: none !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            box-shadow: 0 18px 40px rgba(16, 185, 129, 0.24) !important;
+            transform: none !important;
+            position: relative !important;
+            opacity: 1 !important;
+            filter: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            appearance: none !important;
+        }
+
+        /* Icon SVG dalam button Export */
+        .table-actions .btn-export svg,
+        .btn-export svg,
+        button.btn-export svg {
+            width: 18px !important;
+            height: 18px !important;
+            stroke: white !important;
+            stroke-width: 2 !important;
+            fill: none !important;
+            color: white !important;
+        }
+
+        /* Hover effect - hanya background yang berubah gradasi, teks tetap putih */
+        .table-actions .btn-export:hover,
+        .btn-export:hover,
+        button.btn-export:hover {
+            background: linear-gradient(135deg, #1acc91 0%, #05a875 100%) !important;
+            background-color: transparent !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 20px 45px rgba(5, 150, 105, 0.3) !important;
+            color: white !important;
+        }
+
+        /* Hover effect untuk icon - tetap putih */
+        .table-actions .btn-export:hover svg,
+        .btn-export:hover svg,
+        button.btn-export:hover svg {
+            stroke: white !important;
+            color: white !important;
+        }
+
+        /* Active effect */
+        .table-actions .btn-export:active,
+        .btn-export:active,
+        button.btn-export:active {
+            transform: scale(0.98) !important;
+            transition: all 0.1s ease !important;
+        }
+
         .table-container {
             overflow-x: auto;
             margin-bottom: 20px;
@@ -435,6 +504,39 @@
     </style>
     @include('partials.greenpoint-theme')
     
+    <!-- TAMBAHKAN CSS INI SETELAH greenpoint-theme UNTUK MEMAKSA OVERRIDE -->
+    <style>
+        /* Pemaksaan terakhir - setelah semua CSS termasuk theme */
+        button.btn-export,
+        .btn-export,
+        .table-actions .btn-export {
+            background: #059669 !important;
+            background-color: #059669 !important;
+            color: white !important;
+            border: none !important;
+        }
+
+        button.btn-export svg,
+        .btn-export svg,
+        .table-actions .btn-export svg {
+            stroke: white !important;
+            color: white !important;
+        }
+
+        button.btn-export:hover,
+        .btn-export:hover,
+        .table-actions .btn-export:hover {
+            background: linear-gradient(135deg, #1acc91 0%, #05a875 100%) !important;
+            color: white !important;
+        }
+
+        button.btn-export:hover svg,
+        .btn-export:hover svg,
+        .table-actions .btn-export:hover svg {
+            stroke: white !important;
+            color: white !important;
+        }
+    </style>
 </head>
 <body>
     <div class="app">
@@ -508,6 +610,16 @@
 
                 <div class="table-header">
                     <h3>Daftar Transaksi</h3>
+                    <div class="table-actions">
+                        <button class="btn-export" onclick="exportData()">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Export
+                        </button>
+                    </div>
                 </div>
 
                 <div class="table-container">
@@ -738,6 +850,39 @@
                 currentPage++;
                 updatePaginationDisplay();
             }
+        }
+
+        function exportData() {
+            const rows = document.querySelectorAll('.table-row');
+            if (rows.length === 0) {
+                alert('Tidak ada data untuk diekspor!');
+                return;
+            }
+
+            let csvContent = 'data:text/csv;charset=utf-8,';
+            csvContent += 'No,Layanan,Status,Nominal,Tanggal\n';
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 4) {
+                    const id = cells[0].textContent.trim();
+                    const service = cells[1].querySelector('.service-badge')?.textContent.trim() || '';
+                    const status = cells[1].querySelector('.status')?.textContent.trim() || '';
+                    const amount = cells[2].textContent.trim();
+                    const date = cells[3].textContent.trim().replace(/\n/g, ' ');
+
+                    const csvRow = `"${id}","${service}","${status}","${amount}","${date}"`;
+                    csvContent += csvRow + '\n';
+                }
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'transaksi_ppob_' + new Date().toISOString().split('T')[0] + '.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         // Initialize pagination on load

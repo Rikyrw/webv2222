@@ -11,6 +11,7 @@
     background: #ffffff;
     color: var(--nasabah-sidebar-text);
     width: var(--nasabah-sidebar-width);
+    max-width: 100vw;
     padding: 0;
     display: flex;
     flex-direction: column;
@@ -52,6 +53,7 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    min-width: 0;
     overflow-y: auto;
     padding: 0 12px 18px;
 }
@@ -191,8 +193,10 @@
 
     .nasabah-sidebar {
         width: 100%;
+        max-width: 100vw;
         height: auto;
         position: relative;
+        border-right: 0;
         box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
     }
 
@@ -202,17 +206,58 @@
     }
 
     .nasabah-sidebar .nav {
+        flex: 0 0 auto;
         flex-direction: row;
+        flex-wrap: nowrap;
+        width: 100%;
+        max-width: 100vw;
+        gap: 6px;
         overflow-x: auto;
         overflow-y: hidden;
         padding: 0 12px 12px;
+        scroll-padding-inline: 12px;
+        scroll-behavior: smooth;
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
     }
 
     .nasabah-sidebar .nav a {
+        flex: 0 0 auto;
+        min-width: max-content;
         white-space: nowrap;
     }
 
+    .nasabah-sidebar .nav a:hover,
+    .nasabah-sidebar .logout-btn:hover {
+        transform: none;
+    }
+
+    .nasabah-sidebar .nav::after {
+        content: "";
+        flex: 0 0 6px;
+    }
+
+    .nasabah-sidebar .nav::-webkit-scrollbar {
+        height: 4px;
+        width: 4px;
+    }
+
     .nasabah-sidebar .sidebar-footer {
+        display: block;
+        padding: 0 12px 12px;
+        border-top: 0;
+    }
+
+    .nasabah-sidebar .logout-btn {
+        justify-content: center;
+        width: 100%;
+        min-height: 40px;
+        margin: 0;
+        background: #f4f8f5;
+        border: 1px solid #d8e1da;
+    }
+
+    .nasabah-sidebar .user-profile {
         display: none;
     }
 
@@ -266,7 +311,18 @@
     </div>
 
     <div class="sidebar-footer">
-        <a href="javascript:void(0);" class="logout-btn" onclick="confirmLogout()">
+        <a
+            href="{{ route('nasabah.logout') }}"
+            class="logout-btn"
+            data-gp-logout
+            data-logout-variant="nasabah"
+            data-logout-eyebrow="Sesi Nasabah"
+            data-logout-title="Keluar dari dashboard?"
+            data-logout-message="Kamu akan keluar dari akun nasabah GreenPoint. Saldo dan riwayat transaksi tetap aman."
+            data-logout-note="Masuk kembali kapan saja untuk setor sampah, cek saldo, atau melihat riwayat transaksi."
+            data-logout-confirm="Keluar dari Akun"
+            data-logout-cancel="Tetap masuk"
+        >
             <img src="{{ asset('images/Logout.png') }}" alt="" class="icon">
             <span>Logout</span>
         </a>
@@ -282,9 +338,29 @@
 </div>
 
 <script>
-    function confirmLogout() {
-        if (confirm('Apakah Anda yakin ingin logout?')) {
-            window.location.href = '{{ route("nasabah.logout") }}';
+    (function () {
+        function scrollActiveNasabahMenu() {
+            const nav = document.querySelector('.nasabah-sidebar .nav');
+            const activeLink = nav ? nav.querySelector('a.active') : null;
+
+            if (!nav || !activeLink || !window.matchMedia('(max-width: 768px)').matches) {
+                return;
+            }
+
+            const navRect = nav.getBoundingClientRect();
+            const activeRect = activeLink.getBoundingClientRect();
+            const targetLeft = nav.scrollLeft + activeRect.left - navRect.left - ((nav.clientWidth - activeLink.offsetWidth) / 2);
+
+            nav.scrollTo({
+                left: Math.max(0, targetLeft),
+                behavior: 'auto'
+            });
         }
-    }
+
+        document.addEventListener('DOMContentLoaded', scrollActiveNasabahMenu);
+        window.addEventListener('pageshow', scrollActiveNasabahMenu);
+        window.addEventListener('resize', function () {
+            window.requestAnimationFrame(scrollActiveNasabahMenu);
+        });
+    })();
 </script>

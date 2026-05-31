@@ -1,3 +1,4 @@
+@include('partials.favicon')
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -422,6 +423,251 @@
 
     .gp-toast-close:focus {
         box-shadow: 0 0 0 3px rgba(47, 95, 62, 0.12);
+    }
+
+    .gp-confirm-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        background: rgba(12, 27, 20, 0.42);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+
+    .gp-confirm-backdrop.is-open {
+        display: flex;
+    }
+
+    .gp-confirm-dialog {
+        width: min(100%, 430px);
+        overflow: hidden;
+        border: 1px solid #dfe8e1;
+        border-radius: 10px;
+        background: #ffffff;
+        box-shadow: 0 24px 70px rgba(15, 23, 42, 0.24);
+        transform: translateY(8px) scale(0.98);
+        opacity: 0;
+        transition: transform 0.18s ease, opacity 0.18s ease;
+    }
+
+    .gp-confirm-backdrop.is-open .gp-confirm-dialog {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+
+    .gp-confirm-hero {
+        position: relative;
+        padding: 22px 22px 18px;
+        background: linear-gradient(135deg, #f4faf6 0%, #ffffff 68%);
+        border-bottom: 1px solid #e7eee9;
+    }
+
+    .gp-confirm-topline {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        padding-right: 34px;
+    }
+
+    .gp-confirm-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        flex: 0 0 44px;
+        border-radius: 10px;
+        background: #e6f4eb;
+        color: #2f5f3e;
+        box-shadow: inset 0 0 0 1px rgba(47, 95, 62, 0.12);
+    }
+
+    .gp-confirm-icon img {
+        width: 28px;
+        height: 28px;
+        object-fit: contain;
+    }
+
+    .gp-confirm-eyebrow {
+        margin: 0 0 5px;
+        color: #2f5f3e;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.2;
+        text-transform: uppercase;
+    }
+
+    .gp-confirm-title {
+        margin: 0;
+        color: #122018;
+        font-size: 21px;
+        font-weight: 800;
+        line-height: 1.15;
+        letter-spacing: 0;
+    }
+
+    .gp-confirm-close {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        color: #64716a;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1px solid #e1e9e3;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .gp-confirm-close:hover,
+    .gp-confirm-close:focus {
+        color: #122018;
+        background: #edf3ee;
+        outline: none;
+    }
+
+    .gp-confirm-close:focus {
+        box-shadow: 0 0 0 3px rgba(47, 95, 62, 0.12);
+    }
+
+    .gp-confirm-close svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .gp-confirm-body {
+        padding: 18px 22px 22px;
+    }
+
+    .gp-confirm-message {
+        margin: 0 0 16px;
+        color: #5e6c63;
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 1.62;
+    }
+
+    .gp-confirm-note {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        margin-bottom: 20px;
+        padding: 12px;
+        border: 1px solid #e2ece5;
+        border-radius: 8px;
+        background: #f7fbf8;
+        color: #526158;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+
+    .gp-confirm-note svg {
+        width: 18px;
+        height: 18px;
+        flex: 0 0 18px;
+        color: #2f5f3e;
+    }
+
+    .gp-confirm-actions {
+        display: grid;
+        grid-template-columns: 1fr 1.2fr;
+        gap: 10px;
+    }
+
+    .gp-confirm-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 42px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.2;
+        cursor: pointer;
+        transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .gp-confirm-btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .gp-confirm-cancel {
+        border: 1px solid #dce7df;
+        background: #ffffff;
+        color: #526158;
+    }
+
+    .gp-confirm-cancel:hover,
+    .gp-confirm-cancel:focus {
+        color: #2f5f3e;
+        background: #f3f8f5;
+        border-color: #cddbd2;
+        outline: none;
+    }
+
+    .gp-confirm-accept {
+        border: 1px solid #2f5f3e;
+        background: #2f5f3e;
+        color: #ffffff;
+        box-shadow: 0 10px 20px rgba(47, 95, 62, 0.18);
+    }
+
+    .gp-confirm-accept:hover,
+    .gp-confirm-accept:focus {
+        background: #254d33;
+        border-color: #254d33;
+        color: #ffffff;
+        outline: none;
+    }
+
+    .gp-confirm-accept svg {
+        width: 17px;
+        height: 17px;
+    }
+
+    .gp-confirm-backdrop[data-variant="admin"] .gp-confirm-eyebrow,
+    .gp-confirm-backdrop[data-variant="admin"] .gp-confirm-note svg {
+        color: #2e5b9f;
+    }
+
+    .gp-confirm-backdrop[data-variant="admin"] .gp-confirm-accept {
+        border-color: #2f5f3e;
+        background: #2f5f3e;
+    }
+
+    @media (max-width: 480px) {
+        .gp-confirm-backdrop {
+            align-items: flex-end;
+            padding: 12px;
+        }
+
+        .gp-confirm-dialog {
+            border-radius: 10px;
+        }
+
+        .gp-confirm-hero,
+        .gp-confirm-body {
+            padding-left: 18px;
+            padding-right: 18px;
+        }
+
+        .gp-confirm-title {
+            font-size: 19px;
+        }
+
+        .gp-confirm-actions {
+            grid-template-columns: 1fr;
+        }
     }
 
     .gp-date-range {
@@ -1139,6 +1385,12 @@
     }
 </style>
 <script>
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    });
+
     (function () {
         const enhancedAttr = 'data-gp-select-enhanced';
         let activeSelect = null;
@@ -1677,6 +1929,147 @@
             target.remove();
         }
     });
+
+    (function () {
+        let currentLogoutUrl = '';
+        let lastFocusedElement = null;
+
+        function ensureLogoutConfirm() {
+            let modal = document.getElementById('gp-logout-confirm');
+
+            if (modal) {
+                return modal;
+            }
+
+            modal = document.createElement('div');
+            modal.id = 'gp-logout-confirm';
+            modal.className = 'gp-confirm-backdrop';
+            modal.setAttribute('data-variant', 'nasabah');
+            modal.innerHTML = `
+                <section class="gp-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="gp-confirm-title" aria-describedby="gp-confirm-message" tabindex="-1">
+                    <div class="gp-confirm-hero">
+                        <button type="button" class="gp-confirm-close" data-gp-logout-close aria-label="Tutup konfirmasi logout">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M6 18 17.94 6M18 18 6.06 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                            </svg>
+                        </button>
+                        <div class="gp-confirm-topline">
+                            <div class="gp-confirm-icon" aria-hidden="true">
+                                <img src="{{ asset('images/logo.png') }}" alt="">
+                            </div>
+                            <div>
+                                <p class="gp-confirm-eyebrow" data-gp-logout-eyebrow>Sesi GreenPoint</p>
+                                <h2 class="gp-confirm-title" id="gp-confirm-title" data-gp-logout-title>Keluar dari akun?</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="gp-confirm-body">
+                        <p class="gp-confirm-message" id="gp-confirm-message" data-gp-logout-message>Anda akan keluar dari dashboard GreenPoint.</p>
+                        <div class="gp-confirm-note">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M12 13V8m0 8h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                            </svg>
+                            <span data-gp-logout-note>Pastikan semua perubahan sudah tersimpan sebelum sesi ditutup.</span>
+                        </div>
+                        <div class="gp-confirm-actions">
+                            <button type="button" class="gp-confirm-btn gp-confirm-cancel" data-gp-logout-close>Tetap di sini</button>
+                            <button type="button" class="gp-confirm-btn gp-confirm-accept" data-gp-logout-accept>
+                                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                                </svg>
+                                <span data-gp-logout-confirm>Ya, logout</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            `;
+
+            document.body.appendChild(modal);
+            return modal;
+        }
+
+        function setText(root, selector, value) {
+            const element = root.querySelector(selector);
+
+            if (element) {
+                element.textContent = value;
+            }
+        }
+
+        function openLogoutConfirm(trigger) {
+            const modal = ensureLogoutConfirm();
+            const variant = trigger.dataset.logoutVariant || 'nasabah';
+            const href = trigger.getAttribute('href') || trigger.dataset.logoutUrl || '#';
+            currentLogoutUrl = href;
+            lastFocusedElement = trigger;
+
+            modal.setAttribute('data-variant', variant);
+
+            setText(modal, '[data-gp-logout-eyebrow]', trigger.dataset.logoutEyebrow || (variant === 'admin' ? 'Sesi Admin' : 'Sesi Nasabah'));
+            setText(modal, '[data-gp-logout-title]', trigger.dataset.logoutTitle || 'Keluar dari akun?');
+            setText(modal, '[data-gp-logout-message]', trigger.dataset.logoutMessage || 'Anda akan keluar dari dashboard GreenPoint.');
+            setText(modal, '[data-gp-logout-note]', trigger.dataset.logoutNote || 'Pastikan semua perubahan sudah tersimpan sebelum sesi ditutup.');
+            setText(modal, '[data-gp-logout-confirm]', trigger.dataset.logoutConfirm || 'Ya, logout');
+            setText(modal, '.gp-confirm-cancel', trigger.dataset.logoutCancel || 'Tetap di sini');
+
+            modal.classList.add('is-open');
+            window.setTimeout(function () {
+                const dialog = modal.querySelector('.gp-confirm-dialog');
+                if (dialog) {
+                    dialog.focus();
+                }
+            }, 0);
+        }
+
+        function closeLogoutConfirm() {
+            const modal = document.getElementById('gp-logout-confirm');
+
+            if (!modal) {
+                return;
+            }
+
+            modal.classList.remove('is-open');
+            currentLogoutUrl = '';
+
+            if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+                lastFocusedElement.focus();
+            }
+        }
+
+        document.addEventListener('click', function (event) {
+            const trigger = event.target.closest('[data-gp-logout]');
+
+            if (trigger) {
+                event.preventDefault();
+                openLogoutConfirm(trigger);
+                return;
+            }
+
+            const modal = event.target.closest('#gp-logout-confirm');
+
+            if (event.target.matches('[data-gp-logout-close]') || event.target.closest('[data-gp-logout-close]')) {
+                closeLogoutConfirm();
+                return;
+            }
+
+            if (event.target.matches('[data-gp-logout-accept]') || event.target.closest('[data-gp-logout-accept]')) {
+                if (currentLogoutUrl && currentLogoutUrl !== '#') {
+                    window.location.href = currentLogoutUrl;
+                }
+                return;
+            }
+
+            if (modal && event.target.id === 'gp-logout-confirm') {
+                closeLogoutConfirm();
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeLogoutConfirm();
+            }
+        });
+    })();
 
     (function () {
         const iconPaths = {

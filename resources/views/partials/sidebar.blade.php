@@ -238,6 +238,21 @@
     }
 
     .sidebar .sidebar-footer {
+      display: block;
+      padding: 0 12px 12px;
+      border-top: 0;
+    }
+
+    .sidebar .sidebar-logout {
+      justify-content: center;
+      width: 100%;
+      min-height: 40px;
+      margin: 0;
+      background: #f4f8f5;
+      border: 1px solid #d8e1da;
+    }
+
+    .sidebar .user-profile {
       display: none;
     }
   }
@@ -300,7 +315,18 @@
   </nav>
 
   <div class="sidebar-footer">
-    <a href="{{ url('/admin/logout') }}" class="sidebar-logout" onclick="return confirm('Apakah Anda yakin ingin keluar?')">
+    <a
+      href="{{ route('admin.logout') }}"
+      class="sidebar-logout"
+      data-gp-logout
+      data-logout-variant="admin"
+      data-logout-eyebrow="Sesi Admin"
+      data-logout-title="Keluar dari panel admin?"
+      data-logout-message="Sesi admin akan ditutup dan akses pengelolaan GreenPoint dihentikan dari perangkat ini."
+      data-logout-note="Pastikan perubahan data nasabah, sampah, atau transaksi sudah tersimpan sebelum keluar."
+      data-logout-confirm="Keluar dari Admin"
+      data-logout-cancel="Tetap bekerja"
+    >
       <img src="{{ asset('images/Logout.png') }}" alt="" class="icon" aria-hidden="true">
       <span>Logout</span>
     </a>

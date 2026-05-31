@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GreenPoint - Bank Sampah Digital</title>
+    @include('partials.favicon')
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -38,10 +39,14 @@
         html {
             scroll-behavior: smooth;
             scroll-padding-top: 86px;
+            max-width: 100%;
+            overflow-x: hidden;
         }
 
         body {
             margin: 0;
+            width: 100%;
+            max-width: 100%;
             background: var(--page-bg);
             color: var(--text-main);
             font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -107,6 +112,7 @@
             font-size: 1.05rem;
             font-weight: 800;
             letter-spacing: 0;
+            white-space: nowrap;
             transition: opacity var(--transition-fast), transform var(--transition-fast);
         }
 
@@ -808,7 +814,9 @@
 
         @media (max-width: 991.98px) {
             .landing-nav-shell {
+                flex-wrap: wrap;
                 gap: 0.85rem;
+                padding: 0.85rem 1rem;
             }
 
             .landing-nav-menu {
@@ -845,6 +853,7 @@
             }
 
             .nav-actions {
+                order: 2;
                 margin-left: auto;
             }
 
@@ -877,6 +886,11 @@
                 margin-right: 0;
                 opacity: 0.94;
             }
+
+            .hero-title,
+            .hero-subtitle {
+                max-width: 100%;
+            }
         }
 
         @media (max-width: 767.98px) {
@@ -884,16 +898,86 @@
                 scroll-padding-top: 74px;
             }
 
+            body {
+                overflow-x: hidden;
+            }
+
+            .container,
+            .hero-section > .container {
+                width: 100%;
+                max-width: 100%;
+                padding-right: 18px;
+                padding-left: 18px;
+            }
+
+            .row {
+                --bs-gutter-x: 1.25rem;
+            }
+
             .navbar-landing {
                 min-height: 66px;
             }
 
+            .landing-nav-shell {
+                width: 100%;
+                max-width: 100%;
+                padding-right: 14px;
+                padding-left: 14px;
+            }
+
+            .navbar-landing .navbar-brand {
+                font-size: 0.98rem;
+            }
+
+            .brand-logo {
+                width: 28px;
+                height: 28px;
+            }
+
+            .btn-nav-primary {
+                min-height: 38px;
+                padding: 0.55rem 0.72rem;
+                font-size: 0.84rem;
+            }
+
+            .navbar-landing .navbar-toggler {
+                padding: 0.38rem 0.52rem;
+            }
+
             .hero-section {
                 margin-top: 66px;
-                padding: 4.3rem 0 4.8rem;
+                padding: 3.6rem 0 3.4rem;
+                overflow: hidden;
                 background:
                     linear-gradient(180deg, rgba(12, 31, 23, 0.86) 0%, rgba(27, 67, 50, 0.68) 58%, rgba(27, 67, 50, 0.36) 100%),
                     url("{{ asset('images/bg-gunung.png') }}") center / cover no-repeat;
+            }
+
+            .hero-section::after {
+                height: 46%;
+                background: linear-gradient(
+                    180deg,
+                    rgba(255, 255, 255, 0) 0%,
+                    rgba(255, 255, 255, 0.4) 38%,
+                    #ffffff 100%
+                );
+            }
+
+            .hero-content {
+                text-align: left;
+                width: 100%;
+            }
+
+            .hero-title {
+                margin-bottom: 1rem;
+                font-size: clamp(2.15rem, 11vw, 3rem);
+                line-height: 1.04;
+            }
+
+            .hero-subtitle {
+                margin-bottom: 1.35rem;
+                font-size: 0.98rem;
+                line-height: 1.62;
             }
 
             .hero-section > .container > .row {
@@ -901,19 +985,33 @@
             }
 
             .hero-image-container {
-                justify-content: flex-end;
-                margin-top: 1.25rem;
+                justify-content: center;
+                margin-top: 1.65rem;
             }
 
             .hero-image {
-                width: min(390px, 92vw);
-                margin-right: -18vw;
-                opacity: 0.86;
+                width: min(330px, 82vw);
+                margin-right: 0;
+                opacity: 0.9;
+            }
+
+            .hero-image img {
+                -webkit-mask-image: none;
+                mask-image: none;
             }
 
             .hero-actions,
             .hero-actions .btn {
                 width: 100%;
+            }
+
+            .hero-actions {
+                gap: 0.7rem;
+            }
+
+            .hero-actions .btn {
+                min-height: 46px;
+                justify-content: center;
             }
 
             .section-title {

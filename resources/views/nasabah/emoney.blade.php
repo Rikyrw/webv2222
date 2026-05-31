@@ -302,6 +302,88 @@
         }
     </style>
     @include('partials.greenpoint-theme')
+    <style>
+        html,
+        body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            width: 100%;
+        }
+
+        .app {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            min-height: auto;
+            overflow-x: hidden;
+        }
+
+        .app .main {
+            width: min(100%, 760px);
+            max-width: 760px;
+            min-width: 0;
+            margin: 0 auto !important;
+        }
+
+        .card,
+        .emoney-form,
+        .form-row,
+        .form-group,
+        .select-wrapper {
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        .input-with-value {
+            min-width: 0;
+        }
+
+        .input-with-value input {
+            min-width: 0;
+        }
+
+        .edit-btn {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            flex: 0 0 44px;
+            padding: 0 !important;
+            border-radius: 12px !important;
+        }
+
+        .back-btn {
+            position: static !important;
+            transform: none !important;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+
+            .app .main {
+                padding: 0 !important;
+            }
+
+            .card {
+                width: 100%;
+                padding: 24px 18px !important;
+                border-radius: 14px !important;
+            }
+
+            .nasabah-page-header {
+                gap: 12px !important;
+            }
+
+            .nasabah-header-side {
+                width: 100%;
+                justify-content: flex-start;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="app">
