@@ -8,8 +8,9 @@ use App\Models\Nasabah;
 use App\Models\Sampah;
 use App\Models\TransaksiSetor;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
 
 class NasabahTransaksiSetorController extends Controller
 {
@@ -112,11 +113,20 @@ class NasabahTransaksiSetorController extends Controller
 
                                     $foto = $waste_photos[$index] ?? null;
                                     if ($foto) {
+                                        $idJenis = (int) ($waste_items[$index]['id_jenis'] ?? 0);
+                                        $fotoUrl = $this->storeWastePhoto(
+                                            (string) $foto,
+                                            (int) $user['id_nasabah'],
+                                            (int) $transaksi->id_transaksi_setor,
+                                            (int) $detail->id_detail_setor,
+                                            $idJenis
+                                        );
+
                                         FotoSetor::create([
                                             'id_transaksi_setor' => $transaksi->id_transaksi_setor,
                                             'id_detail_setor' => $detail->id_detail_setor,
-                                            'id_jenis' => (int) ($waste_items[$index]['id_jenis'] ?? 0),
-                                            'foto_url' => $foto,
+                                            'id_jenis' => $idJenis,
+                                            'foto_url' => $fotoUrl,
                                             'created_at' => now(),
                                         ]);
                                     }
@@ -248,25 +258,63 @@ class NasabahTransaksiSetorController extends Controller
 
     private function isValidImageDataUrl(string $photo): bool
     {
-        if (!preg_match('/^data:image\/(jpeg|jpg|png);base64,/i', $photo)) {
-            return false;
+        return $this->decodeImageDataUrl($photo) !== null;
+    }
+
+    private function decodeImageDataUrl(string $photo): ?array
+    {
+        $photo = trim($photo);
+        if (!preg_match('/^data:image\/(jpeg|jpg|png);base64,/i', $photo, $matches)) {
+            return null;
         }
 
         if (strlen($photo) > 3500000) {
-            return false;
+            return null;
         }
 
+        $extension = strtolower($matches[1]) === 'png' ? 'png' : 'jpg';
         $base64 = preg_replace('/^data:image\/(jpeg|jpg|png);base64,/i', '', $photo);
         if (!is_string($base64) || $base64 === '') {
-            return false;
+            return null;
         }
 
         $binary = base64_decode($base64, true);
-        if ($binary === false || strlen($binary) > 2 * 1024 * 1024) {
-            return false;
+        if ($binary === false || strlen($binary) === 0 || strlen($binary) > 2 * 1024 * 1024) {
+            return null;
         }
 
-        return @getimagesizefromstring($binary) !== false;
+        if (@getimagesizefromstring($binary) === false) {
+            return null;
+        }
+
+        return [
+            'bytes' => $binary,
+            'extension' => $extension,
+        ];
+    }
+
+    private function storeWastePhoto(string $photo, int $nasabahId, int $transaksiId, int $detailId, int $idJenis): string
+    {
+        $decoded = $this->decodeImageDataUrl($photo);
+        if ($decoded === null) {
+            throw new \RuntimeException('Foto sampah tidak valid.');
+        }
+
+        $path = sprintf(
+            'setor-sampah/%d/%d_%d_%d_%s.%s',
+            $nasabahId,
+            $transaksiId,
+            $detailId,
+            $idJenis,
+            bin2hex(random_bytes(6)),
+            $decoded['extension']
+        );
+
+        if (! Storage::disk('public')->put($path, $decoded['bytes'])) {
+            throw new \RuntimeException('Gagal menyimpan foto sampah.');
+        }
+
+        return 'storage/'.$path;
     }
 
     private function detectWastePhotoWithGroq(string $photo, string $expectedWasteType, array $wasteTypeNames): array

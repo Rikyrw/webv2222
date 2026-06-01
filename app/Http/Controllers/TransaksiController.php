@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\DetailSetor;
 use App\Models\FotoSetor;
 use App\Models\Nasabah;
+use App\Models\Sampah;
 use App\Models\TransaksiPenarikan;
 use App\Models\TransaksiSetor;
 use Illuminate\Http\Request;
@@ -112,9 +113,10 @@ class TransaksiController extends Controller
                     throw new \RuntimeException('Detail setor tidak ditemukan.');
                 }
 
-                $approvedSum = 0;
-                $approvedCount = 0;
-                $rejectedCount = 0;
+                $currentStatus = $this->normalizeSetorStatus($transaksi->status ?? 'menunggu');
+                if (!in_array($currentStatus, ['menunggu', 'pending'], true)) {
+                    throw new \RuntimeException('Transaksi setor sudah diproses.');
+                }
 
                 foreach ($detailItems as $detail) {
                     $decision = $decisions[$detail->id_detail_setor] ?? null;
@@ -123,20 +125,18 @@ class TransaksiController extends Controller
                     }
 
                     $statusItem = strtolower(trim((string) $decision)) === 'approve' ? 'approved' : 'rejected';
-                    if ($statusItem === 'approved') {
-                        $approvedCount++;
-                        $approvedSum += (float) $detail->subtotal;
-                    } else {
-                        $rejectedCount++;
-                    }
-
                     $detail->update([
                         'status_item' => $statusItem,
                         'catatan_admin' => isset($notes[$detail->id_detail_setor]) ? (string) $notes[$detail->id_detail_setor] : null,
                     ]);
                 }
 
+                $detailItems = $transaksi->detailSetor()->get();
                 $totalItems = $detailItems->count();
+                $approvedItems = $detailItems->filter(fn ($detail) => strtolower((string) $detail->status_item) === 'approved');
+                $approvedCount = $approvedItems->count();
+                $approvedSum = $approvedItems->sum(fn ($detail) => (float) $detail->subtotal);
+                $rejectedCount = $detailItems->filter(fn ($detail) => strtolower((string) $detail->status_item) === 'rejected')->count();
                 $decidedCount = $approvedCount + $rejectedCount;
                 $newStatus = 'menunggu';
                 if ($decidedCount === $totalItems) {
@@ -145,7 +145,6 @@ class TransaksiController extends Controller
                         : ($approvedCount < $totalItems ? 'sebagian' : 'selesai');
                 }
 
-                $currentStatus = $this->normalizeSetorStatus($transaksi->status ?? 'menunggu');
                 $transaksi->update([
                     'status' => $newStatus,
                     'tanggal_proses' => date('Y-m-d'),
@@ -153,8 +152,17 @@ class TransaksiController extends Controller
                     'id_admin' => session('admin_id'),
                 ]);
 
-                if ($decidedCount === $totalItems && in_array($currentStatus, ['menunggu', 'pending'], true) && $approvedSum > 0 && $transaksi->nasabah) {
-                    $transaksi->nasabah->increment('saldo', $approvedSum);
+                if ($decidedCount === $totalItems && $approvedSum > 0) {
+                    foreach ($approvedItems->groupBy('id_jenis') as $idJenis => $items) {
+                        Sampah::whereKey((int) $idJenis)->lockForUpdate()->increment(
+                            'stok',
+                            $items->sum(fn ($detail) => (float) $detail->berat_kg)
+                        );
+                    }
+
+                    if ($transaksi->nasabah) {
+                        $transaksi->nasabah->increment('saldo', $approvedSum);
+                    }
                 }
             });
 
@@ -369,6 +377,7 @@ class TransaksiController extends Controller
             ->get()
             ->map(function (FotoSetor $item, int $index) use ($detailsById, $detailItems): ?array {
                 $fotoUrl = trim((string) $item->foto_url);
+                $displayUrl = $this->normalizePhotoUrl($fotoUrl);
                 if ($fotoUrl === '') {
                     return null;
                 }
@@ -377,13 +386,57 @@ class TransaksiController extends Controller
 
                 return [
                     'urutan' => $index + 1,
-                    'foto_url' => $fotoUrl,
+                    'foto_url' => $displayUrl,
+                    'foto_available' => $displayUrl !== null,
                     'nama_jenis' => is_array($detail) ? ($detail['nama_jenis'] ?? '-') : ($item->sampah?->nama_jenis ?: '-'),
                 ];
             })
             ->filter()
             ->values()
             ->all();
+    }
+
+    private function normalizePhotoUrl(string $fotoUrl): ?string
+    {
+        $value = trim($fotoUrl);
+        if ($value === '') {
+            return null;
+        }
+
+        if (preg_match('/^data:image\/(jpeg|jpg|png);base64,/i', $value)) {
+            return $this->isReadableDataImage($value) ? $value : null;
+        }
+
+        $path = parse_url($value, PHP_URL_PATH);
+        if (is_string($path) && str_starts_with($path, '/storage/')) {
+            return asset(ltrim($path, '/'));
+        }
+
+        if (preg_match('/^https?:\/\//i', $value) || str_starts_with($value, '//')) {
+            return $value;
+        }
+
+        $value = ltrim($value, '/');
+        if (str_starts_with($value, 'public/')) {
+            $value = 'storage/'.substr($value, strlen('public/'));
+        }
+
+        return asset($value);
+    }
+
+    private function isReadableDataImage(string $value): bool
+    {
+        $base64 = preg_replace('/^data:image\/(jpeg|jpg|png);base64,/i', '', $value);
+        if (!is_string($base64) || $base64 === '') {
+            return false;
+        }
+
+        $binary = base64_decode($base64, true);
+        if ($binary === false || $binary === '') {
+            return false;
+        }
+
+        return @getimagesizefromstring($binary) !== false;
     }
 
     private function paginateMapped($query, int $page, int $perPage, callable $mapper): array

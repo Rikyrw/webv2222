@@ -37,7 +37,7 @@
                                 <td>{{ $item['nama_jenis'] }}</td>
                                 <td>Rp {{ number_format($item['harga_per_kg'], 0, ',', '.') }}</td>
                                 <td class="{{ (float)$item['stok_kg'] < 5 ? 'fw-bold text-danger' : '' }}">
-                                    {{ number_format($item['stok_kg'], 1, ',', '.') }} kg
+                                    {{ number_format($item['stok_kg'], 2, ',', '.') }} kg
                                 </td>
                                 <td>
                                     @if ($item['status'] === 'aktif')

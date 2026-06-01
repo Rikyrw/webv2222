@@ -58,7 +58,7 @@ return new class extends Migration
                 ->nullOnDelete();
             $table->string('nama_jenis', 100);
             $table->decimal('harga_per_kg', 14, 2)->default(0);
-            $table->integer('stok')->default(0);
+            $table->decimal('stok', 10, 2)->default(0);
             $table->enum('status', ['aktif', 'nonaktif'])->default('aktif');
             });
         }

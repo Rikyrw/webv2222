@@ -72,14 +72,14 @@ class SampahController extends Controller
         $request->validate([
             'nama_jenis' => 'required|string|max:100',
             'harga_per_kg' => 'required|numeric|min:0',
-            'stok' => 'required|integer|min:0',
+            'stok' => 'required|numeric|min:0',
         ]);
 
         try {
             $payload = [
                 'nama_jenis' => $request->nama_jenis,
                 'harga_per_kg' => (int) round((float) $request->harga_per_kg),
-                'stok' => $request->stok,
+                'stok' => round((float) $request->stok, 2),
                 'status' => 'aktif',
                 'id_admin' => session('admin_id'),
             ];
@@ -110,7 +110,7 @@ class SampahController extends Controller
         $request->validate([
             'nama_jenis' => 'required|string|max:100',
             'harga_per_kg' => 'required|numeric|min:0',
-            'stok' => 'required|integer|min:0',
+            'stok' => 'required|numeric|min:0',
             'status' => 'required|in:aktif,nonaktif',
         ]);
 
@@ -118,7 +118,7 @@ class SampahController extends Controller
             $payload = [
                 'nama_jenis' => $request->nama_jenis,
                 'harga_per_kg' => (int) round((float) $request->harga_per_kg),
-                'stok' => $request->stok,
+                'stok' => round((float) $request->stok, 2),
                 'status' => $request->status,
             ];
 

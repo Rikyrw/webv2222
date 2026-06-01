@@ -143,20 +143,35 @@
                             @foreach ($fotoSetorItems as $foto)
                                 @php
                                     $photoElementId = 'waste-photo-' . $loop->iteration;
+                                    $photoFallbackId = 'waste-photo-fallback-' . $loop->iteration;
                                 @endphp
                                 <tr>
                                     <td class="fw-semibold">{{ $foto['urutan'] }}</td>
                                     <td>{{ $foto['nama_jenis'] }}</td>
                                     <td>
-                                        <img
-                                            id="{{ $photoElementId }}"
-                                            src="{{ $foto['foto_url'] }}"
-                                            alt="Foto sampah {{ $foto['urutan'] }}"
-                                            class="gp-photo-thumb"
-                                        >
+                                        @if ($foto['foto_available'])
+                                            <img
+                                                id="{{ $photoElementId }}"
+                                                src="{{ $foto['foto_url'] }}"
+                                                alt="Foto sampah {{ $foto['urutan'] }}"
+                                                class="gp-photo-thumb"
+                                                data-fallback-target="{{ $photoFallbackId }}"
+                                            >
+                                            <span id="{{ $photoFallbackId }}" class="gp-photo-missing" hidden>Foto tidak dapat dimuat</span>
+                                        @else
+                                            <span id="{{ $photoFallbackId }}" class="gp-photo-missing">Foto tidak tersedia</span>
+                                        @endif
                                     </td>
                                     <td class="text-center">
-                                        <button type="button" class="btn btn-sm btn-primary gp-photo-view" data-photo-target="{{ $photoElementId }}" data-bs-toggle="modal" data-bs-target="#wastePhotoModal">
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-primary gp-photo-view"
+                                            data-photo-target="{{ $photoElementId }}"
+                                            data-photo-src="{{ $foto['foto_url'] }}"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#wastePhotoModal"
+                                            @if (!$foto['foto_available']) disabled @endif
+                                        >
                                             <i class="bi bi-eye"></i>Lihat Foto
                                         </button>
                                     </td>
@@ -179,6 +194,7 @@
             </div>
             <div class="modal-body">
                 <img id="wastePhotoModalImage" src="" alt="Foto sampah ukuran besar" class="gp-photo-modal-img">
+                <div id="wastePhotoModalFallback" class="gp-photo-modal-fallback" hidden>Foto tidak dapat dimuat.</div>
             </div>
         </div>
     </div>
@@ -215,6 +231,22 @@
         background: #f5f8f5;
     }
 
+    .gp-photo-missing {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 118px;
+        min-height: 42px;
+        padding: 8px;
+        border: 1px dashed #d7e2db;
+        border-radius: 8px;
+        background: #f8faf8;
+        color: #6d7a71;
+        font-size: 12px;
+        font-weight: 700;
+        text-align: center;
+    }
+
     .gp-photo-modal-img {
         display: block;
         width: 100%;
@@ -225,23 +257,66 @@
         border-radius: 8px;
         background: #f5f8f5;
     }
+
+    .gp-photo-modal-fallback {
+        display: grid;
+        min-height: 180px;
+        place-items: center;
+        border: 1px dashed #d7e2db;
+        border-radius: 8px;
+        background: #f8faf8;
+        color: #6d7a71;
+        font-weight: 700;
+    }
 </style>
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const modalImage = document.getElementById('wastePhotoModalImage');
+        const modalFallback = document.getElementById('wastePhotoModalFallback');
         const modalElement = document.getElementById('wastePhotoModal');
+
+        function showModalFallback() {
+            modalImage.hidden = true;
+            modalFallback.hidden = false;
+        }
+
+        function showModalImage(src) {
+            modalFallback.hidden = true;
+            modalImage.hidden = false;
+            modalImage.src = src;
+        }
+
+        document.querySelectorAll('.gp-photo-thumb').forEach(function (image) {
+            image.addEventListener('error', function () {
+                const fallback = document.getElementById(image.dataset.fallbackTarget);
+                image.hidden = true;
+                if (fallback) {
+                    fallback.hidden = false;
+                }
+            });
+        });
+
+        modalImage.addEventListener('error', showModalFallback);
 
         document.querySelectorAll('.gp-photo-view').forEach(function (button) {
             button.addEventListener('click', function () {
                 const sourceImage = document.getElementById(button.dataset.photoTarget);
-                modalImage.src = sourceImage ? sourceImage.src : '';
+                const src = button.dataset.photoSrc || (sourceImage ? sourceImage.src : '');
+                if (!src) {
+                    showModalFallback();
+                    return;
+                }
+
+                showModalImage(src);
             });
         });
 
         if (modalElement) {
             modalElement.addEventListener('hidden.bs.modal', function () {
-                modalImage.src = '';
+                modalImage.removeAttribute('src');
+                modalImage.hidden = false;
+                modalFallback.hidden = true;
             });
         }
     });

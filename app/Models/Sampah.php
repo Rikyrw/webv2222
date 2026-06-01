@@ -26,7 +26,7 @@ class Sampah extends Model
 
     protected $casts = [
         'harga_per_kg' => 'decimal:2',
-        'stok' => 'integer'
+        'stok' => 'decimal:2'
     ];
 
     public function detailSetor(): HasMany

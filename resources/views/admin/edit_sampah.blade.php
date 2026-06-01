@@ -27,7 +27,7 @@
                 </div>
                 <div class="col-md-6">
                     <label for="stok" class="form-label">Stok (kg) <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" id="stok" name="stok" value="{{ $sampah->stok }}" required min="0">
+                    <input type="number" class="form-control" id="stok" name="stok" value="{{ $sampah->stok }}" required min="0" step="0.01">
                 </div>
                 <div class="col-md-6">
                     <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
